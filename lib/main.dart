@@ -14,13 +14,13 @@ class MoonBaseApp extends StatefulWidget {
   const MoonBaseApp({super.key});
 
   /// Helper to access the state anywhere to change theme.
-  static _MoonBaseAppState? of(BuildContext context) =>
-      context.findAncestorStateOfType<_MoonBaseAppState>();
+  static MoonBaseAppState? of(BuildContext context) =>
+      context.findAncestorStateOfType<MoonBaseAppState>();
   @override
-  State<MoonBaseApp> createState() => _MoonBaseAppState();
+  State<MoonBaseApp> createState() => MoonBaseAppState();
 }
 
-class _MoonBaseAppState extends State<MoonBaseApp> {
+class MoonBaseAppState extends State<MoonBaseApp> {
   ThemeMode _mode = ThemeMode.light;
 
   // Public getter to access the current theme mode
