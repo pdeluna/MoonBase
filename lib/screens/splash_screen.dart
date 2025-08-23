@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
+// ignore: unused_import
 import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -17,11 +18,11 @@ class _SplashScreenState extends State<SplashScreen> {
     // Simulate boot/auth check. Replace with Firebase later.
     Future.delayed(const Duration(seconds: 1), () {
       // For the skeleton, always go to Login. Toggle below to jump to Home.
-      final bool isLoggedIn = false;
+      // TODO: Replace with actual authentication check
+      // ignore: unused_local_variable
+      bool isLoggedIn = false; 
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(
-        isLoggedIn ? HomeScreen.route : LoginScreen.route,
-      );
+      Navigator.of(context).pushReplacementNamed(LoginScreen.route);
     });
   }
 
@@ -29,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: scheme.primaryContainer.withOpacity(.2),
+      backgroundColor: scheme.primaryContainer.withValues(alpha: 0.2),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

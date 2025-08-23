@@ -83,7 +83,7 @@ class _Card extends StatelessWidget {
       elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: scheme.primaryContainer.withOpacity(.25),
+      color: scheme.primaryContainer.withValues(alpha: 0.25),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
