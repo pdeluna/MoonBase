@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/signup_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/chat_screen.dart';
-import 'screens/profile_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'router.dart';
 
 void main() {
-  runApp(const MoonBaseApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const ProviderScope(child: MoonBaseApp()));
 }
 
-class MoonBaseApp extends StatefulWidget {
+class MoonBaseApp extends ConsumerStatefulWidget {
   const MoonBaseApp({super.key});
 
   /// Helper to access the state anywhere to change theme.
   static MoonBaseAppState? of(BuildContext context) =>
       context.findAncestorStateOfType<MoonBaseAppState>();
   @override
-  State<MoonBaseApp> createState() => MoonBaseAppState();
+  ConsumerState<MoonBaseApp> createState() => MoonBaseAppState();
 }
 
-class MoonBaseAppState extends State<MoonBaseApp> {
+class MoonBaseAppState extends ConsumerState<MoonBaseApp> {
   ThemeMode _mode = ThemeMode.light;
 
   // Public getter to access the current theme mode
@@ -202,21 +199,14 @@ class MoonBaseAppState extends State<MoonBaseApp> {
       );
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final router = ref.watch(routerProvider);
+    return MaterialApp.router(
+      routerConfig: router,
       title: 'MoonBase',
       debugShowCheckedModeBanner: false,
       themeMode: _mode,
       theme: _lightTheme,
       darkTheme: _darkTheme,
-      initialRoute: SplashScreen.route,
-      routes: {
-        SplashScreen.route: (_) => const SplashScreen(),
-        LoginScreen.route: (_) => const LoginScreen(),
-        SignUpScreen.route: (_) => const SignUpScreen(),
-        HomeScreen.route: (_) => const HomeScreen(),
-        ChatScreen.route: (_) => const ChatScreen(),
-        ProfileScreen.route: (_) => const ProfileScreen(),
-      },
     );
   }
 }

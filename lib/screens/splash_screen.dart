@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
-// ignore: unused_import
-import 'home_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class SplashScreen extends StatefulWidget {
-  static const route = '/';
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -22,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen> {
       // ignore: unused_local_variable
       bool isLoggedIn = false; 
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(LoginScreen.route);
+      context.go('/login');
     });
   }
 

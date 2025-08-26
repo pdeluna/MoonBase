@@ -1,85 +1,72 @@
 import 'package:flutter/material.dart';
-import '../widgets/primary_button.dart';
-import 'signup_screen.dart';
-import 'home_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '/services/session_controller.dart';
 
-class LoginScreen extends StatefulWidget {
-  static const route = '/login';
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
-
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  bool _obscure = true;
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final _c = TextEditingController();
+  String? _error;
+  bool _submitting = false;
 
-  @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    super.dispose();
+  bool get _valid {
+    final t = _c.text.trim();
+    final re = RegExp(r'^[\w\- ]{2,24}$'); // letters/numbers/_-/space
+    return re.hasMatch(t);
+  }
+
+  Future<void> _submit() async {
+    if (!_valid || _submitting) return;
+    setState(() => _submitting = true);
+    try {
+      await ref.read(sessionProvider.notifier).signIn(_c.text);
+      if (mounted) context.go('/home');
+    } catch (_) {
+      setState(() => _error = 'Could not create profile. Try again.');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final session = ref.watch(sessionProvider);
+    final disabled = _submitting || session.isLoading || !_valid;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Welcome back')),
+      appBar: AppBar(title: const Text('Welcome')),
       body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Sign in to your circle', style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _email,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (v) => (v == null || v.isEmpty) ? 'Enter email' : null,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Text("Pick a nickname (no email/phone needed)"),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _c,
+              decoration: InputDecoration(
+                labelText: 'Nickname',
+                errorText: _error,
+                helperText: '2–24 chars. Letters, numbers, _ or -',
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _password,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  suffixIcon: IconButton(
-                    onPressed: () => setState(() => _obscure = !_obscure),
-                    icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
-                  ),
-                ),
-                obscureText: _obscure,
-                validator: (v) => (v == null || v.isEmpty) ? 'Enter password' : null,
-              ),
-              const SizedBox(height: 20),
-              PrimaryButton(
-                label: 'Sign in',
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Replace with FirebaseAuth later
-                    Navigator.of(context).pushReplacementNamed(HomeScreen.route);
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              PrimaryButton(
-                label: 'Create an account',
-                filled: false,
-                onPressed: () => Navigator.of(context).pushNamed(SignUpScreen.route),
-              ),
-              const Spacer(),
-              Text(
-                'This is a skeleton build. No real authentication yet.',
-                style: TextStyle(color: scheme.onSurfaceVariant),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+              onChanged: (_) => setState(() => _error = null),
+              onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: disabled ? null : _submit,
+              child: _submitting
+                  ? const SizedBox(
+                      height: 18, width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Continue'),
+            ),
+          ],
         ),
       ),
     );

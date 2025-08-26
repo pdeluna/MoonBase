@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../main.dart';
+import '../services/session_controller.dart';
 
-class ProfileScreen extends StatelessWidget {
-  static const route = '/profile';
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: ListView(
@@ -53,9 +55,10 @@ class ProfileScreen extends StatelessWidget {
           ),
 ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Sign out'),
-            onTap: () {
-              Navigator.of(context).popUntil((r) => r.isFirst);
+            title: const Text('Log out'),
+            onTap: () async {
+              await ref.read(sessionProvider.notifier).signOut();
+              if (context.mounted) context.go('/login');
             },
           ),
         ],

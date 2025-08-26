@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'chat_screen.dart';
 import 'profile_screen.dart';
+import '../services/session_controller.dart';
 
-class HomeScreen extends StatefulWidget {
-  static const route = '/home';
+
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _tab = 0;
-
   final pages = const [
     _FeedPage(),
     ChatScreen(),
@@ -21,14 +23,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final profile = ref.watch(sessionProvider).value;
+    final nickname = profile?.nickname ?? 'Guest';
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MoonBase'),
+        title: Text('MoonBase - $nickname'),
         actions: [
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.notifications_none_rounded),
-          )
+          ),
+          IconButton(
+            onPressed: () async {
+              await ref.read(sessionProvider.notifier).signOut();
+              if (context.mounted) context.go('/login');
+            },
+            icon: const Icon(Icons.logout_rounded),
+          ),
         ],
       ),
       body: pages[_tab],
