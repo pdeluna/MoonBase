@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import 'profile_repository.dart';
+import 'package:moonbase_skeleton/services/profile_repository.dart';
 import 'package:moonbase_skeleton/models/profile.dart';
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {

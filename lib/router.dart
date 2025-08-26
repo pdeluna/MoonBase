@@ -1,13 +1,13 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'services/session_controller.dart';
+import 'package:moonbase_skeleton/services/session_controller.dart';
 
-import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/signup_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/chat_screen.dart';
-import 'screens/profile_screen.dart';
+import 'package:moonbase_skeleton/screens/splash_screen.dart';
+import 'package:moonbase_skeleton/screens/login_screen.dart';
+import 'package:moonbase_skeleton/screens/signup_screen.dart';
+import 'package:moonbase_skeleton/screens/home_screen.dart';
+import 'package:moonbase_skeleton/screens/chat_screen.dart';
+import 'package:moonbase_skeleton/screens/profile_screen.dart';
 
 
 final routerProvider = Provider<GoRouter>((ref) {
