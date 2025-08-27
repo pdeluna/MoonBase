@@ -49,9 +49,23 @@ class SessionController extends StateNotifier<AsyncValue<Profile?>> {
       userId: const Uuid().v4(),
       nickname: nickname.trim(),
       createdAt: DateTime.now().toIso8601String(),
+      themeMode: 'light', // Default to light mode
     );
     await _repo.write(profile);
     state = AsyncValue.data(profile);
+  }
+
+  Future<void> updateTheme(String mode) async { // "light" | "dark"
+    final current = state.value;
+    if (current == null) return;
+    final updated = Profile(
+      userId: current.userId,
+      nickname: current.nickname,
+      createdAt: current.createdAt,
+      themeMode: mode,
+    );
+    await _repo.write(updated);
+    state = AsyncValue.data(updated);
   }
 
   Future<void> signOut() async {

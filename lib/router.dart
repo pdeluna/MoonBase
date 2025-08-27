@@ -9,10 +9,16 @@ import 'package:moonbase_skeleton/screens/home_screen.dart';
 import 'package:moonbase_skeleton/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/screens/profile_screen.dart';
 
-final routerProvider = Provider<GoRouter>((ref) {
-  // Watch session state for router rebuilds
+// Separate provider for authentication state to avoid router rebuilds on theme changes
+final authStateProvider = Provider<bool>((ref) {
   final session = ref.watch(sessionProvider);
-  debugPrint('RouterProvider: Rebuilding router with session state: $session');
+  return session.value != null;
+});
+
+final routerProvider = Provider<GoRouter>((ref) {
+  // Watch only authentication state for router rebuilds
+  final isAuthenticated = ref.watch(authStateProvider);
+  debugPrint('RouterProvider: Rebuilding router with auth state: $isAuthenticated');
 
   return GoRouter(
     initialLocation: '/splash',
@@ -26,6 +32,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
     redirect: (context, state) {
       final loc = state.uri.toString();
+      // Get session state directly for detailed checks
+      final session = ref.read(sessionProvider);
       debugPrint('Router: redirect called with location: $loc, session: $session');
 
       // Always allow splash screen to control its own timing

@@ -21,7 +21,7 @@ class SpProfileRepository implements ProfileRepository {
       debugPrint('SpProfileRepository READ profile JSON: $s');
       final map = jsonDecode(s) as Map<String, dynamic>;
       final profile = Profile.fromJson(map);
-      debugPrint('SpProfileRepository READ parsed profile: userId=${profile.userId}, nickname=${profile.nickname}');
+      debugPrint('SpProfileRepository READ parsed profile: userId=${profile.userId}, nickname=${profile.nickname}, themeMode=${profile.themeMode}');
       return profile;
     } catch (_) {
       return null;

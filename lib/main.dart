@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/router.dart';
+import 'package:moonbase_skeleton/services/session_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -200,6 +201,24 @@ class MoonBaseAppState extends ConsumerState<MoonBaseApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+    final session = ref.watch(sessionProvider);
+    final storedTheme = session.value?.themeMode; // "light" | "dark"
+
+    // Keep in sync without setState (safe in build)
+    if (storedTheme != null) {
+      final newMode = storedTheme == 'dark' ? ThemeMode.dark : ThemeMode.light;
+      if (_mode != newMode) {
+        debugPrint('MainApp: Updating theme from ${_mode.name} to ${newMode.name}');
+        _mode = newMode;
+      }
+    } else {
+      // Reset to light mode when logged out
+      if (_mode != ThemeMode.light) {
+        debugPrint('MainApp: Resetting theme to light mode (logged out)');
+        _mode = ThemeMode.light;
+      }
+    }
+
     return MaterialApp.router(
       routerConfig: router,
       title: 'MoonBase',
