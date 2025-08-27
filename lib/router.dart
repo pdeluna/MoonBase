@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:moonbase_skeleton/services/session_controller.dart';
-
 import 'package:moonbase_skeleton/screens/splash_screen.dart';
 import 'package:moonbase_skeleton/screens/login_screen.dart';
 import 'package:moonbase_skeleton/screens/signup_screen.dart';
@@ -9,11 +9,10 @@ import 'package:moonbase_skeleton/screens/home_screen.dart';
 import 'package:moonbase_skeleton/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/screens/profile_screen.dart';
 
-
 final routerProvider = Provider<GoRouter>((ref) {
   // Watch session state for router rebuilds
-
   final session = ref.watch(sessionProvider);
+  debugPrint('RouterProvider: Rebuilding router with session state: $session');
 
   return GoRouter(
     initialLocation: '/splash',
@@ -27,26 +26,41 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
     redirect: (context, state) {
       final loc = state.uri.toString();
+      debugPrint('Router: redirect called with location: $loc, session: $session');
 
-      // Hold on splash while bootstrapping
-      if (session.isLoading) return loc == '/splash' ? null : '/splash';
-      if (session.hasError) return '/splash';
+      // Always allow splash screen to control its own timing
+      if (loc == '/splash') {
+        debugPrint('Router: Allowing splash screen to control timing');
+        return null;
+      }
+
+      // While session is loading, redirect to splash
+      if (session.isLoading) {
+        debugPrint('Router: Session loading, redirecting to splash');
+        return '/splash';
+      }
+      
+      // If session has error, redirect to splash
+      if (session.hasError) {
+        debugPrint('Router: Session error, redirecting to splash');
+        return '/splash';
+      }
 
       final signedIn = session.value != null;
 
-      // Not signed in → only allow splash/login/signup
-      if (!signedIn &&
-          loc != '/login' &&
-          loc != '/signup' &&
-          loc != '/splash') {
+      // Not signed in → only allow login/signup
+      if (!signedIn && loc != '/login' && loc != '/signup') {
+        debugPrint('Router: Not signed in, redirecting to login');
         return '/login';
       }
 
-      // Signed in → keep away from login/splash
-      if (signedIn && (loc == '/login' || loc == '/splash')) {
+      // Signed in → keep away from login/signup
+      if (signedIn && (loc == '/login' || loc == '/signup')) {
+        debugPrint('Router: Signed in, redirecting to home');
         return '/home';
       }
 
+      debugPrint('Router: No redirect needed');
       return null;
     },
   );
