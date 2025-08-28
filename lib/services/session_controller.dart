@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
 import 'package:moonbase_skeleton/services/profile_repository.dart';
 import 'package:moonbase_skeleton/models/profile.dart';
 
@@ -9,7 +8,7 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 });
 
 // Development flag to help with caching issues
-final _developmentMode = true;
+const _developmentMode = true;
 
 final sessionProvider =
     StateNotifierProvider<SessionController, AsyncValue<Profile?>>((ref) {
@@ -44,16 +43,15 @@ class SessionController extends StateNotifier<AsyncValue<Profile?>> {
     }
   }
 
-  Future<void> signIn(String nickname) async {
-    final profile = Profile(
-      userId: const Uuid().v4(),
-      nickname: nickname.trim(),
-      createdAt: DateTime.now().toIso8601String(),
-      themeMode: 'light', // Default to light mode
-    );
-    await _repo.write(profile);
-    state = AsyncValue.data(profile);
+Future<void> signIn(String nickname) async {
+  try {
+    final repo = _repo as SpProfileRepository; // safe in Phase 1
+    final p = await repo.signInByNickname(nickname);
+    state = AsyncValue.data(p);
+  } catch (e, st) {
+    state = AsyncValue.error(e, st);
   }
+}
 
   Future<void> updateTheme(String mode) async { // "light" | "dark"
     final current = state.value;
