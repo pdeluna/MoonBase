@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:moonbase_skeleton/main.dart';
+import 'package:moonbase_skeleton/services/session_controller.dart';
 
-class ProfileScreen extends StatelessWidget {
-  static const route = '/profile';
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -39,23 +42,23 @@ class ProfileScreen extends StatelessWidget {
           SwitchListTile(
             secondary: const Icon(Icons.dark_mode),
             title: const Text('Dark Mode'),
-            value: MoonBaseApp.of(context)?.currentThemeMode == ThemeMode.dark,
-            onChanged: (v) => MoonBaseApp.of(context)?.toggleDark(v),
-          ),
-          ListTile(
-            leading: const Icon(Icons.brightness_auto),
-            title: const Text('Use system theme'),
-            subtitle: const Text('Match the device setting'),
-            trailing: MoonBaseApp.of(context)?.currentThemeMode == ThemeMode.system
-                ? Icon(Icons.check, color: scheme.primary) 
-                : null,
-            onTap: () => MoonBaseApp.of(context)?.setThemeMode(ThemeMode.system),
+            value: isDark,
+            onChanged: (value) async {
+              // 1) Flip the app theme immediately
+              MoonBaseApp.of(context)?.setThemeMode(
+                value ? ThemeMode.dark : ThemeMode.light,
+              );
+              // 2) Persist to the profile
+              await ref.read(sessionProvider.notifier)
+                      .updateTheme(value ? 'dark' : 'light');
+            },
           ),
 ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Sign out'),
-            onTap: () {
-              Navigator.of(context).popUntil((r) => r.isFirst);
+            title: const Text('Log out'),
+            onTap: () async {
+              await ref.read(sessionProvider.notifier).signOut();
+              if (context.mounted) context.go('/login');
             },
           ),
         ],

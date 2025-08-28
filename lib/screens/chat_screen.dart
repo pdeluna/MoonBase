@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class ChatScreen extends StatelessWidget {
-  static const route = '/chat';
   const ChatScreen({super.key});
 
   @override
@@ -19,7 +18,7 @@ class ChatScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
               constraints: const BoxConstraints(maxWidth: 280),
               decoration: BoxDecoration(
-                color: mine ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceVariant,
+                color: mine ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(

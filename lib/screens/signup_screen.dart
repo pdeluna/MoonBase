@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import '../widgets/primary_button.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:moonbase_skeleton/widgets/primary_button.dart';
 
-class SignUpScreen extends StatefulWidget {
-  static const route = '/signup';
+class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -51,7 +52,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 label: 'Continue',
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
-                    Navigator.of(context).pop(); // go back to login
+                    context.go('/login'); // go back to login
                   }
                 },
               ),

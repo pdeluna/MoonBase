@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/signup_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/chat_screen.dart';
-import 'screens/profile_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/router.dart';
+import 'package:moonbase_skeleton/services/session_controller.dart';
 
 void main() {
-  runApp(const MoonBaseApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const ProviderScope(child: MoonBaseApp()));
 }
 
-class MoonBaseApp extends StatefulWidget {
+class MoonBaseApp extends ConsumerStatefulWidget {
   const MoonBaseApp({super.key});
 
   /// Helper to access the state anywhere to change theme.
   static MoonBaseAppState? of(BuildContext context) =>
       context.findAncestorStateOfType<MoonBaseAppState>();
   @override
-  State<MoonBaseApp> createState() => MoonBaseAppState();
+  ConsumerState<MoonBaseApp> createState() => MoonBaseAppState();
 }
 
-class MoonBaseAppState extends State<MoonBaseApp> {
+class MoonBaseAppState extends ConsumerState<MoonBaseApp> {
   ThemeMode _mode = ThemeMode.light;
 
   // Public getter to access the current theme mode
@@ -202,21 +200,32 @@ class MoonBaseAppState extends State<MoonBaseApp> {
       );
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final router = ref.watch(routerProvider);
+    final session = ref.watch(sessionProvider);
+    final storedTheme = session.value?.themeMode; // "light" | "dark"
+
+    // Keep in sync without setState (safe in build)
+    if (storedTheme != null) {
+      final newMode = storedTheme == 'dark' ? ThemeMode.dark : ThemeMode.light;
+      if (_mode != newMode) {
+        debugPrint('MainApp: Updating theme from ${_mode.name} to ${newMode.name}');
+        _mode = newMode;
+      }
+    } else {
+      // Reset to light mode when logged out
+      if (_mode != ThemeMode.light) {
+        debugPrint('MainApp: Resetting theme to light mode (logged out)');
+        _mode = ThemeMode.light;
+      }
+    }
+
+    return MaterialApp.router(
+      routerConfig: router,
       title: 'MoonBase',
       debugShowCheckedModeBanner: false,
       themeMode: _mode,
       theme: _lightTheme,
       darkTheme: _darkTheme,
-      initialRoute: SplashScreen.route,
-      routes: {
-        SplashScreen.route: (_) => const SplashScreen(),
-        LoginScreen.route: (_) => const LoginScreen(),
-        SignUpScreen.route: (_) => const SignUpScreen(),
-        HomeScreen.route: (_) => const HomeScreen(),
-        ChatScreen.route: (_) => const ChatScreen(),
-        ProfileScreen.route: (_) => const ProfileScreen(),
-      },
     );
   }
 }

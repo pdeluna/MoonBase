@@ -54,7 +54,6 @@ This document summarizes the core Git/GitHub workflow, Flutter practices, and pr
 
 ## General Best Practices
 
-- Keep `.gitignore` in project root; don’t mix with `.ssh` keys.
 - Use PR templates and GitHub Actions CI for consistent reviews & tests.
 - Avoid upgrading Flutter during MVP unless blocked; upgrade after milestone.
 - Document setup (FVM, SDK path, workflow) in README for clarity.

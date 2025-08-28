@@ -1,47 +1,69 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
-// ignore: unused_import
-import 'home_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:moonbase_skeleton/widgets/moon_spinner.dart';
+import 'package:moonbase_skeleton/services/session_controller.dart';
 
-class SplashScreen extends StatefulWidget {
-  static const route = '/';
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+  bool _canNavigate = false;
+
   @override
   void initState() {
     super.initState();
-    // Simulate boot/auth check. Replace with Firebase later.
+    debugPrint('SplashScreen: initState called');
+    // Always show spinner for at least 1 second, regardless of session state
     Future.delayed(const Duration(seconds: 1), () {
-      // For the skeleton, always go to Login. Toggle below to jump to Home.
-      // TODO: Replace with actual authentication check
-      // ignore: unused_local_variable
-      bool isLoggedIn = false; 
-      if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(LoginScreen.route);
+      if (mounted) {
+        setState(() {
+          _canNavigate = true;
+        });
+        debugPrint('SplashScreen: _canNavigate set to true');
+        
+        // Navigate after minimum display time
+        final session = ref.read(sessionProvider);
+        session.when(
+          data: (profile) {
+            final signedIn = profile != null;
+            debugPrint('SplashScreen: Navigating to ${signedIn ? '/home' : '/login'}');
+            context.go(signedIn ? '/home' : '/login');
+          },
+          loading: () {
+            debugPrint('SplashScreen: Still loading, staying on splash');
+          },
+          error: (error, stack) {
+            debugPrint('SplashScreen: Error, navigating to login');
+            context.go('/login');
+          },
+        );
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(sessionProvider);
     final scheme = Theme.of(context).colorScheme;
+    
+    debugPrint('SplashScreen: Building with session state: $session, _canNavigate: $_canNavigate');
+    
     return Scaffold(
       backgroundColor: scheme.primaryContainer.withValues(alpha: 0.2),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.waves_rounded, size: 72, color: scheme.primary),
-            const SizedBox(height: 16),
-            Text('MoonBase', style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 12),
-            const CircularProgressIndicator(),
-          ],
-        ),
+        child: _canNavigate 
+          ? const SizedBox.shrink() // Let navigation happen
+          : const MoonSpinner( // Beautiful moon spinner
+              size: 72,
+              orbit: 18,
+              duration: Duration(seconds: 1),
+              assetPath: 'assets/images/logo.png',
+            ),
       ),
     );
   }
