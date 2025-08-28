@@ -80,7 +80,7 @@ void main() {
       );
 
       // Create media references
-      final imageMedia = MediaRef(
+      const imageMedia = MediaRef(
         id: 'media-1',
         type: MediaType.image,
         uri: 'https://example.com/image.jpg',
@@ -89,13 +89,13 @@ void main() {
         thumbnailUri: 'https://example.com/image-thumb.jpg',
       );
 
-      final videoMedia = MediaRef(
+      const videoMedia = MediaRef(
         id: 'media-2',
         type: MediaType.video,
         uri: 'https://example.com/video.mp4',
         width: 1920,
         height: 1080,
-        duration: const Duration(minutes: 2, seconds: 30),
+        duration: Duration(minutes: 2, seconds: 30),
         thumbnailUri: 'https://example.com/video-thumb.jpg',
       );
 
@@ -248,7 +248,7 @@ void main() {
         updatedByUserId: 'user-1',
       );
 
-      final media = MediaRef(
+      const media = MediaRef(
         id: 'media-1',
         type: MediaType.image,
         uri: 'https://example.com/image.jpg',
