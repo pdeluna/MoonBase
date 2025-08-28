@@ -198,7 +198,7 @@ void main() {
 
       // Verify media relationships
       expect(post.media, hasLength(1));
-      expect(post.media!.first.id, imageMedia.id);
+      expect(post.media.first.id, imageMedia.id);
       expect(story.media.id, videoMedia.id);
       expect(mediaMessage.media, hasLength(1));
       expect(mediaMessage.media!.first.id, imageMedia.id);
