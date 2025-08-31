@@ -31,7 +31,7 @@ void main() {
         authorUserId: 'author-id',
         type: MessageType.media,
         text: 'Hello world!',
-        media: [
+        media: const [
           MediaRef(
             id: 'media-id',
             type: MediaType.image,
@@ -62,7 +62,7 @@ void main() {
         authorUserId: 'author-id',
         type: MessageType.media,
         text: 'Hello world!',
-        media: [
+        media: const [
           MediaRef(
             id: 'media-id',
             type: MediaType.image,
@@ -207,7 +207,7 @@ void main() {
         baseId: 'base-id',
         authorUserId: 'author-id',
         type: MessageType.media,
-        media: [
+        media: const [
           MediaRef(
             id: 'media-ref-id',
             type: MediaType.image,

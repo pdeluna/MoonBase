@@ -11,6 +11,7 @@ class Base {
   final String? avatarUrl;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? lastAccessedAt;
 
   const Base({
     required this.id,
@@ -21,6 +22,7 @@ class Base {
     this.avatarUrl,
     required this.createdAt,
     required this.updatedAt,
+    this.lastAccessedAt,
   });
 
 Base copyWith({
@@ -32,6 +34,7 @@ Base copyWith({
   String? avatarUrl,
   DateTime? createdAt,
   DateTime? updatedAt,
+  DateTime? lastAccessedAt,
 }) {
   return Base(
     id: id ?? this.id,
@@ -42,6 +45,7 @@ Base copyWith({
     avatarUrl: avatarUrl ?? this.avatarUrl,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    lastAccessedAt: lastAccessedAt ?? this.lastAccessedAt,
   );
 }
 
@@ -55,6 +59,7 @@ Map<String, dynamic> toMap() {
     'avatarUrl': avatarUrl,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
+    'lastAccessedAt': lastAccessedAt?.toIso8601String(),
   };
 }
 
@@ -68,6 +73,7 @@ factory Base.fromMap(Map<String, dynamic> map) {
     avatarUrl: map['avatarUrl'] as String?,
     createdAt: DateTime.parse(map['createdAt'] as String),
     updatedAt: DateTime.parse(map['updatedAt'] as String),
+    lastAccessedAt: map['lastAccessedAt'] != null ? DateTime.parse(map['lastAccessedAt'] as String) : null,
   );
 }
 

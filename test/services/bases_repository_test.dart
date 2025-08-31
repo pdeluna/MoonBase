@@ -11,9 +11,8 @@ class MockBasesRepository implements BasesRepository {
   final Map<String, List<String>> _userBases = {};
 
   @override
-  Future<Base> createBase({required String name, String? description, String? avatarUrl}) async {
+  Future<Base> createBase({required String name, String? description, String? avatarUrl, required String userId}) async {
     final baseId = 'base_${_bases.length + 1}';
-    final userId = 'user_1'; // Mock current user
     
     final base = Base(
       id: baseId,
@@ -45,7 +44,7 @@ class MockBasesRepository implements BasesRepository {
   }
 
   @override
-  Future<void> deleteBase(String baseId) async {
+  Future<void> deleteBase(String baseId, {required String userId}) async {
     _bases.remove(baseId);
     _members.remove(baseId);
     
@@ -124,6 +123,17 @@ class MockBasesRepository implements BasesRepository {
     final base = _bases[baseId];
     return base?.ownerUserId == userId;
   }
+
+  @override
+  Future<void> updateLastAccessed(String baseId) async {
+    final base = _bases[baseId];
+    if (base != null) {
+      _bases[baseId] = base.copyWith(
+        lastAccessedAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    }
+  }
 }
 
 void main() {
@@ -150,6 +160,7 @@ void main() {
         final base = await repository.createBase(
           name: 'Test Base',
           description: 'A test base',
+          userId: 'user_123',
         );
 
         expect(base.name, equals('Test Base'));
@@ -163,11 +174,16 @@ void main() {
         expect(savedBases.first.id, equals(base.id));
       });
 
-      test('should throw exception when no current user', () async {
-        expect(
-          () => repository.createBase(name: 'Test Base'),
-          throwsA(isA<Exception>()),
+      test('should create base with provided userId', () async {
+        // Test that createBase works with explicit userId (no need for current user setup)
+        final base = await repository.createBase(
+          name: 'Test Base',
+          userId: 'user_123',
         );
+        
+        expect(base.name, equals('Test Base'));
+        expect(base.ownerUserId, equals('user_123'));
+        expect(base.memberIds, contains('user_123'));
       });
     });
 
@@ -182,8 +198,8 @@ void main() {
         await prefs.setString('mb.currentUser', 'testuser');
         await prefs.setString('mb.users', '{"testuser": {"userId": "user_123", "nickname": "testuser"}}');
         
-        await repository.createBase(name: 'Test Base 1');
-        await repository.createBase(name: 'Test Base 2');
+        await repository.createBase(name: 'Test Base 1', userId: 'user_123');
+        await repository.createBase(name: 'Test Base 2', userId: 'user_123');
 
         final bases = await repository.listMyBases('user_123');
         expect(bases.length, equals(2));
@@ -197,7 +213,7 @@ void main() {
         await prefs.setString('mb.currentUser', 'testuser');
         await prefs.setString('mb.users', '{"testuser": {"userId": "user_123", "nickname": "testuser"}}');
         
-        final base = await repository.createBase(name: 'Test Base');
+        final base = await repository.createBase(name: 'Test Base', userId: 'user_123');
 
         final member = await repository.addMember(
           baseId: base.id,
@@ -221,7 +237,7 @@ void main() {
         await prefs.setString('mb.currentUser', 'testuser');
         await prefs.setString('mb.users', '{"testuser": {"userId": "user_123", "nickname": "testuser"}}');
         
-        final base = await repository.createBase(name: 'Test Base');
+        final base = await repository.createBase(name: 'Test Base', userId: 'user_123');
 
         final isOwner = await repository.isOwner(baseId: base.id, userId: 'user_123');
         expect(isOwner, isTrue);
@@ -231,7 +247,7 @@ void main() {
         await prefs.setString('mb.currentUser', 'testuser');
         await prefs.setString('mb.users', '{"testuser": {"userId": "user_123", "nickname": "testuser"}}');
         
-        final base = await repository.createBase(name: 'Test Base');
+        final base = await repository.createBase(name: 'Test Base', userId: 'user_123');
 
         final isOwner = await repository.isOwner(baseId: base.id, userId: 'user_456');
         expect(isOwner, isFalse);

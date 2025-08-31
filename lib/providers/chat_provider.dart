@@ -29,7 +29,7 @@ final chatStreamProvider = StreamProvider.family<List<ChatMessage>, String>((ref
 final chatActionsProvider = StateNotifierProvider<ChatActionsNotifier, AsyncValue<void>>((ref) {
   final repository = ref.watch(chatRepositoryProvider);
   final session = ref.watch(sessionProvider);
-  final selectedBase = ref.watch(selectedBaseProvider);
+  final selectedBase = ref.watch(effectiveSelectedBaseProvider);
   
   return ChatActionsNotifier(repository, session, selectedBase);
 });
