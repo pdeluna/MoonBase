@@ -18,9 +18,39 @@ final basesProvider = StateNotifierProvider<BasesNotifier, AsyncValue<List<Base>
   return BasesNotifier(repository, session);
 });
 
+// Computed provider that automatically selects the most recent base
+final mostRecentBaseProvider = Provider<Base?>((ref) {
+  final bases = ref.watch(basesProvider);
+  
+  if (bases.isLoading || bases.hasError) return null;
+  
+  final basesList = bases.value;
+  if (basesList == null || basesList.isEmpty) return null;
+  
+  // Find the most recently accessed base (highest lastAccessedAt timestamp)
+  // If lastAccessedAt is null, fall back to createdAt
+  return basesList.reduce((a, b) {
+    final aTime = a.lastAccessedAt ?? a.createdAt;
+    final bTime = b.lastAccessedAt ?? b.createdAt;
+    return aTime.isAfter(bTime) ? a : b;
+  });
+});
+
+// Computed provider that returns the selected base or falls back to the most recent base
+final effectiveSelectedBaseProvider = Provider<Base?>((ref) {
+  final selectedBase = ref.watch(selectedBaseProvider);
+  final mostRecentBase = ref.watch(mostRecentBaseProvider);
+  
+  // Return the manually selected base if available, otherwise return the most recent base
+  return selectedBase ?? mostRecentBase;
+});
+
 // Selected base provider - manages currently selected base
+// This will automatically reset when the user changes because it depends on the session
 final selectedBaseProvider = StateNotifierProvider<SelectedBaseNotifier, Base?>((ref) {
-  return SelectedBaseNotifier();
+  // Watch the session to ensure this provider resets when user changes
+  ref.watch(sessionProvider);
+  return SelectedBaseNotifier(ref);
 });
 
 // Base members provider - manages members of a specific base
@@ -36,16 +66,29 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
 
   final BasesRepository _repository;
   final AsyncValue<dynamic> _session;
+  
+  // Track the previous session to detect changes
+  String? _previousUserId;
 
   Future<void> _loadBases() async {
     if (_session.value == null) {
       state = const AsyncValue.data([]);
+      _previousUserId = null;
       return;
     }
 
     try {
-      state = const AsyncValue.loading();
       final userId = _session.value!.userId;
+      
+      // Check if user has changed
+      if (_previousUserId != null && _previousUserId != userId) {
+        // User has changed, clear the selected base
+        // We can't directly access the selectedBaseProvider here, 
+        // but the sessionWatcherProvider will handle this
+      }
+      
+      _previousUserId = userId;
+      state = const AsyncValue.loading();
       final bases = await _repository.listMyBases(userId);
       state = AsyncValue.data(bases);
     } catch (e, st) {
@@ -65,6 +108,7 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
         name: name,
         description: description,
         avatarUrl: avatarUrl,
+        userId: _session.value!.userId, // Pass the user ID explicitly
       );
 
       // Add the new base to the list
@@ -82,8 +126,10 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
   }
 
   Future<void> deleteBase(String baseId) async {
+    if (_session.value == null) return;
+    
     try {
-      await _repository.deleteBase(baseId);
+      await _repository.deleteBase(baseId, userId: _session.value!.userId);
       
       // Remove from list
       final currentBases = state.value ?? [];
@@ -97,13 +143,37 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
   Future<void> refresh() async {
     await _loadBases();
   }
+
+  Future<void> updateLastAccessed(String baseId) async {
+    try {
+      await _repository.updateLastAccessed(baseId);
+      
+      // Update the base in our local state
+      final currentBases = state.value ?? [];
+      final updatedBases = currentBases.map((base) {
+        if (base.id == baseId) {
+          return base.copyWith(lastAccessedAt: DateTime.now());
+        }
+        return base;
+      }).toList();
+      
+      state = AsyncValue.data(updatedBases);
+    } catch (e, st) {
+      // Don't update state on error, just log it
+      print('Failed to update last accessed time for base $baseId: $e');
+    }
+  }
 }
 
 class SelectedBaseNotifier extends StateNotifier<Base?> {
-  SelectedBaseNotifier() : super(null);
+  SelectedBaseNotifier(this._ref) : super(null);
+
+  final Ref _ref;
 
   void selectBase(Base base) {
     state = base;
+    // Update the last accessed timestamp for this base
+    _ref.read(basesProvider.notifier).updateLastAccessed(base.id);
   }
 
   void clearSelection() {

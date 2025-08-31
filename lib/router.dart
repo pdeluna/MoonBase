@@ -8,6 +8,7 @@ import 'package:moonbase_skeleton/screens/signup_screen.dart';
 import 'package:moonbase_skeleton/screens/home_screen.dart';
 import 'package:moonbase_skeleton/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/screens/profile_screen.dart';
+import 'package:moonbase_skeleton/screens/base_picker_screen.dart';
 
 // Separate provider for authentication state to avoid router rebuilds on theme changes
 final authStateProvider = Provider<bool>((ref) {
@@ -29,6 +30,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
       GoRoute(path: '/chat', builder: (_, __) => const ChatScreen()),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+      GoRoute(path: '/base-picker', builder: (_, __) => const BasePickerScreen()),
     ],
     redirect: (context, state) {
       final loc = state.uri.toString();

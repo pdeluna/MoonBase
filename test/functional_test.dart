@@ -69,6 +69,7 @@ void main() {
       final base = await basesRepo.createBase(
         name: testBaseName,
         description: testBaseDescription,
+        userId: testUserId,
       );
       
       expect(base, isA<Base>());
@@ -165,6 +166,7 @@ void main() {
       final base = await basesRepo.createBase(
         name: 'Streaming Test Base',
         description: 'Testing real-time streaming',
+        userId: testUserId,
       );
 
       // Set up stream listener
@@ -197,6 +199,7 @@ void main() {
       final base = await basesRepo.createBase(
         name: 'Invite Test Base',
         description: 'Testing invite system',
+        userId: testUserId,
       );
 
       // Create invite with multiple uses
@@ -223,6 +226,7 @@ void main() {
       final base = await basesRepo.createBase(
         name: 'Message Test Base',
         description: 'Testing message functionality',
+        userId: testUserId,
       );
 
       // Send initial message
@@ -253,11 +257,13 @@ void main() {
       final base1 = await basesRepo.createBase(
         name: 'Base 1',
         description: 'First test base',
+        userId: testUserId,
       );
       
       final base2 = await basesRepo.createBase(
         name: 'Base 2',
         description: 'Second test base',
+        userId: testUserId,
       );
 
       // List all bases for user

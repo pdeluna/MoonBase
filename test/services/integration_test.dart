@@ -38,6 +38,7 @@ void main() {
       final base = await basesRepository.createBase(
         name: 'Alice\'s Base',
         description: 'A private space for friends',
+        userId: 'user_alice',
       );
 
       expect(base.name, equals('Alice\'s Base'));
@@ -164,7 +165,7 @@ void main() {
       await prefs.setString('mb.users', '{"owner": "{\\"userId\\":\\"user_owner\\",\\"nickname\\":\\"owner\\"}", "user1": "{\\"userId\\":\\"user_1\\",\\"nickname\\":\\"user1\\"}", "user2": "{\\"userId\\":\\"user_2\\",\\"nickname\\":\\"user_2\\"}"}');
 
       // Create base
-      final base = await basesRepository.createBase(name: 'Multi-User Base');
+      final base = await basesRepository.createBase(name: 'Multi-User Base', userId: 'user_owner');
 
       // Create invite
       final invite = await invitesRepository.createInvite(
@@ -209,7 +210,7 @@ void main() {
       await prefs.setString('mb.currentUser', 'owner');
       await prefs.setString('mb.users', '{"owner": "{\\"userId\\":\\"user_owner\\",\\"nickname\\":\\"owner\\"}", "user1": "{\\"userId\\":\\"user_1\\",\\"nickname\\":\\"user1\\"}"}');
 
-      final base = await basesRepository.createBase(name: 'Test Base');
+      final base = await basesRepository.createBase(name: 'Test Base', userId: 'user_owner');
 
       // Test invalid invite code
       expect(

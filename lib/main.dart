@@ -203,6 +203,8 @@ class MoonBaseAppState extends ConsumerState<MoonBaseApp> {
     final router = ref.watch(routerProvider);
     final session = ref.watch(sessionProvider);
     final storedTheme = session.value?.themeMode; // "light" | "dark"
+    
+
 
     // Keep in sync without setState (safe in build)
     if (storedTheme != null) {
