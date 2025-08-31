@@ -3,9 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:moonbase_skeleton/services/bases_repository.dart';
 import 'package:moonbase_skeleton/services/invites_repository.dart';
 import 'package:moonbase_skeleton/services/chat_repository.dart';
-import 'package:moonbase_skeleton/models/base.dart';
-import 'package:moonbase_skeleton/models/base_member.dart';
-import 'package:moonbase_skeleton/models/invite.dart';
 import 'package:moonbase_skeleton/models/chat_message.dart';
 import 'package:moonbase_skeleton/models/enums.dart';
 
@@ -175,12 +172,12 @@ void main() {
       );
 
       // Multiple users join
-      final member1 = await invitesRepository.redeemInvite(
+      await invitesRepository.redeemInvite(
         code: invite.code,
         userId: 'user_1',
       );
 
-      final member2 = await invitesRepository.redeemInvite(
+      await invitesRepository.redeemInvite(
         code: invite.code,
         userId: 'user_2',
       );

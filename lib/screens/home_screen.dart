@@ -7,7 +7,6 @@ import 'package:moonbase_skeleton/services/session_controller.dart';
 import 'package:moonbase_skeleton/providers/bases_provider.dart';
 import 'package:moonbase_skeleton/widgets/primary_button.dart';
 import 'package:moonbase_skeleton/widgets/swipable_base_sidebar.dart';
-import 'package:moonbase_skeleton/models/base.dart';
 
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -77,11 +76,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           actions: [
             IconButton(
               onPressed: () {
-                final sidebarState = SwipableBaseSidebar.of(context);
-                sidebarState?.toggleSidebar();
+                final selectedBase = ref.read(effectiveSelectedBaseProvider);
+                if (selectedBase != null) {
+                  context.go('/invites');
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a base first')),
+                  );
+                }
               },
-              icon: const Icon(Icons.home_work_outlined),
-              tooltip: 'Switch Base',
+              icon: const Icon(Icons.group_add),
+              tooltip: 'Manage Invites',
             ),
             IconButton(
               onPressed: () {},

@@ -55,6 +55,24 @@ class MockBasesRepository implements BasesRepository {
   }
 
   @override
+  Future<Base> updateBase(String baseId, {required String name, String? description, String? avatarUrl, required String userId}) async {
+    final base = _bases[baseId];
+    if (base == null) {
+      throw Exception('Base not found');
+    }
+    
+    final updatedBase = base.copyWith(
+      name: name,
+      description: description,
+      avatarUrl: avatarUrl,
+      updatedAt: DateTime.now(),
+    );
+    
+    _bases[baseId] = updatedBase;
+    return updatedBase;
+  }
+
+  @override
   Future<Base?> getBase(String baseId) async {
     return _bases[baseId];
   }

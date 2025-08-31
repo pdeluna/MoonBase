@@ -178,7 +178,7 @@ void main() {
       });
 
       // Send a message to trigger stream
-      final testMessage = await chatRepo.sendMessage(
+      await chatRepo.sendMessage(
         baseId: base.id,
         authorUserId: testUserId,
         type: MessageType.text,

@@ -8,6 +8,7 @@ import 'dart:convert';
 abstract class BasesRepository {
   Future<Base> createBase({required String name, String? description, String? avatarUrl, required String userId});
   Future<void> deleteBase(String baseId, {required String userId});
+  Future<Base> updateBase(String baseId, {required String name, String? description, String? avatarUrl, required String userId});
 
   Future<Base?> getBase(String baseId);
   Future<List<Base>> listMyBases(String userId);
@@ -159,6 +160,40 @@ class SpBasesRepository implements BasesRepository {
     final members = await _readMembers(sp);
     members.remove(baseId);
     await _writeMembers(sp, members);
+  }
+
+  @override
+  Future<Base> updateBase(String baseId, {required String name, String? description, String? avatarUrl, required String userId}) async {
+    final sp = await SharedPreferences.getInstance();
+    
+    // Check if current user is owner
+    final isOwner = await this.isOwner(baseId: baseId, userId: userId);
+    if (!isOwner) {
+      throw Exception('Only base owner can update the base');
+    }
+
+    // Get current base
+    final bases = await _readBases(sp);
+    final baseJson = bases[baseId];
+    if (baseJson == null) {
+      throw Exception('Base not found');
+    }
+
+    final currentBase = Base.fromJson(baseJson);
+    final now = DateTime.now();
+    
+    // Update base
+    final updatedBase = currentBase.copyWith(
+      name: name,
+      description: description,
+      avatarUrl: avatarUrl,
+      updatedAt: now,
+    );
+
+    bases[baseId] = updatedBase.toJson();
+    await _writeBases(sp, bases);
+
+    return updatedBase;
   }
 
   @override
