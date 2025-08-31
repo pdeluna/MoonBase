@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/widgets/base_sidebar.dart';
+import 'package:moonbase_skeleton/providers/bases_provider.dart';
+import 'package:moonbase_skeleton/providers/invites_provider.dart';
 
 class SwipableBaseSidebar extends ConsumerStatefulWidget {
   final Widget child;
@@ -33,6 +35,11 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
   double _dragStartX = 0;
   double _currentDragX = 0;
 
+  // Controllers for dialogs
+  final _baseNameController = TextEditingController();
+  final _inviteCodeController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +59,8 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
   @override
   void dispose() {
     _animationController.dispose();
+    _baseNameController.dispose();
+    _inviteCodeController.dispose();
     super.dispose();
   }
 
@@ -135,16 +144,139 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
 
   void _showCreateBaseDialog() {
     _closeSidebar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create base functionality is available in the sidebar')),
+    _baseNameController.clear();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create New Base'),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _baseNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Base Name',
+                  hintText: 'Enter base name',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a base name';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (_formKey.currentState!.validate()) {
+                Navigator.of(context).pop();
+                await _createBase();
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
     );
   }
 
   void _showJoinBaseDialog() {
     _closeSidebar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Join base functionality is available in the sidebar')),
+    _inviteCodeController.clear();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Join Base'),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _inviteCodeController,
+                decoration: const InputDecoration(
+                  labelText: 'Invite Code',
+                  hintText: 'Enter invite code',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter an invite code';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (_formKey.currentState!.validate()) {
+                Navigator.of(context).pop();
+                await _joinBase();
+              }
+            },
+            child: const Text('Join'),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _createBase() async {
+    try {
+      await ref.read(basesProvider.notifier).createBase(
+        name: _baseNameController.text.trim(),
+      );
+      _baseNameController.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Base created successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create base: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _joinBase() async {
+    try {
+      await ref.read(invitesProvider.notifier).redeemInvite(
+        _inviteCodeController.text.trim(),
+      );
+      _inviteCodeController.clear();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Successfully joined base!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to join base: $e')),
+        );
+      }
+    }
   }
 
   @override

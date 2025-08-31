@@ -99,8 +99,14 @@ class MockInvitesRepository implements InvitesRepository {
     return inviteId != null ? _invites[inviteId] : null;
   }
 
+  @override
+  Future<List<BaseInvite>> getByBaseId(String baseId) async {
+    return _invites.values
+        .where((invite) => invite.baseId == baseId)
+        .toList();
+  }
+
   String _generateCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     return 'ABC123'; // Simplified for testing
   }
 }

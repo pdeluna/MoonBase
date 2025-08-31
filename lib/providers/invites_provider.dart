@@ -20,6 +20,12 @@ final invitesProvider = StateNotifierProvider<InvitesNotifier, AsyncValue<void>>
   return InvitesNotifier(repository, session, basesNotifier, selectedBaseNotifier);
 });
 
+// Base invites provider - gets invites for a specific base
+final baseInvitesProvider = StateNotifierProvider.family<BaseInvitesNotifier, AsyncValue<List<BaseInvite>>, String>((ref, baseId) {
+  final repository = ref.watch(invitesRepositoryProvider);
+  return BaseInvitesNotifier(repository, baseId);
+});
+
 // Invite validation provider - validates invite codes
 final inviteValidationProvider = StateNotifierProvider.family<InviteValidationNotifier, AsyncValue<BaseInvite?>, String>((ref, code) {
   final repository = ref.watch(invitesRepositoryProvider);
@@ -101,6 +107,29 @@ class InvitesNotifier extends StateNotifier<AsyncValue<void>> {
       state = AsyncValue.error(e, st);
       return null;
     }
+  }
+}
+
+class BaseInvitesNotifier extends StateNotifier<AsyncValue<List<BaseInvite>>> {
+  BaseInvitesNotifier(this._repository, this._baseId) : super(const AsyncValue.loading()) {
+    _loadInvites();
+  }
+
+  final InvitesRepository _repository;
+  final String _baseId;
+
+  Future<void> _loadInvites() async {
+    try {
+      state = const AsyncValue.loading();
+      final invites = await _repository.getByBaseId(_baseId);
+      state = AsyncValue.data(invites);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> refresh() async {
+    await _loadInvites();
   }
 }
 

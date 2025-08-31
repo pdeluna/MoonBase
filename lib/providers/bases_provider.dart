@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/models/base.dart';
 import 'package:moonbase_skeleton/models/base_member.dart';
@@ -140,6 +141,37 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
     }
   }
 
+  Future<void> updateBase(String baseId, {
+    required String name,
+    String? description,
+    String? avatarUrl,
+  }) async {
+    if (_session.value == null) return;
+    
+    try {
+      final updatedBase = await _repository.updateBase(
+        baseId,
+        name: name,
+        description: description,
+        avatarUrl: avatarUrl,
+        userId: _session.value!.userId,
+      );
+      
+      // Update the base in our local state
+      final currentBases = state.value ?? [];
+      final updatedBases = currentBases.map((base) {
+        if (base.id == baseId) {
+          return updatedBase;
+        }
+        return base;
+      }).toList();
+      
+      state = AsyncValue.data(updatedBases);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
   Future<void> refresh() async {
     await _loadBases();
   }
@@ -158,9 +190,9 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
       }).toList();
       
       state = AsyncValue.data(updatedBases);
-    } catch (e, st) {
+    } catch (e) {
       // Don't update state on error, just log it
-      print('Failed to update last accessed time for base $baseId: $e');
+      developer.log('Failed to update last accessed time for base $baseId: $e');
     }
   }
 }

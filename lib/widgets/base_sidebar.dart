@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/models/base.dart';
 import 'package:moonbase_skeleton/providers/bases_provider.dart';
+import 'package:moonbase_skeleton/services/session_controller.dart';
 import 'package:moonbase_skeleton/widgets/moon_spinner.dart';
 
 class BaseSidebar extends ConsumerWidget {
@@ -66,7 +67,7 @@ class BaseSidebar extends ConsumerWidget {
                 Text(
                   'Switch between your bases',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                    color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -129,7 +130,7 @@ class BaseSidebar extends ConsumerWidget {
                               Text(
                                 selectedBase.description!,
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSecondaryContainer.withOpacity(0.8),
+                                  color: Theme.of(context).colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -280,6 +281,8 @@ class BaseSidebar extends ConsumerWidget {
       itemBuilder: (context, index) {
         final base = bases[index];
         final isSelected = selectedBase?.id == base.id;
+        final currentUser = ref.watch(sessionProvider).value;
+        final isOwner = currentUser != null && base.ownerUserId == currentUser.userId;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
@@ -322,18 +325,38 @@ class BaseSidebar extends ConsumerWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            subtitle: base.description != null
-                ? Text(
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (base.description != null)
+                  Text(
                     base.description!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isSelected
-                          ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
+                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.8)
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                  )
-                : null,
+                  ),
+                if (isOwner)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'Owner',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             trailing: isSelected
                 ? Icon(
                     Icons.check_circle,
@@ -344,9 +367,196 @@ class BaseSidebar extends ConsumerWidget {
               ref.read(selectedBaseProvider.notifier).selectBase(base);
               onBaseSelected?.call();
             },
+            onLongPress: isOwner ? () => _showBaseOptions(context, base, ref) : null,
           ),
         );
       },
     );
+  }
+
+  void _showBaseOptions(BuildContext context, Base base, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Base Options',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Rename Base'),
+              subtitle: Text('Change the name of "${base.name}"'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showRenameDialog(context, base, ref);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('Delete Base', style: TextStyle(color: Colors.red)),
+              subtitle: const Text('Permanently delete this base and all its data'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showDeleteConfirmation(context, base, ref);
+              },
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRenameDialog(BuildContext context, Base base, WidgetRef ref) {
+    final nameController = TextEditingController(text: base.name);
+    final descriptionController = TextEditingController(text: base.description ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Base'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Base Name',
+                  hintText: 'Enter base name',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Base name is required';
+                  }
+                  if (value.trim().length < 2) {
+                    return 'Base name must be at least 2 characters';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (Optional)',
+                  hintText: 'Enter base description',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                Navigator.of(context).pop();
+                await _updateBase(context, base, ref, nameController.text.trim(), descriptionController.text.trim());
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, Base base, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Base'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete "${base.name}"?'),
+            const SizedBox(height: 16),
+            const Text(
+              'This action cannot be undone. All data including messages, invites, and member information will be permanently deleted.',
+              style: TextStyle(color: Colors.red),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _deleteBase(context, base, ref);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateBase(BuildContext context, Base base, WidgetRef ref, String name, String description) async {
+    try {
+      await ref.read(basesProvider.notifier).updateBase(
+        base.id,
+        name: name,
+        description: description.isEmpty ? null : description,
+      );
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Base updated successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update base: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteBase(BuildContext context, Base base, WidgetRef ref) async {
+    try {
+      await ref.read(basesProvider.notifier).deleteBase(base.id);
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Base deleted successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete base: $e')),
+        );
+      }
+    }
   }
 }

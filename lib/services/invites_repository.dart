@@ -23,6 +23,9 @@ abstract class InvitesRepository {
   
   /// Get an invite by its code
   Future<BaseInvite?> getByCode(String code);
+  
+  /// Get all invites for a specific base
+  Future<List<BaseInvite>> getByBaseId(String baseId);
 }
 
 /// SharedPreferences-backed repository for invites
@@ -240,6 +243,17 @@ class SpInvitesRepository implements InvitesRepository {
     } catch (_) {
       return null;
     }
+  }
+
+  @override
+  Future<List<BaseInvite>> getByBaseId(String baseId) async {
+    final sp = await SharedPreferences.getInstance();
+    final invites = await _readInvites(sp);
+    return invites.values
+        .whereType<Map<String, dynamic>>()
+        .map((json) => BaseInvite.fromMap(json))
+        .where((invite) => invite.baseId == baseId)
+        .toList();
   }
 
   // Helper methods (copied from SpBasesRepository for simplicity)
