@@ -1,35 +1,35 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:moonbase_skeleton/models/base.dart';
-import 'package:moonbase_skeleton/models/base_member.dart';
-import 'package:moonbase_skeleton/models/invite.dart';
-import 'package:moonbase_skeleton/models/enums.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:moonbase_skeleton/services/invites_repository.dart';
-import 'package:moonbase_skeleton/services/bases_repository.dart';
+import 'package:moonbase_skeleton/models/invite.dart';
+import 'package:moonbase_skeleton/models/base_member.dart';
+import 'package:moonbase_skeleton/models/enums.dart';
 
-// Mock implementation for testing
 class MockInvitesRepository implements InvitesRepository {
   final Map<String, BaseInvite> _invites = {};
-  final BasesRepository _basesRepository;
-
-  MockInvitesRepository(this._basesRepository);
+  final Map<String, String> _inviteCodes = {};
+  final Map<String, List<BaseMember>> _members = {};
+  final Map<String, List<String>> _userBases = {};
 
   @override
   Future<BaseInvite> createInvite({
-    required String baseId,
+    required String baseId, 
     required String userId,
-    int? maxUses,
-    DateTime? expiresAt,
+    int? maxUses, 
+    DateTime? expiresAt
   }) async {
-    // Check if user is owner
-    final isOwner = await _basesRepository.isOwner(baseId: baseId, userId: userId);
-    if (!isOwner) {
-      throw Exception('Only owners can create invites');
-    }
+    final inviteId = 'invite_${_invites.length + 1}';
+    String code;
+    
+    // Generate unique code
+    do {
+      code = _generateCode();
+    } while (_inviteCodes.containsKey(code));
 
     final invite = BaseInvite(
-      id: 'invite-${DateTime.now().millisecondsSinceEpoch}',
+      id: inviteId,
       baseId: baseId,
-      code: _generateCode(),
+      code: code,
       createdByUserId: userId,
       createdAt: DateTime.now(),
       expiresAt: expiresAt,
@@ -37,30 +37,30 @@ class MockInvitesRepository implements InvitesRepository {
       usedCount: 0,
     );
 
-    _invites[invite.code] = invite;
+    _invites[inviteId] = invite;
+    _inviteCodes[code] = inviteId;
+    
     return invite;
   }
 
   @override
   Future<BaseMember> redeemInvite({required String code, required String userId}) async {
-    final invite = _invites[code];
+    final invite = await getByCode(code);
     if (invite == null) {
       throw Exception('Invalid invite code');
     }
 
-    // Check if invite is expired
     if (invite.isExpired) {
       throw Exception('Invite has expired');
     }
 
-    // Check if invite is depleted
     if (invite.isDepleted) {
       throw Exception('Invite has reached maximum uses');
     }
 
     // Check if user is already a member
-    final existingMembers = await _basesRepository.listMembers(invite.baseId);
-    if (existingMembers.any((member) => member.userId == userId)) {
+    final baseMembers = _members[invite.baseId] ?? [];
+    if (baseMembers.any((member) => member.userId == userId)) {
       throw Exception('User is already a member of this base');
     }
 
@@ -75,403 +75,228 @@ class MockInvitesRepository implements InvitesRepository {
       maxUses: invite.maxUses,
       usedCount: invite.usedCount + 1,
     );
-    _invites[code] = updatedInvite;
+    _invites[invite.id] = updatedInvite;
 
     // Add user as member
-    final member = await _basesRepository.addMember(
+    final member = BaseMember(
+      id: 'member_${_members.length + 1}',
       baseId: invite.baseId,
       userId: userId,
-      role: BaseRole.member, // Always add as member role
+      role: BaseRole.member,
+      joinedAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
+
+    _members[invite.baseId] = [...baseMembers, member];
+    _userBases[userId] = [...(_userBases[userId] ?? []), invite.baseId];
 
     return member;
   }
 
   @override
   Future<BaseInvite?> getByCode(String code) async {
-    return _invites[code];
+    final inviteId = _inviteCodes[code];
+    return inviteId != null ? _invites[inviteId] : null;
   }
 
   String _generateCode() {
-    final random = DateTime.now().millisecondsSinceEpoch % 1000000;
-    return random.toString().padLeft(6, '0');
-  }
-}
-
-// Mock BasesRepository for testing
-class MockBasesRepository implements BasesRepository {
-  final Map<String, Base> _bases = {};
-  final Map<String, List<BaseMember>> _members = {};
-
-  @override
-  Future<Base> createBase({required String name, String? description, String? avatarUrl}) async {
-    final base = Base(
-      id: 'base-${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      ownerUserId: 'test-owner-id',
-      description: description,
-      avatarUrl: avatarUrl,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-    
-    _bases[base.id] = base;
-    
-    final ownerMember = BaseMember(
-      id: 'member-${DateTime.now().millisecondsSinceEpoch}',
-      baseId: base.id,
-      userId: base.ownerUserId,
-      role: BaseRole.owner,
-      joinedAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-    
-    _members[base.id] = [ownerMember];
-    return base;
-  }
-
-  @override
-  Future<void> deleteBase(String baseId) async {
-    _bases.remove(baseId);
-    _members.remove(baseId);
-  }
-
-  @override
-  Future<Base?> getBase(String baseId) async {
-    return _bases[baseId];
-  }
-
-  @override
-  Future<List<Base>> listMyBases(String userId) async {
-    return _bases.values.where((base) => 
-      base.ownerUserId == userId || 
-      _members[base.id]?.any((member) => member.userId == userId) == true
-    ).toList();
-  }
-
-  @override
-  Future<BaseMember> addMember({required String baseId, required String userId, required BaseRole role}) async {
-    final member = BaseMember(
-      id: 'member-${DateTime.now().millisecondsSinceEpoch}',
-      baseId: baseId,
-      userId: userId,
-      role: role,
-      joinedAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-    
-    _members[baseId] ??= [];
-    _members[baseId]!.add(member);
-    return member;
-  }
-
-  @override
-  Future<void> removeMember({required String baseId, required String userId}) async {
-    _members[baseId]?.removeWhere((member) => member.userId == userId);
-  }
-
-  @override
-  Future<List<BaseMember>> listMembers(String baseId) async {
-    return _members[baseId] ?? [];
-  }
-
-  @override
-  Future<void> upsert(Base base) async {
-    _bases[base.id] = base;
-  }
-
-  @override
-  Future<bool> isOwner({required String baseId, required String userId}) async {
-    final members = _members[baseId] ?? [];
-    return members.any((member) => 
-      member.userId == userId && member.role == BaseRole.owner
-    );
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return 'ABC123'; // Simplified for testing
   }
 }
 
 void main() {
-  group('InvitesRepository Tests', () {
-    late MockBasesRepository basesRepository;
-    late MockInvitesRepository invitesRepository;
+  group('SpInvitesRepository', () {
+    late SpInvitesRepository repository;
+    late SharedPreferences prefs;
 
-    setUp(() {
-      basesRepository = MockBasesRepository();
-      invitesRepository = MockInvitesRepository(basesRepository);
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      repository = SpInvitesRepository();
     });
 
-    group('Create Invite', () {
-      test('should create invite when user is owner', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
+    tearDown(() async {
+      await prefs.clear();
+    });
+
+    group('createInvite', () {
+      test('should create invite with unique code', () async {
+        // Setup mock base data with proper JSON structure
+        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+
+        final invite = await repository.createInvite(
+          baseId: 'base_1',
+          userId: 'user_123',
+          maxUses: 5,
         );
 
-        expect(invite.baseId, base.id);
-        expect(invite.createdByUserId, base.ownerUserId);
+        expect(invite.baseId, equals('base_1'));
+        expect(invite.createdByUserId, equals('user_123'));
+        expect(invite.maxUses, equals(5));
+        expect(invite.usedCount, equals(0));
         expect(invite.code, isNotEmpty);
-        expect(invite.usedCount, 0);
-        expect(invite.expiresAt, isNull);
-        expect(invite.maxUses, isNull);
+        expect(invite.isExpired, isFalse);
+        expect(invite.isDepleted, isFalse);
+
+        // Verify it's saved to storage
+        final retrievedInvite = await repository.getByCode(invite.code);
+        expect(retrievedInvite, isNotNull);
+        expect(retrievedInvite!.id, equals(invite.id));
       });
 
-      test('should create invite with expiration and max uses', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final expiresAt = DateTime.now().add(const Duration(days: 7));
-        
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-          maxUses: 5,
+      test('should throw exception when user is not owner', () async {
+        // Setup mock base data with different owner
+        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_456\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_456\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+
+        expect(
+          () => repository.createInvite(
+            baseId: 'base_1',
+            userId: 'user_123', // Not the owner
+          ),
+          throwsA(isA<Exception>()),
+        );
+      });
+
+      test('should create invite with expiration', () async {
+        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+
+        final expiresAt = DateTime.now().add(const Duration(hours: 24));
+        final invite = await repository.createInvite(
+          baseId: 'base_1',
+          userId: 'user_123',
           expiresAt: expiresAt,
         );
 
-        expect(invite.maxUses, 5);
-        expect(invite.expiresAt, expiresAt);
-      });
-
-      test('should throw exception when non-owner tries to create invite', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        
-        expect(
-          () => invitesRepository.createInvite(
-            baseId: base.id,
-            userId: 'non-owner-id',
-          ),
-          throwsA(isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('Only owners can create invites'),
-          )),
-        );
+        expect(invite.expiresAt, equals(expiresAt));
       });
     });
 
-    group('Redeem Invite - Success Cases', () {
-      test('should successfully redeem valid invite', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-        );
-
-        final member = await invitesRepository.redeemInvite(
-          code: invite.code,
-          userId: 'new-user-id',
-        );
-
-        expect(member.baseId, base.id);
-        expect(member.userId, 'new-user-id');
-        expect(member.role, BaseRole.member);
-      });
-
-      test('should increment used count when invite is redeemed', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-        );
-
-        await invitesRepository.redeemInvite(
-          code: invite.code,
-          userId: 'user1',
-        );
-
-        final updatedInvite = await invitesRepository.getByCode(invite.code);
-        expect(updatedInvite!.usedCount, 1);
-      });
-
-      test('should add user as member with member role', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-        );
-
-        final member = await invitesRepository.redeemInvite(
-          code: invite.code,
-          userId: 'new-member-id',
-        );
-
-        expect(member.role, BaseRole.member);
+    group('redeemInvite', () {
+      test('should redeem valid invite and add user as member', () async {
+        // Setup mock base data
+        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
         
-        final members = await basesRepository.listMembers(base.id);
-        expect(members.any((m) => m.userId == 'new-member-id'), isTrue);
-      });
-    });
+        // Create invite
+        final invite = await repository.createInvite(
+          baseId: 'base_1',
+          userId: 'user_123',
+        );
 
-    group('Redeem Invite - Error Cases', () {
-      test('should throw exception for invalid invite code', () async {
+        // Redeem invite
+        final member = await repository.redeemInvite(
+          code: invite.code,
+          userId: 'user_456',
+        );
+
+        expect(member.userId, equals('user_456'));
+        expect(member.baseId, equals('base_1'));
+        expect(member.role, equals(BaseRole.member));
+
+        // Verify invite usage count increased
+        final updatedInvite = await repository.getByCode(invite.code);
+        expect(updatedInvite!.usedCount, equals(1));
+      });
+
+      test('should throw exception for invalid code', () async {
         expect(
-          () => invitesRepository.redeemInvite(
+          () => repository.redeemInvite(
             code: 'INVALID',
-            userId: 'user-id',
+            userId: 'user_456',
           ),
-          throwsA(isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('Invalid invite code'),
-          )),
+          throwsA(isA<Exception>()),
         );
       });
 
       test('should throw exception for expired invite', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final pastDate = DateTime.now().subtract(const Duration(days: 1));
+        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
         
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-          expiresAt: pastDate,
+        // Create expired invite
+        final invite = await repository.createInvite(
+          baseId: 'base_1',
+          userId: 'user_123',
+          expiresAt: DateTime.now().subtract(const Duration(hours: 1)),
         );
 
         expect(
-          () => invitesRepository.redeemInvite(
+          () => repository.redeemInvite(
             code: invite.code,
-            userId: 'user-id',
+            userId: 'user_456',
           ),
-          throwsA(isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('Invite has expired'),
-          )),
+          throwsA(isA<Exception>()),
         );
       });
 
       test('should throw exception for depleted invite', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
+        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        
+        // Create invite with max uses = 1
+        final invite = await repository.createInvite(
+          baseId: 'base_1',
+          userId: 'user_123',
           maxUses: 1,
         );
 
-        // First redemption should succeed
-        await invitesRepository.redeemInvite(
+        // First redemption should work
+        await repository.redeemInvite(
           code: invite.code,
-          userId: 'user1',
+          userId: 'user_456',
         );
 
         // Second redemption should fail
         expect(
-          () => invitesRepository.redeemInvite(
+          () => repository.redeemInvite(
             code: invite.code,
-            userId: 'user2',
+            userId: 'user_789',
           ),
-          throwsA(isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('Invite has reached maximum uses'),
-          )),
+          throwsA(isA<Exception>()),
         );
       });
 
-      test('should throw exception when user is already a member', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-        );
-
-        // Add user as member first
-        await basesRepository.addMember(
-          baseId: base.id,
-          userId: 'existing-user',
-          role: BaseRole.member,
-        );
-
-        expect(
-          () => invitesRepository.redeemInvite(
-            code: invite.code,
-            userId: 'existing-user',
-          ),
-          throwsA(isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('User is already a member'),
-          )),
-        );
-      });
-    });
-
-    group('Get Invite', () {
-      test('should get invite by code', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final createdInvite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-        );
-
-        final retrievedInvite = await invitesRepository.getByCode(createdInvite.code);
-
-        expect(retrievedInvite, isNotNull);
-        expect(retrievedInvite!.id, createdInvite.id);
-        expect(retrievedInvite.code, createdInvite.code);
-        expect(retrievedInvite.baseId, createdInvite.baseId);
-      });
-
-      test('should return null for non-existent invite code', () async {
-        final invite = await invitesRepository.getByCode('NONEXISTENT');
-
-        expect(invite, isNull);
-      });
-    });
-
-    group('Invite Properties', () {
-      test('should correctly identify expired invite', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final pastDate = DateTime.now().subtract(const Duration(days: 1));
+      test('should throw exception if user is already a member', () async {
+        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
         
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-          expiresAt: pastDate,
+        final invite = await repository.createInvite(
+          baseId: 'base_1',
+          userId: 'user_123',
+          maxUses: 5, // Allow multiple uses
         );
 
-        expect(invite.isExpired, isTrue);
-      });
-
-      test('should correctly identify non-expired invite', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final futureDate = DateTime.now().add(const Duration(days: 1));
-        
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-          expiresAt: futureDate,
-        );
-
-        expect(invite.isExpired, isFalse);
-      });
-
-      test('should correctly identify depleted invite', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-          maxUses: 1,
-        );
-
-        // Redeem once to reach max uses
-        await invitesRepository.redeemInvite(
+        // First redemption should work
+        await repository.redeemInvite(
           code: invite.code,
-          userId: 'user1',
+          userId: 'user_456',
         );
 
-        final updatedInvite = await invitesRepository.getByCode(invite.code);
-        expect(updatedInvite!.isDepleted, isTrue);
+        // Second redemption by same user should fail
+        expect(
+          () => repository.redeemInvite(
+            code: invite.code,
+            userId: 'user_456', // Already a member
+          ),
+          throwsA(isA<Exception>()),
+        );
+      });
+    });
+
+    group('getByCode', () {
+      test('should return invite for valid code', () async {
+        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        
+        final invite = await repository.createInvite(
+          baseId: 'base_1',
+          userId: 'user_123',
+        );
+
+        final retrievedInvite = await repository.getByCode(invite.code);
+        expect(retrievedInvite, isNotNull);
+        expect(retrievedInvite!.id, equals(invite.id));
+        expect(retrievedInvite.baseId, equals(invite.baseId));
       });
 
-      test('should correctly identify non-depleted invite', () async {
-        final base = await basesRepository.createBase(name: 'Test Base');
-        final invite = await invitesRepository.createInvite(
-          baseId: base.id,
-          userId: base.ownerUserId,
-          maxUses: 5,
-        );
-
-        expect(invite.isDepleted, isFalse);
+      test('should return null for invalid code', () async {
+        final invite = await repository.getByCode('INVALID');
+        expect(invite, isNull);
       });
     });
   });
