@@ -26,7 +26,7 @@ abstract class ProfileRepository {
 class SpProfileRepository implements ProfileRepository {
   static const _kUsers = 'mb.users';
   static const _kCurrent = 'mb.currentUser';
-  static const _kLegacySingle = 'mb.profile';
+  // static const _kLegacySingle = 'mb.profile';
 
   // ---- helpers ----
 
@@ -57,26 +57,26 @@ class SpProfileRepository implements ProfileRepository {
   ///  - insert into mb.users under nickname_case_sensitive,
   ///  - set mb.currentUser,
   ///  - remove legacy key.
-  Future<void> _migrateLegacyIfNeeded(SharedPreferences sp) async {
-    final legacy = sp.getString(_kLegacySingle);
-    if (legacy == null) return;
+  // Future<void> _migrateLegacyIfNeeded(SharedPreferences sp) async {
+  //   final legacy = sp.getString(_kLegacySingle);
+  //   if (legacy == null) return;
 
-    try {
-      final map = jsonDecode(legacy) as Map<String, dynamic>;
-      final profile = Profile.fromJson(map);
-      final key = profile.nickname.trim(); // Use case-sensitive nickname
+  //   try {
+  //     final map = jsonDecode(legacy) as Map<String, dynamic>;
+  //     final profile = Profile.fromJson(map);
+  //     final key = profile.nickname.trim(); // Use case-sensitive nickname
 
-      final users = await _readUsers(sp);
-      users[key] = profile.toJson();
+  //     final users = await _readUsers(sp);
+  //     users[key] = profile.toJson();
 
-      await _writeUsers(sp, users);
-      await _setCurrentKey(sp, key);
-    } catch (_) {
-      // If legacy is corrupt, just drop it.
-    } finally {
-      await sp.remove(_kLegacySingle);
-    }
-  }
+  //     await _writeUsers(sp, users);
+  //     await _setCurrentKey(sp, key);
+  //   } catch (_) {
+  //     // If legacy is corrupt, just drop it.
+  //   } finally {
+  //     await sp.remove(_kLegacySingle);
+  //   }
+  // }
 
   /// Normalize a dynamic entry coming from users map into a Map<String, dynamic>.
   Map<String, dynamic>? _asJsonMap(dynamic entry) {
@@ -100,7 +100,7 @@ class SpProfileRepository implements ProfileRepository {
     final sp = await SharedPreferences.getInstance();
 
     // One-time migration if needed
-    await _migrateLegacyIfNeeded(sp);
+    // await _migrateLegacyIfNeeded(sp);
 
     final current = _currentKey(sp);
     if (current == null) return null;
@@ -141,7 +141,7 @@ class SpProfileRepository implements ProfileRepository {
     final sp = await SharedPreferences.getInstance();
 
     // One-time migration if needed so old installs get picked up
-    await _migrateLegacyIfNeeded(sp);
+    // await _migrateLegacyIfNeeded(sp);
 
     final key = nickname.trim(); // Use case-sensitive nickname
     final users = await _readUsers(sp);

@@ -8,7 +8,7 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 });
 
 // Development flag to help with caching issues
-const _developmentMode = true;
+const _developmentMode = true; // TODO: set to false for production
 
 final sessionProvider =
     StateNotifierProvider<SessionController, AsyncValue<Profile?>>((ref) {
