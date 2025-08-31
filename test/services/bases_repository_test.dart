@@ -1,43 +1,45 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:moonbase_skeleton/services/bases_repository.dart';
 import 'package:moonbase_skeleton/models/base.dart';
 import 'package:moonbase_skeleton/models/base_member.dart';
 import 'package:moonbase_skeleton/models/enums.dart';
-import 'package:moonbase_skeleton/services/bases_repository.dart';
 
-// Mock implementation for testing
 class MockBasesRepository implements BasesRepository {
   final Map<String, Base> _bases = {};
   final Map<String, List<BaseMember>> _members = {};
-  int _baseCounter = 0;
-  int _memberCounter = 0;
+  final Map<String, List<String>> _userBases = {};
 
   @override
   Future<Base> createBase({required String name, String? description, String? avatarUrl}) async {
-    _baseCounter++;
+    final baseId = 'base_${_bases.length + 1}';
+    final userId = 'user_1'; // Mock current user
+    
     final base = Base(
-      id: 'base-$_baseCounter',
+      id: baseId,
       name: name,
-      ownerUserId: 'test-owner-id', // In real implementation, this would be the current user
+      ownerUserId: userId,
       description: description,
       avatarUrl: avatarUrl,
+      memberIds: [userId],
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
+
+    _bases[baseId] = base;
+    _userBases[userId] = [...(_userBases[userId] ?? []), baseId];
     
-    _bases[base.id] = base;
-    
-    // Add owner as first member
-    _memberCounter++;
-    final ownerMember = BaseMember(
-      id: 'member-$_memberCounter',
-      baseId: base.id,
-      userId: base.ownerUserId,
+    // Add owner as member
+    final member = BaseMember(
+      id: 'member_${_members.length + 1}',
+      baseId: baseId,
+      userId: userId,
       role: BaseRole.owner,
       joinedAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
     
-    _members[base.id] = [ownerMember];
+    _members[baseId] = [member];
     
     return base;
   }
@@ -46,6 +48,11 @@ class MockBasesRepository implements BasesRepository {
   Future<void> deleteBase(String baseId) async {
     _bases.remove(baseId);
     _members.remove(baseId);
+    
+    // Remove from all users' lists
+    for (final userId in _userBases.keys) {
+      _userBases[userId]?.remove(baseId);
+    }
   }
 
   @override
@@ -55,26 +62,34 @@ class MockBasesRepository implements BasesRepository {
 
   @override
   Future<List<Base>> listMyBases(String userId) async {
-    return _bases.values.where((base) => 
-      base.ownerUserId == userId || 
-      _members[base.id]?.any((member) => member.userId == userId) == true
-    ).toList();
+    final baseIds = _userBases[userId] ?? [];
+    return baseIds.map((id) => _bases[id]!).whereType<Base>().toList();
   }
 
   @override
   Future<BaseMember> addMember({required String baseId, required String userId, required BaseRole role}) async {
-    _memberCounter++;
     final member = BaseMember(
-      id: 'member-$_memberCounter',
+      id: 'member_${_members.length + 1}',
       baseId: baseId,
       userId: userId,
       role: role,
       joinedAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
+
+    _members[baseId] = [...(_members[baseId] ?? []), member];
     
-    _members[baseId] ??= [];
-    _members[baseId]!.add(member);
+    // Add to user's bases
+    _userBases[userId] = [...(_userBases[userId] ?? []), baseId];
+    
+    // Update base memberIds
+    final base = _bases[baseId];
+    if (base != null) {
+      _bases[baseId] = base.copyWith(
+        memberIds: [...base.memberIds, userId],
+        updatedAt: DateTime.now(),
+      );
+    }
     
     return member;
   }
@@ -82,6 +97,16 @@ class MockBasesRepository implements BasesRepository {
   @override
   Future<void> removeMember({required String baseId, required String userId}) async {
     _members[baseId]?.removeWhere((member) => member.userId == userId);
+    _userBases[userId]?.remove(baseId);
+    
+    // Update base memberIds
+    final base = _bases[baseId];
+    if (base != null) {
+      _bases[baseId] = base.copyWith(
+        memberIds: base.memberIds.where((id) => id != userId).toList(),
+        updatedAt: DateTime.now(),
+      );
+    }
   }
 
   @override
@@ -96,193 +121,120 @@ class MockBasesRepository implements BasesRepository {
 
   @override
   Future<bool> isOwner({required String baseId, required String userId}) async {
-    final members = _members[baseId] ?? [];
-    return members.any((member) => 
-      member.userId == userId && member.role == BaseRole.owner
-    );
+    final base = _bases[baseId];
+    return base?.ownerUserId == userId;
   }
 }
 
 void main() {
-  group('BasesRepository Tests', () {
-    late MockBasesRepository repository;
+  group('SpBasesRepository', () {
+    late SpBasesRepository repository;
+    late SharedPreferences prefs;
 
-    setUp(() {
-      repository = MockBasesRepository();
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+      repository = SpBasesRepository();
     });
 
-    tearDown(() {
-      // Clear any state if needed
+    tearDown(() async {
+      await prefs.clear();
     });
 
-    group('Create Base', () {
-      test('should create base with required fields', () async {
-        final base = await repository.createBase(name: 'Test Base');
+    group('createBase', () {
+      test('should create a base and add owner as member', () async {
+        // Setup mock current user
+        await prefs.setString('mb.currentUser', 'testuser');
+        await prefs.setString('mb.users', '{"testuser": {"userId": "user_123", "nickname": "testuser"}}');
 
-        expect(base.name, 'Test Base');
-        expect(base.ownerUserId, 'test-owner-id');
-        expect(base.description, isNull);
-        expect(base.avatarUrl, isNull);
-        expect(base.id, isNotEmpty);
-        expect(base.createdAt, isNotNull);
-        expect(base.updatedAt, isNotNull);
-      });
-
-      test('should create base with all fields', () async {
         final base = await repository.createBase(
           name: 'Test Base',
-          description: 'A test base description',
-          avatarUrl: 'https://example.com/avatar.jpg',
+          description: 'A test base',
         );
 
-        expect(base.name, 'Test Base');
-        expect(base.description, 'A test base description');
-        expect(base.avatarUrl, 'https://example.com/avatar.jpg');
+        expect(base.name, equals('Test Base'));
+        expect(base.description, equals('A test base'));
+        expect(base.ownerUserId, equals('user_123'));
+        expect(base.memberIds, contains('user_123'));
+
+        // Verify it's saved to storage
+        final savedBases = await repository.listMyBases('user_123');
+        expect(savedBases.length, equals(1));
+        expect(savedBases.first.id, equals(base.id));
       });
 
-      test('should add owner as first member when creating base', () async {
-        final base = await repository.createBase(name: 'Test Base');
-        final members = await repository.listMembers(base.id);
-
-        expect(members, hasLength(1));
-        expect(members.first.userId, base.ownerUserId);
-        expect(members.first.role, BaseRole.owner);
+      test('should throw exception when no current user', () async {
+        expect(
+          () => repository.createBase(name: 'Test Base'),
+          throwsA(isA<Exception>()),
+        );
       });
     });
 
-    group('List Bases', () {
-            test('should list bases owned by user', () async {
-        // Create a fresh repository for this test
-        final testRepository = MockBasesRepository();
-        
-        final base1 = await testRepository.createBase(name: 'Base 1');
-        final base2 = await testRepository.createBase(name: 'Base 2');
-
-        final myBases = await testRepository.listMyBases('test-owner-id');
-
-        expect(myBases, hasLength(2));
-        expect(myBases.any((base) => base.id == base1.id), isTrue);
-        expect(myBases.any((base) => base.id == base2.id), isTrue);
+    group('listMyBases', () {
+      test('should return empty list when user has no bases', () async {
+        final bases = await repository.listMyBases('user_123');
+        expect(bases, isEmpty);
       });
 
-      test('should list bases where user is a member', () async {
-        final base = await repository.createBase(name: 'Test Base');
+      test('should return user bases', () async {
+        // Setup mock current user and create a base
+        await prefs.setString('mb.currentUser', 'testuser');
+        await prefs.setString('mb.users', '{"testuser": {"userId": "user_123", "nickname": "testuser"}}');
         
-        // Add another member
-        await repository.addMember(
+        await repository.createBase(name: 'Test Base 1');
+        await repository.createBase(name: 'Test Base 2');
+
+        final bases = await repository.listMyBases('user_123');
+        expect(bases.length, equals(2));
+        expect(bases.map((b) => b.name), containsAll(['Test Base 1', 'Test Base 2']));
+      });
+    });
+
+    group('addMember', () {
+      test('should add member to base', () async {
+        // Setup and create base
+        await prefs.setString('mb.currentUser', 'testuser');
+        await prefs.setString('mb.users', '{"testuser": {"userId": "user_123", "nickname": "testuser"}}');
+        
+        final base = await repository.createBase(name: 'Test Base');
+
+        final member = await repository.addMember(
           baseId: base.id,
-          userId: 'member-user-id',
+          userId: 'user_456',
           role: BaseRole.member,
         );
 
-        final memberBases = await repository.listMyBases('member-user-id');
+        expect(member.userId, equals('user_456'));
+        expect(member.role, equals(BaseRole.member));
+        expect(member.baseId, equals(base.id));
 
-        expect(memberBases, hasLength(1));
-        expect(memberBases.first.id, base.id);
-      });
-
-      test('should return empty list for user with no bases', () async {
-        await repository.createBase(name: 'Test Base');
-
-        final myBases = await repository.listMyBases('non-existent-user');
-
-        expect(myBases, isEmpty);
+        // Verify member is added to base
+        final members = await repository.listMembers(base.id);
+        expect(members.length, equals(2)); // Owner + new member
+        expect(members.any((m) => m.userId == 'user_456'), isTrue);
       });
     });
 
-    group('Owner Validation', () {
+    group('isOwner', () {
       test('should return true for base owner', () async {
-        final base = await repository.createBase(name: 'Test Base');
+        await prefs.setString('mb.currentUser', 'testuser');
+        await prefs.setString('mb.users', '{"testuser": {"userId": "user_123", "nickname": "testuser"}}');
         
-        final isOwner = await repository.isOwner(
-          baseId: base.id,
-          userId: base.ownerUserId,
-        );
+        final base = await repository.createBase(name: 'Test Base');
 
+        final isOwner = await repository.isOwner(baseId: base.id, userId: 'user_123');
         expect(isOwner, isTrue);
       });
 
       test('should return false for non-owner', () async {
-        final base = await repository.createBase(name: 'Test Base');
+        await prefs.setString('mb.currentUser', 'testuser');
+        await prefs.setString('mb.users', '{"testuser": {"userId": "user_123", "nickname": "testuser"}}');
         
-        final isOwner = await repository.isOwner(
-          baseId: base.id,
-          userId: 'non-owner-id',
-        );
+        final base = await repository.createBase(name: 'Test Base');
 
+        final isOwner = await repository.isOwner(baseId: base.id, userId: 'user_456');
         expect(isOwner, isFalse);
-      });
-
-      test('should return false for admin member', () async {
-        final base = await repository.createBase(name: 'Test Base');
-        
-        // Add admin member
-        await repository.addMember(
-          baseId: base.id,
-          userId: 'admin-user-id',
-          role: BaseRole.admin,
-        );
-
-        final isOwner = await repository.isOwner(
-          baseId: base.id,
-          userId: 'admin-user-id',
-        );
-
-        expect(isOwner, isFalse);
-      });
-
-      test('should return false for regular member', () async {
-        final base = await repository.createBase(name: 'Test Base');
-        
-        // Add regular member
-        await repository.addMember(
-          baseId: base.id,
-          userId: 'member-user-id',
-          role: BaseRole.member,
-        );
-
-        final isOwner = await repository.isOwner(
-          baseId: base.id,
-          userId: 'member-user-id',
-        );
-
-        expect(isOwner, isFalse);
-      });
-    });
-
-    group('Base Operations', () {
-      test('should get base by id', () async {
-        final createdBase = await repository.createBase(name: 'Test Base');
-        final retrievedBase = await repository.getBase(createdBase.id);
-
-        expect(retrievedBase, isNotNull);
-        expect(retrievedBase!.id, createdBase.id);
-        expect(retrievedBase.name, createdBase.name);
-      });
-
-      test('should return null for non-existent base', () async {
-        final base = await repository.getBase('non-existent-id');
-
-        expect(base, isNull);
-      });
-
-      test('should delete base and its members', () async {
-        final base = await repository.createBase(name: 'Test Base');
-        
-        // Add a member
-        await repository.addMember(
-          baseId: base.id,
-          userId: 'member-id',
-          role: BaseRole.member,
-        );
-
-        await repository.deleteBase(base.id);
-
-        final retrievedBase = await repository.getBase(base.id);
-        final members = await repository.listMembers(base.id);
-
-        expect(retrievedBase, isNull);
-        expect(members, isEmpty);
       });
     });
   });

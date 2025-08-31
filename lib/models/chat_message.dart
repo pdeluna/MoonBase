@@ -47,11 +47,11 @@ class ChatMessage {
       baseId: baseId ?? this.baseId,
       authorUserId: authorUserId ?? this.authorUserId,
       type: type ?? this.type,
-      text: text ?? this.text,
-      media: media ?? this.media,
+      text: text, // Allow explicit null values
+      media: media, // Allow explicit null values
       createdAt: createdAt ?? this.createdAt,
-      editedAt: editedAt ?? this.editedAt,
-      replyToMessageId: replyToMessageId ?? this.replyToMessageId,
+      editedAt: editedAt, // Allow explicit null values
+      replyToMessageId: replyToMessageId, // Allow explicit null values
       isEdited: isEdited ?? this.isEdited,
       isDeleted: isDeleted ?? this.isDeleted,
     );
