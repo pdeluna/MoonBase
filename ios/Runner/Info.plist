@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Moonbase Skeleton</string>
+	<string>Moonbase</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Allow MoonBase to use your camera to take photos and videos for chats.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Allow MoonBase to use your microphone for video capture.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Allow MoonBase to access your photo library to share media.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Allow MoonBase to save received photos or videos to your library.</string>
 </dict>
 </plist>

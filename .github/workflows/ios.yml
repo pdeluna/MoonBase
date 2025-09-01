@@ -1,0 +1,62 @@
+name: iOS TestFlight
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'ios-*'
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Flutter packages
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        run: sudo gem install cocoapods
+
+      - name: Pod install
+        working-directory: ios
+        run: |
+          pod repo update
+          pod install
+
+             - name: Install fastlane
+         run: sudo gem install fastlane
+
+       - name: Setup iOS certificates
+         uses: apple-actions/import-codesigning-certs@v1
+         with:
+           p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
+           p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+
+       - name: Setup provisioning profile
+         uses: apple-actions/download-provisioning-profiles@v1
+         with:
+           bundle-id: ${{ secrets.IOS_BUNDLE_ID }}
+           profile-type: IOS_APP_STORE
+           issuer-id: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+           api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+           api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+
+       - name: Fastlane beta
+        working-directory: ios
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: fastlane beta
