@@ -15,6 +15,9 @@ abstract class ProfileRepository {
   /// Sign out: clears only the "current user" pointer.
   /// Does NOT delete any saved profiles.
   Future<void> clear();
+
+  /// Get a profile by user ID
+  Future<Profile?> getProfileByUserId(String userId);
 }
 
 /// SharedPreferences-backed repository with an accounts index.
@@ -178,5 +181,24 @@ class SpProfileRepository implements ProfileRepository {
     if (_currentKey(sp) == key) {
       await sp.remove(_kCurrent);
     }
+  }
+
+  @override
+  Future<Profile?> getProfileByUserId(String userId) async {
+    final sp = await SharedPreferences.getInstance();
+    final users = await _readUsers(sp);
+
+    for (final entry in users.entries) {
+      try {
+        final profile = Profile.fromJson(entry.value);
+        if (profile.userId == userId) {
+          return profile;
+        }
+      } catch (_) {
+        // Skip corrupted profile entries
+        continue;
+      }
+    }
+    return null;
   }
 }

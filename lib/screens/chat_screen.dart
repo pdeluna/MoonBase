@@ -5,6 +5,7 @@ import 'package:moonbase_skeleton/models/enums.dart';
 import 'package:moonbase_skeleton/providers/chat_provider.dart';
 import 'package:moonbase_skeleton/providers/bases_provider.dart';
 import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/utils/user_color_utils.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -24,15 +25,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
+  void _scrollToTop() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
+        0.0, // Scroll to top (newest messages)
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
     }
   }
+
+
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
@@ -45,7 +48,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         text: text,
       );
       _messageController.clear();
-      _scrollToBottom();
+             _scrollToTop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -59,6 +62,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final selectedBase = ref.watch(effectiveSelectedBaseProvider);
     final session = ref.watch(sessionProvider);
+    
+    
     
     if (selectedBase == null) {
       return const Scaffold(
@@ -80,39 +85,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               builder: (context, ref, child) {
                 final messagesAsync = ref.watch(chatMessagesProvider(selectedBase.id));
                 
-                return messagesAsync.when(
-                  data: (messages) {
-                    if (messages.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'No messages yet. Start the conversation!',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      );
-                    }
-                    
-                    // Sort messages by creation time (oldest first for display)
-                    final sortedMessages = List<ChatMessage>.from(messages)
-                      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-                    
-                    return ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(16),
-                      itemCount: sortedMessages.length,
-                      itemBuilder: (context, index) {
-                        final message = sortedMessages[index];
-                        final isMyMessage = session.value?.userId == message.authorUserId;
-                        
-                        return _MessageBubble(
-                          message: message,
-                          isMyMessage: isMyMessage,
-                        );
-                      },
-                    );
-                  },
+                                 return messagesAsync.when(
+                   data: (messages) {
+                     if (messages.isEmpty) {
+                       return const Center(
+                         child: Text(
+                           'No messages yet. Start the conversation!',
+                           style: TextStyle(
+                             fontSize: 16,
+                             color: Colors.grey,
+                           ),
+                         ),
+                       );
+                     }
+                     
+                     // Sort messages by creation time (newest first for display)
+                     final sortedMessages = List<ChatMessage>.from(messages)
+                       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                     
+                     return ListView.builder(
+                       controller: _scrollController,
+                       reverse: true, // Show newest messages at the top
+                       padding: const EdgeInsets.all(16),
+                       itemCount: sortedMessages.length,
+                       itemBuilder: (context, index) {
+                         final message = sortedMessages[index];
+                         final isMyMessage = session.value?.userId == message.authorUserId;
+                         
+                         return _MessageBubble(
+                           message: message,
+                           isMyMessage: isMyMessage,
+                         );
+                       },
+                     );
+                   },
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (error, stack) => Center(
                     child: Text('Error loading messages: $error'),
@@ -131,7 +137,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends ConsumerWidget {
   final ChatMessage message;
   final bool isMyMessage;
 
@@ -141,7 +147,7 @@ class _MessageBubble extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (message.isDeleted) {
       return Align(
         alignment: Alignment.center,
@@ -180,16 +186,39 @@ class _MessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!isMyMessage) ...[
-              Text(
-                'User ${message.authorUserId.substring(0, 8)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                                     color: isMyMessage 
-                     ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8)
-                     : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
+                             Consumer(
+                 builder: (context, ref, child) {
+                   final profileAsync = ref.watch(profileByUserIdProvider(message.authorUserId));
+                   final userColor = UserColorUtils.getColorForUserId(message.authorUserId);
+                   
+                                        return profileAsync.when(
+                       data: (profile) => Text(
+                         profile?.nickname ?? 'Unknown User',
+                         style: TextStyle(
+                           fontSize: 12,
+                           fontWeight: FontWeight.bold,
+                           color: userColor,
+                         ),
+                       ),
+                       loading: () => Text(
+                         'Loading...',
+                         style: TextStyle(
+                           fontSize: 12,
+                           fontWeight: FontWeight.bold,
+                           color: userColor.withValues(alpha: 0.6),
+                         ),
+                       ),
+                       error: (_, __) => Text(
+                         'Unknown User',
+                         style: TextStyle(
+                           fontSize: 12,
+                           fontWeight: FontWeight.bold,
+                           color: userColor.withValues(alpha: 0.6),
+                         ),
+                       ),
+                     );
+                 },
+               ),
               const SizedBox(height: 2),
             ],
             if (message.text != null) ...[
