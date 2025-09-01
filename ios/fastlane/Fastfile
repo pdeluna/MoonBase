@@ -10,8 +10,8 @@ platform :ios do
       in_house: false
     )
 
-    # If you adopt fastlane match later, uncomment:
-    # match(type: "appstore", readonly: false, api_key: api_key)
+    # Use fastlane match for code signing
+    match(type: "appstore", readonly: false, api_key: api_key)
 
     build_app(
       scheme: "Runner",
