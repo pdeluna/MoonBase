@@ -18,11 +18,89 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  // Pagination state variables
+  bool _isLoadingMore = false;
+  bool _hasMoreMessages = true;
+  String? _lastMessageId;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupScrollListener();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reset pagination state when base changes
+    final selectedBase = ref.read(effectiveSelectedBaseProvider);
+    if (selectedBase != null && _lastMessageId != null) {
+      // Reset pagination state for new base
+      setState(() {
+        _lastMessageId = null;
+        _hasMoreMessages = true;
+        _isLoadingMore = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _setupScrollListener() {
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= 
+        _scrollController.position.maxScrollExtent - 100) {
+      _loadMoreMessages();
+    }
+  }
+
+  Future<void> _loadMoreMessages() async {
+    if (_isLoadingMore || !_hasMoreMessages) return;
+
+    final selectedBase = ref.read(effectiveSelectedBaseProvider);
+    if (selectedBase == null) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final chatMessages = ref.read(chatMessagesProvider(selectedBase.id));
+      final chatMessagesNotifier = ref.read(chatMessagesProvider(selectedBase.id).notifier);
+      
+      await chatMessagesNotifier.loadMoreMessages(
+        beforeMessageId: _lastMessageId,
+      );
+      
+      // Update pagination state
+      final messages = chatMessages.value ?? [];
+      if (messages.isNotEmpty) {
+        // Since messages are sorted newest first, the last message is the oldest
+        _lastMessageId = messages.last.id;
+        _hasMoreMessages = messages.length >= 50; // Assuming 50 is the limit
+      } else {
+        _hasMoreMessages = false;
+      }
+    } catch (e) {
+      // Handle error for pagination
+      debugPrint('Error loading more messages: $e');
+      // Could show a snackbar or retry button here
+      setState(() {
+        _hasMoreMessages = false; // Stop trying to load more on error
+      });
+    } finally {
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
   }
 
   void _scrollToTop() {
@@ -64,7 +142,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 
                 if (newText.isNotEmpty && newText != message.text) {
                   try {
+                    final selectedBase = ref.read(effectiveSelectedBaseProvider);
+                    if (selectedBase == null) return;
+                    
                     final chatActions = ref.read(chatActionsProvider.notifier);
+                    final chatMessagesNotifier = ref.read(chatMessagesProvider(selectedBase.id).notifier);
+                    
+                    // Set up optimistic update callbacks
+                    chatActions.onOptimisticMessage = chatMessagesNotifier.addOptimisticMessage;
+                    chatActions.onReplaceOptimisticMessage = chatMessagesNotifier.replaceOptimisticMessage;
+                    chatActions.onRemoveOptimisticMessage = chatMessagesNotifier.removeOptimisticMessage;
+                    
                     await chatActions.editMessage(
                       messageId: message.id,
                       newText: newText,
@@ -117,7 +205,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 final messenger = ScaffoldMessenger.of(context);
                 
                 try {
+                  final selectedBase = ref.read(effectiveSelectedBaseProvider);
+                  if (selectedBase == null) return;
+                  
                   final chatActions = ref.read(chatActionsProvider.notifier);
+                  final chatMessagesNotifier = ref.read(chatMessagesProvider(selectedBase.id).notifier);
+                  
+                  // Set up optimistic update callbacks
+                  chatActions.onOptimisticMessage = chatMessagesNotifier.addOptimisticMessage;
+                  chatActions.onReplaceOptimisticMessage = chatMessagesNotifier.replaceOptimisticMessage;
+                  chatActions.onRemoveOptimisticMessage = chatMessagesNotifier.removeOptimisticMessage;
+                  
                   await chatActions.deleteMessage(message.id);
                   
                   // Guard after async
@@ -153,13 +251,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (text.isEmpty) return;
 
     try {
+      final selectedBase = ref.read(effectiveSelectedBaseProvider);
+      if (selectedBase == null) return;
+
       final chatActions = ref.read(chatActionsProvider.notifier);
+      final chatMessagesNotifier = ref.read(chatMessagesProvider(selectedBase.id).notifier);
+      
+      // Set up optimistic update callbacks
+      chatActions.onOptimisticMessage = chatMessagesNotifier.addOptimisticMessage;
+      chatActions.onReplaceOptimisticMessage = chatMessagesNotifier.replaceOptimisticMessage;
+      chatActions.onRemoveOptimisticMessage = chatMessagesNotifier.removeOptimisticMessage;
+      
       await chatActions.sendMessage(
         type: MessageType.text,
         text: text,
       );
       _messageController.clear();
-             _scrollToTop();
+      _scrollToTop();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -196,30 +304,49 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               builder: (context, ref, child) {
                 final messagesAsync = ref.watch(chatMessagesProvider(selectedBase.id));
                 
-                                 return messagesAsync.when(
-                   data: (messages) {
-                     if (messages.isEmpty) {
-                       return const Center(
-                         child: Text(
-                           'No messages yet. Start the conversation!',
-                           style: TextStyle(
-                             fontSize: 16,
-                             color: Colors.grey,
-                           ),
-                         ),
-                       );
-                     }
-                     
-                     // Sort messages by creation time (newest first for display)
-                     final sortedMessages = List<ChatMessage>.from(messages)
-                       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-                     
-                     return ListView.builder(
+                return messagesAsync.when(
+                  data: (messages) {
+                    // Update pagination state when messages change
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (messages.isNotEmpty && _lastMessageId == null) {
+                        setState(() {
+                          _lastMessageId = messages.last.id;
+                          _hasMoreMessages = messages.length >= 50;
+                        });
+                      }
+                    });
+                    
+                    if (messages.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No messages yet. Start the conversation!',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    // Sort messages by creation time (newest first for display)
+                    final sortedMessages = List<ChatMessage>.from(messages)
+                      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                    
+                    return ListView.builder(
                        controller: _scrollController,
                        reverse: true, // Show newest messages at the top
                        padding: const EdgeInsets.all(16),
-                       itemCount: sortedMessages.length,
+                       itemCount: sortedMessages.length + (_hasMoreMessages ? 1 : 0),
                        itemBuilder: (context, index) {
+                                                   // Show loading indicator at the end when loading more
+                          if (_hasMoreMessages && index == sortedMessages.length) {
+                            return _LoadingIndicator(
+                              isLoading: _isLoadingMore,
+                              hasMore: _hasMoreMessages,
+                              onRetry: _loadMoreMessages,
+                            );
+                          }
+                         
                          final message = sortedMessages[index];
                          final isMyMessage = session.value?.userId == message.authorUserId;
                          
@@ -427,6 +554,53 @@ class _MessageBubble extends ConsumerWidget {
     } else {
       return '${time.month}/${time.day} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
     }
+  }
+}
+
+class _LoadingIndicator extends StatelessWidget {
+  final bool isLoading;
+  final bool hasMore;
+  final VoidCallback? onRetry;
+
+  const _LoadingIndicator({
+    required this.isLoading,
+    required this.hasMore,
+    this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isLoading)
+              const CircularProgressIndicator()
+            else if (hasMore && onRetry != null)
+              Column(
+                children: [
+                  const Text(
+                    'Load more messages',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: onRetry,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              )
+            else
+              const Text(
+                'No more messages',
+                style: TextStyle(color: Colors.grey),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -165,7 +165,13 @@ class SpChatRepository implements ChatRepository {
     if (beforeMessageId != null) {
       final beforeIndex = messages.indexWhere((m) => m.id == beforeMessageId);
       if (beforeIndex != -1) {
-        messages.removeRange(0, beforeIndex + 1);
+        // Get messages before the specified message ID
+        final startIndex = beforeIndex + 1;
+        if (startIndex < messages.length) {
+          messages.removeRange(startIndex, messages.length);
+        } else {
+          return []; // No more messages to load
+        }
       }
     }
     
