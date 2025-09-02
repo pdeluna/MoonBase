@@ -35,6 +35,117 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  void _editMessage(ChatMessage message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final textController = TextEditingController(text: message.text);
+        return AlertDialog(
+          title: const Text('Edit Message'),
+          content: TextField(
+            controller: textController,
+            decoration: const InputDecoration(
+              hintText: 'Enter your message',
+            ),
+            maxLines: 3,
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Pre-grab handlers
+                final nav = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                final newText = textController.text.trim();
+                
+                if (newText.isNotEmpty && newText != message.text) {
+                  try {
+                    final chatActions = ref.read(chatActionsProvider.notifier);
+                    await chatActions.editMessage(
+                      messageId: message.id,
+                      newText: newText,
+                    );
+                    
+                    // Guard after async
+                    if (!context.mounted) return;
+                    
+                    nav.pop();
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Message edited successfully!')),
+                    );
+                  } catch (e) {
+                    // Guard after async
+                    if (!context.mounted) return;
+                    
+                    nav.pop();
+                    messenger.showSnackBar(
+                      SnackBar(content: Text('Failed to edit message: $e')),
+                    );
+                  }
+                } else {
+                  nav.pop();
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteMessage(ChatMessage message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Message'),
+          content: const Text('Are you sure you want to delete this message? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Pre-grab handlers
+                final nav = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                
+                try {
+                  final chatActions = ref.read(chatActionsProvider.notifier);
+                  await chatActions.deleteMessage(message.id);
+                  
+                  // Guard after async
+                  if (!context.mounted) return;
+                  
+                  nav.pop();
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Message deleted successfully!')),
+                  );
+                } catch (e) {
+                  // Guard after async
+                  if (!context.mounted) return;
+                  
+                  nav.pop();
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Failed to delete message: $e')),
+                  );
+                }
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
 
   Future<void> _sendMessage() async {
@@ -115,6 +226,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                          return _MessageBubble(
                            message: message,
                            isMyMessage: isMyMessage,
+                           onEditMessage: () => _editMessage(message),
+                           onDeleteMessage: () => _deleteMessage(message),
                          );
                        },
                      );
@@ -140,10 +253,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 class _MessageBubble extends ConsumerWidget {
   final ChatMessage message;
   final bool isMyMessage;
+  final VoidCallback? onEditMessage;
+  final VoidCallback? onDeleteMessage;
 
   const _MessageBubble({
     required this.message,
     required this.isMyMessage,
+    this.onEditMessage,
+    this.onDeleteMessage,
   });
 
   @override
@@ -172,7 +289,9 @@ class _MessageBubble extends ConsumerWidget {
 
     return Align(
       alignment: isMyMessage ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
+      child: GestureDetector(
+        onLongPress: isMyMessage ? () => _showMessageOptions(context) : null,
+        child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         constraints: const BoxConstraints(maxWidth: 280),
@@ -262,6 +381,39 @@ class _MessageBubble extends ConsumerWidget {
           ],
         ),
       ),
+      ),
+    );
+  }
+
+  void _showMessageOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text('Edit Message'),
+                onTap: () {
+                  Navigator.pop(context);
+                  onEditMessage?.call();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Delete Message', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  onDeleteMessage?.call();
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
