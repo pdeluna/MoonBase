@@ -161,19 +161,11 @@ class SpInvitesRepository implements InvitesRepository {
     }
 
     // Check if user is already a member
-    final membersRaw = sp.getString('mb.members');
-    if (membersRaw != null) {
-      try {
-        final members = jsonDecode(membersRaw) as Map<String, dynamic>;
-        final baseMembers = members[invite.baseId] as List<dynamic>? ?? [];
-        for (final memberJson in baseMembers) {
-          final member = jsonDecode(memberJson) as Map<String, dynamic>;
-          if (member['userId'] == userId) {
-            throw Exception('User is already a member of this base');
-          }
-        }
-      } catch (_) {
-        // Continue if there's an error reading members
+    final existingMembers = await _readMembers(sp);
+    final existingBaseMembers = existingMembers[invite.baseId] as List<dynamic>? ?? [];
+    for (final existingMember in existingBaseMembers) {
+      if (existingMember is Map<String, dynamic> && existingMember['userId'] == userId) {
+        throw Exception('User is already a member of this base');
       }
     }
 
