@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonbase_skeleton/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/providers/chat_provider.dart';
-import 'package:moonbase_skeleton/providers/bases_provider.dart';
 import 'package:moonbase_skeleton/services/chat_repository.dart';
 import 'package:moonbase_skeleton/services/bases_repository.dart';
 import 'package:moonbase_skeleton/services/profile_repository.dart';
