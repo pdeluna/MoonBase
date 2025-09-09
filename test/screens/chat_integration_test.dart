@@ -93,12 +93,9 @@ void main() {
     Widget createTestWidget() {
       return ProviderScope(
         overrides: [
-          sessionProvider.overrideWith((ref) => mockSessionController),
+          // Only override the essential providers
           chatRepositoryProvider.overrideWith((ref) => mockChatRepository),
-          basesRepositoryProvider.overrideWith((ref) => mockBasesRepository),
-          profileRepositoryProvider.overrideWith((ref) => mockProfileRepository),
-          // Override the effective selected base provider
-          effectiveSelectedBaseProvider.overrideWith((ref) => testBase),
+          // Let the other providers use their default implementations
         ],
         child: const MaterialApp(
           home: ChatScreen(),
@@ -108,12 +105,12 @@ void main() {
 
     group('Basic Chat Integration Tests', () {
       testWidgets('ChatScreen can be created and shows base selection when no base', (WidgetTester tester) async {
-        // Test without base selection
+        // Test without base selection - use a minimal provider scope
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
-              sessionProvider.overrideWith((ref) => mockSessionController),
-              effectiveSelectedBaseProvider.overrideWith((ref) => null),
+              // Only override the chat repository
+              chatRepositoryProvider.overrideWith((ref) => mockChatRepository),
             ],
             child: const MaterialApp(
               home: ChatScreen(),

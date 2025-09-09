@@ -1,16 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:moonbase_skeleton/providers/invites_provider.dart';
 import 'package:moonbase_skeleton/models/invite.dart';
 import 'package:moonbase_skeleton/models/base_member.dart';
 import 'package:moonbase_skeleton/models/enums.dart';
 import 'package:moonbase_skeleton/models/base.dart';
-import 'package:moonbase_skeleton/models/profile.dart';
 
 void main() {
   group('InvitesProvider Tests', () {
     late Base testBase;
-    late Profile testProfile;
     late BaseInvite testInvite;
     late BaseMember testMember;
 
@@ -22,13 +18,6 @@ void main() {
         createdAt: DateTime(2024, 1, 1),
         updatedAt: DateTime(2024, 1, 1),
         lastAccessedAt: DateTime(2024, 1, 15),
-      );
-      
-      testProfile = Profile(
-        userId: 'user_123',
-        nickname: 'testuser',
-        createdAt: DateTime(2024, 1, 1).toIso8601String(),
-        themeMode: 'light',
       );
       
       testInvite = BaseInvite(
