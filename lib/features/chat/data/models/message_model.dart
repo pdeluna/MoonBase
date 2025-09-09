@@ -1,0 +1,41 @@
+import '../../domain/entities/message.dart';
+
+class MessageModel {
+  final String id;
+  final String baseId;
+  final String userId;
+  final String content;
+  final DateTime createdAt;
+
+  const MessageModel({
+    required this.id,
+    required this.baseId,
+    required this.userId,
+    required this.content,
+    required this.createdAt,
+  });
+
+  Message toEntity() => Message(
+    id: id,
+    baseId: baseId,
+    userId: userId,
+    content: content,
+    createdAt: createdAt,
+  );
+
+  factory MessageModel.fromMap(Map<String, dynamic> map) => MessageModel(
+    id: map['id'] as String,
+    baseId: map['baseId'] as String,
+    userId: map['userId'] as String,
+    content: map['content'] as String,
+    createdAt: DateTime.parse(map['createdAt'] as String),
+  );
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'baseId': baseId,
+    'userId': userId,
+    'content': content,
+    'createdAt': createdAt.toIso8601String(),
+  };
+}
