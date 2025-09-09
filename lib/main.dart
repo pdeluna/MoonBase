@@ -6,6 +6,9 @@ import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_prov
 import 'package:moonbase_skeleton/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:moonbase_skeleton/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:moonbase_skeleton/features/auth/data/models/user_model.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
+import 'package:moonbase_skeleton/features/bases/data/repositories/base_repository_impl.dart';
+import 'package:moonbase_skeleton/features/bases/data/datasources/base_local_data_source_impl.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +18,7 @@ void main() {
         // TODO: replace with real data sources
         AuthRepositoryImpl(local: _UnimplementedLocal()),
       ),
+      baseRepositoryProvider.overrideWithValue(BaseRepositoryImpl(local: InMemoryBaseLocalDataSource())),
     ],
     child: const MoonBaseApp()));
 }

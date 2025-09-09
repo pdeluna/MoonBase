@@ -4,7 +4,7 @@ import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_in.dart';
-import '../../../../test_utils/mocks.dart';
+import '../../../../test_utils/mocks_auth.dart';
 
 /// Test suite for the SignIn use case.
 /// 
