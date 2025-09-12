@@ -16,6 +16,12 @@ final sessionProvider =
   return SessionController(ref.read(profileRepositoryProvider))..bootstrap();
 });
 
+// Provider to get profiles by user ID
+final profileByUserIdProvider = FutureProvider.family<Profile?, String>((ref, userId) async {
+  final repository = ref.read(profileRepositoryProvider);
+  return repository.getProfileByUserId(userId);
+});
+
 class SessionController extends StateNotifier<AsyncValue<Profile?>> {
   SessionController(this._repo) : super(const AsyncValue.loading()) {
     debugPrint('SessionController: Constructor called');

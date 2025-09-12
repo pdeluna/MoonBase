@@ -4,6 +4,7 @@ import 'package:moonbase_skeleton/services/invites_repository.dart';
 import 'package:moonbase_skeleton/models/invite.dart';
 import 'package:moonbase_skeleton/models/base_member.dart';
 import 'package:moonbase_skeleton/models/enums.dart';
+import 'dart:convert';
 
 class MockInvitesRepository implements InvitesRepository {
   final Map<String, BaseInvite> _invites = {};
@@ -273,6 +274,17 @@ void main() {
           code: invite.code,
           userId: 'user_456',
         );
+
+        // Set up the members data to reflect that user_456 is now a member
+        // This simulates what happens when the first redemption is processed
+        // Note: The _writeMembers method stores this as Maps, not JSON strings
+        final memberData = {
+          'base_1': [
+            {"id":"member_123","baseId":"base_1","userId":"user_123","role":"owner","joinedAt":"2024-01-01T00:00:00.000Z","updatedAt":"2024-01-01T00:00:00.000Z"},
+            {"id":"member_456","baseId":"base_1","userId":"user_456","role":"member","joinedAt":"2024-01-01T00:00:00.000Z","updatedAt":"2024-01-01T00:00:00.000Z"}
+          ]
+        };
+        await prefs.setString('mb.members', jsonEncode(memberData));
 
         // Second redemption by same user should fail
         expect(
