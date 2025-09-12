@@ -2,6 +2,17 @@
 
 A minimal Flutter skeleton for MoonBase (closed-circle streaming/chat). Pure navigation, no Firebase.
 
+## 📋 **Table of Contents**
+
+- [Current Status](#-current-status-refactoring-in-progress)
+- [Features](#-features)
+- [Architecture](#️-architecture)
+- [Getting Started](#-getting-started)
+- [Testing](#-testing)
+- [Project Structure](#-project-structure)
+- [Documentation](#-documentation)
+- [Roadmap](#-roadmap)
+
 ## 🚀 **Current Status: Refactoring in Progress**
 
 MoonBase Skeleton is currently undergoing a major architectural refactor to implement Clean Architecture principles. The **legacy build** contains fully functional proof-of-concept features including chat, base management, and user authentication. The **refactor branch** is implementing a new 3-layer architecture with proper separation of concerns.
