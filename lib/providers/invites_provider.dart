@@ -58,7 +58,7 @@ class InvitesNotifier extends StateNotifier<AsyncValue<void>> {
       state = const AsyncValue.loading();
       final invite = await _repository.createInvite(
         baseId: baseId,
-        userId: _session.value!.userId,
+        userId: _session.value!.userId as String,
         maxUses: maxUses,
         expiresAt: expiresAt,
       );
@@ -79,7 +79,7 @@ class InvitesNotifier extends StateNotifier<AsyncValue<void>> {
       state = const AsyncValue.loading();
       final member = await _repository.redeemInvite(
         code: code,
-        userId: _session.value!.userId,
+        userId: _session.value!.userId as String,
       );
       
       // Refresh bases list to include the newly joined base

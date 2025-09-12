@@ -96,7 +96,7 @@ class SpInvitesRepository implements InvitesRepository {
         final bases = jsonDecode(basesRaw) as Map<String, dynamic>;
         final baseJson = bases[baseId];
         if (baseJson != null) {
-          final base = jsonDecode(baseJson) as Map<String, dynamic>;
+          final base = jsonDecode(baseJson as String) as Map<String, dynamic>;
           if (base['ownerUserId'] != userId) {
             throw Exception('Only base owner can create invites');
           }
@@ -162,7 +162,7 @@ class SpInvitesRepository implements InvitesRepository {
 
     // Check if user is already a member
     final existingMembers = await _readMembers(sp);
-    final existingBaseMembers = existingMembers[invite.baseId] as List<dynamic>? ?? [];
+    final existingBaseMembers = existingMembers[invite.baseId] as List<dynamic>? ?? <dynamic>[];
     for (final existingMember in existingBaseMembers) {
       if (existingMember is Map<String, dynamic> && existingMember['userId'] == userId) {
         throw Exception('User is already a member of this base');
@@ -173,7 +173,7 @@ class SpInvitesRepository implements InvitesRepository {
     final invites = await _readInvites(sp);
     final inviteJson = invites[invite.id];
     if (inviteJson != null) {
-      final updatedInvite = BaseInvite.fromMap(inviteJson);
+      final updatedInvite = BaseInvite.fromMap(inviteJson as Map<String, dynamic>);
       final newInvite = BaseInvite(
         id: updatedInvite.id,
         baseId: updatedInvite.baseId,
@@ -201,14 +201,14 @@ class SpInvitesRepository implements InvitesRepository {
 
     // Save member
     final members = await _readMembers(sp);
-    final baseMembers = List<Map<String, dynamic>>.from(members[invite.baseId] ?? []);
+    final baseMembers = List<Map<String, dynamic>>.from((members[invite.baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     baseMembers.add(member.toMap());
     members[invite.baseId] = baseMembers;
     await _writeMembers(sp, members);
 
     // Add to user's bases
     final userBases = await _readUserBases(sp);
-    final userBaseList = List<String>.from(userBases[userId] ?? []);
+    final userBaseList = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
     if (!userBaseList.contains(invite.baseId)) {
       userBaseList.add(invite.baseId);
       userBases[userId] = userBaseList;
@@ -231,7 +231,7 @@ class SpInvitesRepository implements InvitesRepository {
     if (inviteJson == null) return null;
 
     try {
-      return BaseInvite.fromMap(inviteJson);
+      return BaseInvite.fromMap(inviteJson as Map<String, dynamic>);
     } catch (_) {
       return null;
     }

@@ -29,7 +29,7 @@ void main() {
     test('Complete flow: Create base, invite user, chat', () async {
       // Setup mock current user with proper JSON structure
       await prefs.setString('mb.currentUser', 'alice');
-      await prefs.setString('mb.users', '{"alice": "{\\"userId\\":\\"user_alice\\",\\"nickname\\":\\"alice\\"}", "bob": "{\\"userId\\":\\"user_bob\\",\\"nickname\\":\\"bob\\"}"}');
+      await prefs.setString('mb.users', r'{"alice": "{\"userId\":\"user_alice\",\"nickname\":\"alice\"}", "bob": "{\"userId\":\"user_bob\",\"nickname\":\"bob\"}"}');
 
       // 1. Alice creates a base
       final base = await basesRepository.createBase(
@@ -116,7 +116,7 @@ void main() {
       );
 
       // Wait for stream to update
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(streamMessages.length, greaterThan(0));
       final latestMessages = streamMessages.last;
@@ -159,7 +159,7 @@ void main() {
     test('Multiple users can join via invite', () async {
       // Setup mock users
       await prefs.setString('mb.currentUser', 'owner');
-      await prefs.setString('mb.users', '{"owner": "{\\"userId\\":\\"user_owner\\",\\"nickname\\":\\"owner\\"}", "user1": "{\\"userId\\":\\"user_1\\",\\"nickname\\":\\"user1\\"}", "user2": "{\\"userId\\":\\"user_2\\",\\"nickname\\":\\"user_2\\"}"}');
+      await prefs.setString('mb.users', r'{"owner": "{\"userId\":\"user_owner\",\"nickname\":\"owner\"}", "user1": "{\"userId\":\"user_1\",\"nickname\":\"user1\"}", "user2": "{\"userId\":\"user_2\",\"nickname\":\"user_2\"}"}');
 
       // Create base
       final base = await basesRepository.createBase(name: 'Multi-User Base', userId: 'user_owner');
@@ -205,7 +205,7 @@ void main() {
 
     test('Invite validation and error handling', () async {
       await prefs.setString('mb.currentUser', 'owner');
-      await prefs.setString('mb.users', '{"owner": "{\\"userId\\":\\"user_owner\\",\\"nickname\\":\\"owner\\"}", "user1": "{\\"userId\\":\\"user_1\\",\\"nickname\\":\\"user1\\"}"}');
+      await prefs.setString('mb.users', r'{"owner": "{\"userId\":\"user_owner\",\"nickname\":\"owner\"}", "user1": "{\"userId\":\"user_1\",\"nickname\":\"user1\"}"}');
 
       final base = await basesRepository.createBase(name: 'Test Base', userId: 'user_owner');
 

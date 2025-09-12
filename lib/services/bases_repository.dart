@@ -109,14 +109,14 @@ class SpBasesRepository implements BasesRepository {
 
     // Add to user's bases
     final userBases = await _readUserBases(sp);
-    final userBaseList = List<String>.from(userBases[userId] ?? []);
+    final userBaseList = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
     userBaseList.add(baseId);
     userBases[userId] = userBaseList;
     await _writeUserBases(sp, userBases);
 
     // Add owner as member directly (avoiding circular dependency)
     final members = await _readMembers(sp);
-    final baseMembers = List<Map<String, dynamic>>.from(members[baseId] ?? []);
+    final baseMembers = List<Map<String, dynamic>>.from((members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     final ownerMember = BaseMember(
       id: const Uuid().v4(),
       baseId: baseId,
@@ -145,7 +145,7 @@ class SpBasesRepository implements BasesRepository {
     // Remove base from all users' lists
     final userBases = await _readUserBases(sp);
     for (final userId in userBases.keys) {
-      final userBaseList = List<String>.from(userBases[userId] ?? []);
+      final userBaseList = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
       userBaseList.remove(baseId);
       userBases[userId] = userBaseList;
     }
@@ -179,7 +179,7 @@ class SpBasesRepository implements BasesRepository {
       throw Exception('Base not found');
     }
 
-    final currentBase = Base.fromJson(baseJson);
+    final currentBase = Base.fromJson(baseJson as String);
     final now = DateTime.now();
     
     // Update base
@@ -204,7 +204,7 @@ class SpBasesRepository implements BasesRepository {
     if (baseJson == null) return null;
     
     try {
-      return Base.fromJson(baseJson);
+      return Base.fromJson(baseJson as String);
     } catch (_) {
       return null;
     }
@@ -214,7 +214,7 @@ class SpBasesRepository implements BasesRepository {
   Future<List<Base>> listMyBases(String userId) async {
     final sp = await SharedPreferences.getInstance();
     final userBases = await _readUserBases(sp);
-    final baseIds = List<String>.from(userBases[userId] ?? []);
+    final baseIds = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
     
     final bases = await _readBases(sp);
     
@@ -224,7 +224,7 @@ class SpBasesRepository implements BasesRepository {
       final baseJson = bases[baseId];
       if (baseJson != null) {
         try {
-          final base = Base.fromJson(baseJson);
+          final base = Base.fromJson(baseJson as String);
           result.add(base);
         } catch (_) {
           // Skip corrupted base data
@@ -257,14 +257,14 @@ class SpBasesRepository implements BasesRepository {
 
     // Add to members list
     final members = await _readMembers(sp);
-    final baseMembers = List<Map<String, dynamic>>.from(members[baseId] ?? []);
+    final baseMembers = List<Map<String, dynamic>>.from((members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     baseMembers.add(member.toMap());
     members[baseId] = baseMembers;
     await _writeMembers(sp, members);
 
     // Add to user's bases if not already there
     final userBases = await _readUserBases(sp);
-    final userBaseList = List<String>.from(userBases[userId] ?? []);
+    final userBaseList = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
     if (!userBaseList.contains(baseId)) {
       userBaseList.add(baseId);
       userBases[userId] = userBaseList;
@@ -276,7 +276,7 @@ class SpBasesRepository implements BasesRepository {
     final baseJson = bases[baseId];
     if (baseJson != null) {
       try {
-        final base = Base.fromJson(baseJson);
+        final base = Base.fromJson(baseJson as String);
         final updatedBase = base.copyWith(
           memberIds: [...base.memberIds, userId],
           updatedAt: now,
@@ -301,14 +301,14 @@ class SpBasesRepository implements BasesRepository {
 
     // Remove from members list
     final members = await _readMembers(sp);
-    final baseMembers = List<Map<String, dynamic>>.from(members[baseId] ?? []);
+    final baseMembers = List<Map<String, dynamic>>.from((members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     baseMembers.removeWhere((member) => member['userId'] == userId);
     members[baseId] = baseMembers;
     await _writeMembers(sp, members);
 
     // Remove from user's bases
     final userBases = await _readUserBases(sp);
-    final userBaseList = List<String>.from(userBases[userId] ?? []);
+    final userBaseList = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
     userBaseList.remove(baseId);
     userBases[userId] = userBaseList;
     await _writeUserBases(sp, userBases);
@@ -318,7 +318,7 @@ class SpBasesRepository implements BasesRepository {
     final baseJson = bases[baseId];
     if (baseJson != null) {
       try {
-        final base = Base.fromJson(baseJson);
+        final base = Base.fromJson(baseJson as String);
         final updatedBase = base.copyWith(
           memberIds: base.memberIds.where((id) => id != userId).toList(),
           updatedAt: DateTime.now(),
@@ -335,7 +335,7 @@ class SpBasesRepository implements BasesRepository {
   Future<List<BaseMember>> listMembers(String baseId) async {
     final sp = await SharedPreferences.getInstance();
     final members = await _readMembers(sp);
-    final baseMembers = List<Map<String, dynamic>>.from(members[baseId] ?? []);
+    final baseMembers = List<Map<String, dynamic>>.from((members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     
     final result = <BaseMember>[];
     for (final memberJson in baseMembers) {
@@ -371,7 +371,7 @@ class SpBasesRepository implements BasesRepository {
     final baseJson = bases[baseId];
     if (baseJson != null) {
       try {
-        final base = Base.fromJson(baseJson);
+        final base = Base.fromJson(baseJson as String);
         final updatedBase = base.copyWith(
           lastAccessedAt: DateTime.now(),
           updatedAt: DateTime.now(),

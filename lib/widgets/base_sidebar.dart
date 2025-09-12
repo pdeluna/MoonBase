@@ -6,16 +6,16 @@ import 'package:moonbase_skeleton/services/session_controller.dart';
 import 'package:moonbase_skeleton/widgets/moon_spinner.dart';
 
 class BaseSidebar extends ConsumerWidget {
-  final VoidCallback? onBaseSelected;
-  final VoidCallback? onCreateBase;
-  final VoidCallback? onJoinBase;
-
   const BaseSidebar({
     super.key,
     this.onBaseSelected,
     this.onCreateBase,
     this.onJoinBase,
   });
+  
+  final VoidCallback? onBaseSelected;
+  final VoidCallback? onCreateBase;
+  final VoidCallback? onJoinBase;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -375,7 +375,7 @@ class BaseSidebar extends ConsumerWidget {
   }
 
   void _showBaseOptions(BuildContext context, Base base, WidgetRef ref) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
@@ -426,7 +426,7 @@ class BaseSidebar extends ConsumerWidget {
     final descriptionController = TextEditingController(text: base.description ?? '');
     final formKey = GlobalKey<FormState>();
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Rename Base'),
@@ -483,7 +483,7 @@ class BaseSidebar extends ConsumerWidget {
   }
 
   void _showDeleteConfirmation(BuildContext context, Base base, WidgetRef ref) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Base'),

@@ -44,7 +44,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Text("Pick a nickname (no email/phone needed)"),
+            const Text('Pick a nickname (no email/phone needed)'),
             const SizedBox(height: 8),
             TextField(
               controller: _c,

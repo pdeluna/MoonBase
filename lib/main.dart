@@ -2,10 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/router.dart';
 import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
+import 'package:moonbase_skeleton/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:moonbase_skeleton/features/auth/data/datasources/auth_local_data_source.dart';
+import 'package:moonbase_skeleton/features/auth/data/models/user_model.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
+import 'package:moonbase_skeleton/features/bases/data/repositories/base_repository_impl.dart';
+import 'package:moonbase_skeleton/features/bases/data/datasources/base_local_data_source_impl.dart';
+import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
+import 'package:moonbase_skeleton/features/chat/data/repositories/chat_repository_impl.dart';
+import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source_impl.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: MoonBaseApp()));
+  runApp(ProviderScope(  
+    overrides: [
+      authRepositoryProvider.overrideWithValue(
+        // TODO: replace with real data sources
+        AuthRepositoryImpl(local: _UnimplementedLocal()),
+      ),
+      baseRepositoryProvider.overrideWithValue(BaseRepositoryImpl(local: InMemoryBaseLocalDataSource())),
+      chatRepositoryProvider.overrideWithValue(ChatRepositoryImpl(local: InMemoryChatLocalDataSource())),
+    ],
+    child: const MoonBaseApp()));
+}
+
+class _UnimplementedLocal implements AuthLocalDataSource {
+  @override Future<void> clear() async {}
+  @override Future<UserModel?> readCurrentUser() async => null;
+  @override Future<void> writeCurrentUser(UserModel user) async {}
 }
 
 class MoonBaseApp extends ConsumerStatefulWidget {

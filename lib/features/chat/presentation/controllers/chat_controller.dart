@@ -1,0 +1,67 @@
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
+import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
+import 'package:moonbase_skeleton/features/chat/domain/usecases/list_messages.dart';
+import 'package:moonbase_skeleton/features/chat/domain/usecases/send_message.dart';
+import 'package:moonbase_skeleton/features/chat/domain/usecases/stream_messages.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
+
+
+class ChatState {
+  const ChatState({this.messages = const AsyncValue.data([])});
+
+  final AsyncValue<List<Message>> messages;
+
+  ChatState copyWith({AsyncValue<List<Message>>? messages}) =>
+      ChatState(messages: messages ?? this.messages);
+}
+
+class ChatController extends StateNotifier<ChatState> {
+  ChatController(this._listMessages, this._sendMessage, this._streamMessages)
+      : super(const ChatState());
+
+  final ListMessages _listMessages;
+  final SendMessage _sendMessage;
+  final StreamMessages _streamMessages;
+
+  StreamSubscription<List<Message>>? _sub;
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> load(String baseId) async {
+    state = state.copyWith(messages: const AsyncValue.loading());
+    final res = await _listMessages(ListMessagesParams(baseId: baseId.bid));
+    state = res.match(
+      (f) => state.copyWith(messages: AsyncValue.error(f, StackTrace.current)),
+      (list) => state.copyWith(messages: AsyncValue.data(list)),
+    );
+  }
+
+  void subscribe(String baseId) {
+    _sub?.cancel();
+    _sub = _streamMessages(baseId.bid).listen((list) {
+      state = state.copyWith(messages: AsyncValue.data(list));
+    });
+  }
+
+  Future<void> send(String baseId, String userId, String content) async {
+    final res = await _sendMessage(SendMessageParams(baseId: baseId.bid, userId: userId.uid, content: content));
+    res.match(
+      (_) => <String, dynamic>{}, // on failure, keep existing state (UI can surface errors if you propagate)
+      (_) => <String, dynamic>{}, // stream will push the new list
+    );
+  }
+}
+
+final chatControllerProvider = StateNotifierProvider<ChatController, ChatState>((ref) {
+  return ChatController(
+    ref.read(listMessagesUseCaseProvider),
+    ref.read(sendMessageUseCaseProvider),
+    ref.read(streamMessagesUseCaseProvider),
+  );
+});

@@ -130,7 +130,7 @@ void main() {
     group('createInvite', () {
       test('should create invite with unique code', () async {
         // Setup mock base data with proper JSON structure
-        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        await prefs.setString('mb.bases', r'{"base_1": "{\"id\":\"base_1\",\"ownerUserId\":\"user_123\",\"name\":\"Test Base\",\"description\":null,\"avatarUrl\":null,\"memberIds\":[\"user_123\"],\"createdAt\":\"2024-01-01T00:00:00.000Z\",\"updatedAt\":\"2024-01-01T00:00:00.000Z\"}"}');
 
         final invite = await repository.createInvite(
           baseId: 'base_1',
@@ -154,7 +154,7 @@ void main() {
 
       test('should throw exception when user is not owner', () async {
         // Setup mock base data with different owner
-        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_456\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_456\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        await prefs.setString('mb.bases', r'{"base_1": "{\"id\":\"base_1\",\"ownerUserId\":\"user_456\",\"name\":\"Test Base\",\"description\":null,\"avatarUrl\":null,\"memberIds\":[\"user_456\"],\"createdAt\":\"2024-01-01T00:00:00.000Z\",\"updatedAt\":\"2024-01-01T00:00:00.000Z\"}"}');
 
         expect(
           () => repository.createInvite(
@@ -166,7 +166,7 @@ void main() {
       });
 
       test('should create invite with expiration', () async {
-        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        await prefs.setString('mb.bases', r'{"base_1": "{\"id\":\"base_1\",\"ownerUserId\":\"user_123\",\"name\":\"Test Base\",\"description\":null,\"avatarUrl\":null,\"memberIds\":[\"user_123\"],\"createdAt\":\"2024-01-01T00:00:00.000Z\",\"updatedAt\":\"2024-01-01T00:00:00.000Z\"}"}');
 
         final expiresAt = DateTime.now().add(const Duration(hours: 24));
         final invite = await repository.createInvite(
@@ -182,7 +182,7 @@ void main() {
     group('redeemInvite', () {
       test('should redeem valid invite and add user as member', () async {
         // Setup mock base data
-        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        await prefs.setString('mb.bases', r'{"base_1": "{\"id\":\"base_1\",\"ownerUserId\":\"user_123\",\"name\":\"Test Base\",\"description\":null,\"avatarUrl\":null,\"memberIds\":[\"user_123\"],\"createdAt\":\"2024-01-01T00:00:00.000Z\",\"updatedAt\":\"2024-01-01T00:00:00.000Z\"}"}');
         
         // Create invite
         final invite = await repository.createInvite(
@@ -216,7 +216,7 @@ void main() {
       });
 
       test('should throw exception for expired invite', () async {
-        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        await prefs.setString('mb.bases', r'{"base_1": "{\"id\":\"base_1\",\"ownerUserId\":\"user_123\",\"name\":\"Test Base\",\"description\":null,\"avatarUrl\":null,\"memberIds\":[\"user_123\"],\"createdAt\":\"2024-01-01T00:00:00.000Z\",\"updatedAt\":\"2024-01-01T00:00:00.000Z\"}"}');
         
         // Create expired invite
         final invite = await repository.createInvite(
@@ -235,7 +235,7 @@ void main() {
       });
 
       test('should throw exception for depleted invite', () async {
-        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        await prefs.setString('mb.bases', r'{"base_1": "{\"id\":\"base_1\",\"ownerUserId\":\"user_123\",\"name\":\"Test Base\",\"description\":null,\"avatarUrl\":null,\"memberIds\":[\"user_123\"],\"createdAt\":\"2024-01-01T00:00:00.000Z\",\"updatedAt\":\"2024-01-01T00:00:00.000Z\"}"}');
         
         // Create invite with max uses = 1
         final invite = await repository.createInvite(
@@ -261,7 +261,7 @@ void main() {
       });
 
       test('should throw exception if user is already a member', () async {
-        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        await prefs.setString('mb.bases', r'{"base_1": "{\"id\":\"base_1\",\"ownerUserId\":\"user_123\",\"name\":\"Test Base\",\"description\":null,\"avatarUrl\":null,\"memberIds\":[\"user_123\"],\"createdAt\":\"2024-01-01T00:00:00.000Z\",\"updatedAt\":\"2024-01-01T00:00:00.000Z\"}"}');
         
         final invite = await repository.createInvite(
           baseId: 'base_1',
@@ -280,8 +280,8 @@ void main() {
         // Note: The _writeMembers method stores this as Maps, not JSON strings
         final memberData = {
           'base_1': [
-            {"id":"member_123","baseId":"base_1","userId":"user_123","role":"owner","joinedAt":"2024-01-01T00:00:00.000Z","updatedAt":"2024-01-01T00:00:00.000Z"},
-            {"id":"member_456","baseId":"base_1","userId":"user_456","role":"member","joinedAt":"2024-01-01T00:00:00.000Z","updatedAt":"2024-01-01T00:00:00.000Z"}
+            {'id':'member_123','baseId':'base_1','userId':'user_123','role':'owner','joinedAt':'2024-01-01T00:00:00.000Z','updatedAt':'2024-01-01T00:00:00.000Z'},
+            {'id':'member_456','baseId':'base_1','userId':'user_456','role':'member','joinedAt':'2024-01-01T00:00:00.000Z','updatedAt':'2024-01-01T00:00:00.000Z'}
           ]
         };
         await prefs.setString('mb.members', jsonEncode(memberData));
@@ -299,7 +299,7 @@ void main() {
 
     group('getByCode', () {
       test('should return invite for valid code', () async {
-        await prefs.setString('mb.bases', '{"base_1": "{\\"id\\":\\"base_1\\",\\"ownerUserId\\":\\"user_123\\",\\"name\\":\\"Test Base\\",\\"description\\":null,\\"avatarUrl\\":null,\\"memberIds\\":[\\"user_123\\"],\\"createdAt\\":\\"2024-01-01T00:00:00.000Z\\",\\"updatedAt\\":\\"2024-01-01T00:00:00.000Z\\"}"}');
+        await prefs.setString('mb.bases', r'{"base_1": "{\"id\":\"base_1\",\"ownerUserId\":\"user_123\",\"name\":\"Test Base\",\"description\":null,\"avatarUrl\":null,\"memberIds\":[\"user_123\"],\"createdAt\":\"2024-01-01T00:00:00.000Z\",\"updatedAt\":\"2024-01-01T00:00:00.000Z\"}"}');
         
         final invite = await repository.createInvite(
           baseId: 'base_1',

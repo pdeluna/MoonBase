@@ -88,7 +88,7 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
         // but the sessionWatcherProvider will handle this
       }
       
-      _previousUserId = userId;
+      _previousUserId = userId as String;
       state = const AsyncValue.loading();
       final bases = await _repository.listMyBases(userId);
       state = AsyncValue.data(bases);
@@ -109,7 +109,7 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
         name: name,
         description: description,
         avatarUrl: avatarUrl,
-        userId: _session.value!.userId, // Pass the user ID explicitly
+        userId: _session.value!.userId as String, // Pass the user ID explicitly
       );
 
       // Add the new base to the list
@@ -130,7 +130,7 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
     if (_session.value == null) return;
     
     try {
-      await _repository.deleteBase(baseId, userId: _session.value!.userId);
+      await _repository.deleteBase(baseId, userId: _session.value!.userId as String);
       
       // Remove from list
       final currentBases = state.value ?? [];
@@ -154,7 +154,7 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
         name: name,
         description: description,
         avatarUrl: avatarUrl,
-        userId: _session.value!.userId,
+        userId: _session.value!.userId as String,
       );
       
       // Update the base in our local state

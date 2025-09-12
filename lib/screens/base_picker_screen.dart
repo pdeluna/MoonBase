@@ -26,7 +26,7 @@ class _BasePickerScreenState extends ConsumerState<BasePickerScreen> {
   }
 
   void _showCreateBaseDialog() {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Create New Base'),
@@ -71,7 +71,7 @@ class _BasePickerScreenState extends ConsumerState<BasePickerScreen> {
   }
 
   void _showJoinBaseDialog() {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Join Base'),

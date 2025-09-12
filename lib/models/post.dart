@@ -1,17 +1,8 @@
 import 'dart:convert';
-import 'media_ref.dart';
+import 'package:moonbase_skeleton/models/media_ref.dart';
 
 
 class BasePost {
-  final String id; // uuid v4
-  final String baseId;
-  final String authorUserId;
-  final String? text;
-  final List<MediaRef> media; // images/videos/links
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-
   const BasePost({
     required this.id,
     required this.baseId,
@@ -22,17 +13,7 @@ class BasePost {
     required this.updatedAt,
   });
 
-
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'baseId': baseId,
-    'authorUserId': authorUserId,
-    'text': text,
-    'media': media.map((m) => m.toMap()).toList(),
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
-  };
-
+  factory BasePost.fromJson(String source) => BasePost.fromMap(json.decode(source) as Map<String, dynamic>);
 
   factory BasePost.fromMap(Map<String, dynamic> map) => BasePost(
     id: map['id'] as String,
@@ -46,7 +27,23 @@ class BasePost {
     updatedAt: DateTime.parse(map['updatedAt'] as String),
     );
 
+  final String id; // uuid v4
+  final String baseId;
+  final String authorUserId;
+  final String? text;
+  final List<MediaRef> media; // images/videos/links
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'baseId': baseId,
+    'authorUserId': authorUserId,
+    'text': text,
+    'media': media.map((m) => m.toMap()).toList(),
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   String toJson() => json.encode(toMap());
-  factory BasePost.fromJson(String source) => BasePost.fromMap(json.decode(source));
 }

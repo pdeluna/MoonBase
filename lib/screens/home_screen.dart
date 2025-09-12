@@ -196,9 +196,9 @@ class _FeedPage extends ConsumerWidget {
 }
 
 class _Card extends StatelessWidget {
+  const _Card({required this.title, required this.subtitle});
   final String title;
   final String subtitle;
-  const _Card({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {

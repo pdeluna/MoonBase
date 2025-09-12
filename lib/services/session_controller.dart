@@ -36,7 +36,7 @@ class SessionController extends StateNotifier<AsyncValue<Profile?>> {
       
       // Add a small delay in development mode to ensure splash screen is visible
       if (_developmentMode) {
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future<void>.delayed(const Duration(milliseconds: 500));
       }
       
       final p = await _repo.read();

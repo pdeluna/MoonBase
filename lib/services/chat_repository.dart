@@ -133,7 +133,7 @@ class SpChatRepository implements ChatRepository {
 
     // Save message
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from(messages[baseId] ?? []);
+    final baseMessages = List<Map<String, dynamic>>.from((messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     baseMessages.add(message.toMap());
     messages[baseId] = baseMessages;
     await _writeMessages(sp, messages);
@@ -226,7 +226,7 @@ class SpChatRepository implements ChatRepository {
 
     // Update in storage
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from(messages[message.baseId] ?? []);
+    final baseMessages = List<Map<String, dynamic>>.from((messages[message.baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     final messageIndex = baseMessages.indexWhere((m) => m['id'] == messageId);
     
     if (messageIndex != -1) {
@@ -260,7 +260,7 @@ class SpChatRepository implements ChatRepository {
 
     // Update in storage
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from(messages[message.baseId] ?? []);
+    final baseMessages = List<Map<String, dynamic>>.from((messages[message.baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     final messageIndex = baseMessages.indexWhere((m) => m['id'] == messageId);
     
     if (messageIndex != -1) {
@@ -283,7 +283,7 @@ class SpChatRepository implements ChatRepository {
     if (baseId == null) return null;
 
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from(messages[baseId] ?? []);
+    final baseMessages = List<Map<String, dynamic>>.from((messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     
     for (final messageJson in baseMessages) {
       if (messageJson['id'] == messageId) {
@@ -302,7 +302,7 @@ class SpChatRepository implements ChatRepository {
   Future<List<ChatMessage>> _getMessagesForBase(String baseId) async {
     final sp = await SharedPreferences.getInstance();
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from(messages[baseId] ?? []);
+    final baseMessages = List<Map<String, dynamic>>.from((messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     
     final result = <ChatMessage>[];
     for (final messageJson in baseMessages) {

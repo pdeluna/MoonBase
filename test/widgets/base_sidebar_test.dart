@@ -45,7 +45,7 @@ void main() {
         ),
       ];
       
-      testProfile = Profile(
+        testProfile = Profile(
         userId: 'user1',
         nickname: 'testuser',
         createdAt: DateTime(2024, 1, 1).toIso8601String(),
