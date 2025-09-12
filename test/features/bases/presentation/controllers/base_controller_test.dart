@@ -51,9 +51,9 @@ void main() {
 
     test('join adds base to another user via invite code', () async {
       // owner creates a base
-      final created = await repo.createBase(name: 'Friends', ownerUserId: 'u9') as Right<dynamic, Base>;
+      final created = await repo.createBase(name: 'Friends', ownerUserId: 'u9'.uid) as Right<dynamic, Base>;
       final base = created.value;
-      final code = (await repo.generateInviteCode(baseId: base.id.value, requesterUserId: 'u9'.uid.value) as Right<dynamic, String>).value;
+      final code = (await repo.generateInviteCode(baseId: base.id, requesterUserId: 'u9'.uid) as Right<dynamic, String>).value;
 
       await c.load('u2');
       c.state.bases.maybeWhen(data: (l) => expect(l, isEmpty), orElse: () => fail('expected empty'));

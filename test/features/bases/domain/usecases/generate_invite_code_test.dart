@@ -63,8 +63,8 @@ void main() {
 
           // Act
           final result = await usecase(GenerateInviteCodeParams(
-            baseId: 'base_123',
-            requesterUserId: 'user_456',
+            baseId: 'base_123'.bid,
+            requesterUserId: 'user_456'.uid,
           ));
 
           // Assert

@@ -5,6 +5,7 @@ import 'package:moonbase_skeleton/features/bases/presentation/providers/base_pro
 import 'package:moonbase_skeleton/features/bases/domain/usecases/list_bases.dart';
 import 'package:moonbase_skeleton/features/bases/domain/usecases/create_base.dart';
 import 'package:moonbase_skeleton/features/bases/domain/usecases/join_base.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 
 
 class BaseState {
@@ -24,7 +25,7 @@ class BaseController extends StateNotifier<BaseState> {
 
   Future<void> load(String userId) async {
     state = state.copyWith(bases: const AsyncValue.loading());
-    final res = await _listBases(ListBasesParams(userId));
+    final res = await _listBases(ListBasesParams(userId.uid));
     state = res.match(
       (f) => state.copyWith(bases: AsyncValue.error(f, StackTrace.current)),
       (list) => state.copyWith(bases: AsyncValue.data(list)),
@@ -32,7 +33,7 @@ class BaseController extends StateNotifier<BaseState> {
   }
 
   Future<void> create(String name, String ownerUserId) async {
-    final res = await _createBase(CreateBaseParams(name: name, ownerUserId: ownerUserId));
+    final res = await _createBase(CreateBaseParams(name: name, ownerUserId: ownerUserId.uid));
     res.match(
       (_) => state = state, // no-op on failure; UI reads error if you bubble it
       (_) => load(ownerUserId),
@@ -40,7 +41,7 @@ class BaseController extends StateNotifier<BaseState> {
   }
 
   Future<void> join(String inviteCode, String userId) async {
-    final res = await _joinBase(JoinBaseParams(inviteCode: inviteCode, userId: userId));
+    final res = await _joinBase(JoinBaseParams(inviteCode: inviteCode, userId: userId.uid));
     res.match(
       (_) => state = state,
       (_) => load(userId),

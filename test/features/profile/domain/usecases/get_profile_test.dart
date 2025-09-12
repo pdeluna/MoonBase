@@ -30,11 +30,11 @@ void main() {
 
     test('should return Right(Profile?) when repository returns profile', () async {
       // Arrange
-      when(() => mockRepository.getProfile(testUserId.uid.value))
+      when(() => mockRepository.getProfile(testUserId.uid))
           .thenAnswer((_) async => Right(testProfile));
 
       // Act
-      final result = await useCase(GetProfileParams(testUserId.uid.value));
+      final result = await useCase(GetProfileParams(testUserId.uid));
 
       // Assert
       expect(result, isA<Right<Failure, Profile?>>());
@@ -45,17 +45,17 @@ void main() {
           expect(profile?.nickname, equals('testuser'));
         },
       );
-      verify(() => mockRepository.getProfile(testUserId.uid.value)).called(1);
+      verify(() => mockRepository.getProfile(testUserId.uid)).called(1);
       verifyNoMoreInteractions(mockRepository);
     });
 
     test('should return Right(null) when repository returns null', () async {
       // Arrange
-      when(() => mockRepository.getProfile(testUserId.uid.value))
+      when(() => mockRepository.getProfile(testUserId.uid))
           .thenAnswer((_) async => const Right(null));
 
       // Act
-      final result = await useCase(GetProfileParams(testUserId.uid.value));
+      final result = await useCase(GetProfileParams(testUserId.uid));
 
       // Assert
       expect(result, isA<Right<Failure, Profile?>>());
@@ -63,18 +63,18 @@ void main() {
         (failure) => fail('Should not return failure'),
         (profile) => expect(profile, isNull),
       );
-      verify(() => mockRepository.getProfile(testUserId.uid.value)).called(1);
+      verify(() => mockRepository.getProfile(testUserId.uid)).called(1);
       verifyNoMoreInteractions(mockRepository);
     });
 
     test('should return Left(Failure) when repository returns failure', () async {
       // Arrange
       const failure = UnknownFailure('Profile not found');
-      when(() => mockRepository.getProfile(testUserId.uid.value))
+      when(() => mockRepository.getProfile(testUserId.uid))
           .thenAnswer((_) async => const Left(failure));
 
       // Act
-      final result = await useCase(GetProfileParams(testUserId.uid.value));
+      final result = await useCase(GetProfileParams(testUserId.uid));
 
       // Assert
       expect(result, isA<Left<Failure, Profile?>>());
@@ -82,17 +82,17 @@ void main() {
         (failure) => expect(failure, equals(failure)),
         (profile) => fail('Should not return success'),
       );
-      verify(() => mockRepository.getProfile(testUserId.uid.value)).called(1);
+      verify(() => mockRepository.getProfile(testUserId.uid)).called(1);
       verifyNoMoreInteractions(mockRepository);
     });
 
     test('should return Left(Failure) when repository returns failure', () async {
       // Arrange
-      when(() => mockRepository.getProfile(testUserId.uid.value))
+      when(() => mockRepository.getProfile(testUserId.uid))
           .thenAnswer((_) async => const Left(CacheFailure('Repository error')));
 
       // Act
-      final result = await useCase(GetProfileParams(testUserId.uid.value));
+      final result = await useCase(GetProfileParams(testUserId.uid));
 
       // Assert
       expect(result, isA<Left<Failure, Profile?>>());
@@ -100,7 +100,7 @@ void main() {
         (failure) => expect(failure, isA<CacheFailure>()),
         (profile) => fail('Should not return success'),
       );
-      verify(() => mockRepository.getProfile(testUserId.uid.value)).called(1);
+      verify(() => mockRepository.getProfile(testUserId.uid)).called(1);
       verifyNoMoreInteractions(mockRepository);
     });
   });

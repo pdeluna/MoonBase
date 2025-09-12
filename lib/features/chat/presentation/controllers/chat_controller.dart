@@ -5,6 +5,7 @@ import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_prov
 import 'package:moonbase_skeleton/features/chat/domain/usecases/list_messages.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/send_message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/stream_messages.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 
 
 class ChatState {
@@ -34,7 +35,7 @@ class ChatController extends StateNotifier<ChatState> {
 
   Future<void> load(String baseId) async {
     state = state.copyWith(messages: const AsyncValue.loading());
-    final res = await _listMessages(ListMessagesParams(baseId: baseId));
+    final res = await _listMessages(ListMessagesParams(baseId: baseId.bid));
     state = res.match(
       (f) => state.copyWith(messages: AsyncValue.error(f, StackTrace.current)),
       (list) => state.copyWith(messages: AsyncValue.data(list)),
@@ -43,13 +44,13 @@ class ChatController extends StateNotifier<ChatState> {
 
   void subscribe(String baseId) {
     _sub?.cancel();
-    _sub = _streamMessages(baseId).listen((list) {
+    _sub = _streamMessages(baseId.bid).listen((list) {
       state = state.copyWith(messages: AsyncValue.data(list));
     });
   }
 
   Future<void> send(String baseId, String userId, String content) async {
-    final res = await _sendMessage(SendMessageParams(baseId: baseId, userId: userId, content: content));
+    final res = await _sendMessage(SendMessageParams(baseId: baseId.bid, userId: userId.uid, content: content));
     res.match(
       (_) => <String, dynamic>{}, // on failure, keep existing state (UI can surface errors if you propagate)
       (_) => <String, dynamic>{}, // stream will push the new list

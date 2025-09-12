@@ -34,14 +34,14 @@ void main() {
     test('should return Right(Profile) when repository updates successfully', () async {
       // Arrange
       when(() => mockRepository.updateProfile(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
       )).thenAnswer((_) async => Right(testProfile));
 
       // Act
       final result = await useCase(UpdateProfileParams(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
       ));
@@ -57,7 +57,7 @@ void main() {
         },
       );
       verify(() => mockRepository.updateProfile(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
       )).called(1);
@@ -67,18 +67,18 @@ void main() {
     test('should handle null optional parameters', () async {
       // Arrange
       when(() => mockRepository.updateProfile(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: null,
         avatarUrl: null,
       )).thenAnswer((_) async => Right(testProfile));
 
       // Act
-      final result = await useCase(UpdateProfileParams(userId: testUserId.uid.value));
+      final result = await useCase(UpdateProfileParams(userId: testUserId.uid));
 
       // Assert
       expect(result, isA<Right<Failure, Profile>>());
       verify(() => mockRepository.updateProfile(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: null,
         avatarUrl: null,
       )).called(1);
@@ -89,14 +89,14 @@ void main() {
       // Arrange
       const failure = UnknownFailure('Update failed');
       when(() => mockRepository.updateProfile(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
       )).thenAnswer((_) async => const Left(failure));
 
       // Act
       final result = await useCase(UpdateProfileParams(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
       ));
@@ -108,7 +108,7 @@ void main() {
         (profile) => fail('Should not return success'),
       );
       verify(() => mockRepository.updateProfile(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
       )).called(1);
@@ -118,14 +118,14 @@ void main() {
     test('should return Left(Failure) when repository returns failure', () async {
       // Arrange
       when(() => mockRepository.updateProfile(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
       )).thenAnswer((_) async => const Left(CacheFailure('Repository error')));
 
       // Act
       final result = await useCase(UpdateProfileParams(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
       ));
@@ -137,7 +137,7 @@ void main() {
         (profile) => fail('Should not return success'),
       );
       verify(() => mockRepository.updateProfile(
-        userId: testUserId.uid.value,
+        userId: testUserId.uid,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
       )).called(1);
