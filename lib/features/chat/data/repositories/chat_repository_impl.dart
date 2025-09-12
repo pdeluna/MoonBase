@@ -1,5 +1,6 @@
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
@@ -13,21 +14,21 @@ class ChatRepositoryImpl implements ChatRepository {
   final ChatRemoteDataSource? remote;
 
   @override
-  Future<Either<Failure, Message>> sendMessage({required String baseId, required String userId, required String content}) =>
+  Future<Either<Failure, Message>> sendMessage({required BaseId baseId, required UserId userId, required String content}) =>
     guard(() async {
-      final m = await local.sendMessage(baseId: baseId, userId: userId, content: content);
+      final m = await local.sendMessage(baseId: baseId.value, userId: userId.value, content: content);
       return m.toEntity();
     });
 
   @override
-  Future<Either<Failure, List<Message>>> listMessages({required String baseId, DateTime? before, int limit = 50}) =>
+  Future<Either<Failure, List<Message>>> listMessages({required BaseId baseId, DateTime? before, int limit = 50}) =>
     guard(() async {
-      final ms = await local.listMessages(baseId: baseId, before: before, limit: limit);
+      final ms = await local.listMessages(baseId: baseId.value, before: before, limit: limit);
       return ms.map((m) => m.toEntity()).toList();
     });
 
   @override
-  Stream<List<Message>> streamMessages(String baseId) =>
-      local.streamMessages(baseId).map((ms) => ms.map((m) => m.toEntity()).toList());
+  Stream<List<Message>> streamMessages(BaseId baseId) =>
+      local.streamMessages(baseId.value).map((ms) => ms.map((m) => m.toEntity()).toList());
 
 }

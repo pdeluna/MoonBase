@@ -1,5 +1,6 @@
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/usecase.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
@@ -7,7 +8,7 @@ import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_reposit
 class ListMessagesParams {
   const ListMessagesParams({required this.baseId, this.before, this.limit = 50});
 
-  final String baseId;
+  final BaseId baseId;
   final DateTime? before;
   final int limit;
 }

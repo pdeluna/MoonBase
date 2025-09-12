@@ -1,5 +1,6 @@
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/usecase.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/bases/domain/repositories/base_repository.dart';
@@ -7,7 +8,7 @@ import 'package:moonbase_skeleton/features/bases/domain/repositories/base_reposi
 class ListBasesParams {
   const ListBasesParams(this.userId);
 
-  final String userId;
+  final UserId userId;
 }
 
 class ListBases implements UseCase<List<Base>, ListBasesParams> {

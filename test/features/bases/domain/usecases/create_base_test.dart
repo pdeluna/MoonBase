@@ -15,16 +15,16 @@ void main() {
     when(() => repo.createBase(name: any(named: 'name'), ownerUserId: any(named: 'ownerUserId')))
       .thenAnswer((_) async => Right(Base(id: 'b1'.bid, name: 'Home', ownerUserId: 'u1'.uid, createdAt: DateTime(2025, 1, 1))));
 
-    final res = await usecase(const CreateBaseParams(name: 'Home', ownerUserId: 'u1'));
+    final res = await usecase(CreateBaseParams(name: 'Home', ownerUserId: 'u1'.uid));
 
     expect(res, isA<Right<Failure, Base>>());
     res.match((_) => fail('expected Right'), (b) {
-      expect(b.id, 'b1');
+      expect(b.id, 'b1'.bid);
       expect(b.name, 'Home');
-      expect(b.ownerUserId, 'u1');
+      expect(b.ownerUserId, 'u1'.uid);
     });
 
-    verify(() => repo.createBase(name: 'Home', ownerUserId: 'u1')).called(1);
+    verify(() => repo.createBase(name: 'Home', ownerUserId: 'u1'.uid)).called(1);
     verifyNoMoreInteractions(repo);
   });
 }

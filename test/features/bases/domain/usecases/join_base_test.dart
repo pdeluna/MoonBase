@@ -15,15 +15,15 @@ void main() {
     when(() => repo.joinBase(inviteCode: any(named: 'inviteCode'), userId: any(named: 'userId')))
       .thenAnswer((_) async => Right(Base(id: 'b2'.bid, name: 'Friends', ownerUserId: 'u9'.uid, createdAt: DateTime(2025, 1, 2))));
 
-    final res = await usecase(const JoinBaseParams(inviteCode: 'ABC123', userId: 'u1'));
+    final res = await usecase(JoinBaseParams(inviteCode: 'ABC123', userId: 'u1'.uid));
 
     expect(res, isA<Right<Failure, Base>>());
     res.match((_) => fail('expected Right'), (b) {
-      expect(b.id, 'b2');
+      expect(b.id, 'b2'.bid);
       expect(b.name, 'Friends');
     });
 
-    verify(() => repo.joinBase(inviteCode: 'ABC123', userId: 'u1')).called(1);
+    verify(() => repo.joinBase(inviteCode: 'ABC123', userId: 'u1'.uid)).called(1);
     verifyNoMoreInteractions(repo);
   });
 }

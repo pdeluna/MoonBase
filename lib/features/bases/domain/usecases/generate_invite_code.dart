@@ -1,13 +1,14 @@
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/usecase.dart';
 import 'package:moonbase_skeleton/features/bases/domain/repositories/base_repository.dart';
 
 class GenerateInviteCodeParams {
   const GenerateInviteCodeParams({required this.baseId, required this.requesterUserId});
 
-  final String baseId;
-  final String requesterUserId;
+  final BaseId baseId;
+  final UserId requesterUserId;
 }
 
 class GenerateInviteCode implements UseCase<String, GenerateInviteCodeParams> {

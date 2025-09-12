@@ -1,5 +1,6 @@
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 
 abstract class AuthRepository {

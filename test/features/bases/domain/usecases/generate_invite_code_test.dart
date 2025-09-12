@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/bases/domain/usecases/generate_invite_code.dart';
 import '../../../../test_utils/mocks_bases.dart';
 
@@ -19,8 +20,8 @@ void main() {
       test('should generate invite code successfully and return Right with code', () async {
         // Arrange
         const expectedCode = 'ABC123';
-        const baseId = 'base_123';
-        const requesterUserId = 'user_456';
+        final baseId = 'base_123'.bid;
+        final requesterUserId = 'user_456'.uid;
         
         when(() => mockRepository.generateInviteCode(
           baseId: any(named: 'baseId'),
@@ -28,7 +29,7 @@ void main() {
         )).thenAnswer((_) async => const Right(expectedCode));
 
         // Act
-        final result = await usecase(const GenerateInviteCodeParams(
+        final result = await usecase(GenerateInviteCodeParams(
           baseId: baseId,
           requesterUserId: requesterUserId,
         ));
@@ -61,7 +62,7 @@ void main() {
           )).thenAnswer((_) async => Right(code));
 
           // Act
-          final result = await usecase(const GenerateInviteCodeParams(
+          final result = await usecase(GenerateInviteCodeParams(
             baseId: 'base_123',
             requesterUserId: 'user_456',
           ));
@@ -79,8 +80,8 @@ void main() {
     group('Failure cases', () {
       test('should return Left with CacheFailure when repository throws cache error', () async {
         // Arrange
-        const baseId = 'base_123';
-        const requesterUserId = 'user_456';
+        final baseId = 'base_123'.bid;
+        final requesterUserId = 'user_456'.uid;
         const errorMessage = 'Failed to generate invite code - cache error';
         
         when(() => mockRepository.generateInviteCode(
@@ -89,7 +90,7 @@ void main() {
         )).thenAnswer((_) async => const Left(CacheFailure(errorMessage)));
 
         // Act
-        final result = await usecase(const GenerateInviteCodeParams(
+        final result = await usecase(GenerateInviteCodeParams(
           baseId: baseId,
           requesterUserId: requesterUserId,
         ));
@@ -112,8 +113,8 @@ void main() {
 
       test('should return Left with NetworkFailure when repository has network issues', () async {
         // Arrange
-        const baseId = 'base_123';
-        const requesterUserId = 'user_456';
+        final baseId = 'base_123'.bid;
+        final requesterUserId = 'user_456'.uid;
         const errorMessage = 'Network connection failed';
         
         when(() => mockRepository.generateInviteCode(
@@ -122,7 +123,7 @@ void main() {
         )).thenAnswer((_) async => const Left(NetworkFailure(errorMessage)));
 
         // Act
-        final result = await usecase(const GenerateInviteCodeParams(
+        final result = await usecase(GenerateInviteCodeParams(
           baseId: baseId,
           requesterUserId: requesterUserId,
         ));
@@ -140,8 +141,8 @@ void main() {
 
       test('should return Left with UnknownFailure for unexpected errors', () async {
         // Arrange
-        const baseId = 'base_123';
-        const requesterUserId = 'user_456';
+        final baseId = 'base_123'.bid;
+        final requesterUserId = 'user_456'.uid;
         const errorMessage = 'Unexpected error occurred';
         
         when(() => mockRepository.generateInviteCode(
@@ -150,7 +151,7 @@ void main() {
         )).thenAnswer((_) async => const Left(UnknownFailure(errorMessage)));
 
         // Act
-        final result = await usecase(const GenerateInviteCodeParams(
+        final result = await usecase(GenerateInviteCodeParams(
           baseId: baseId,
           requesterUserId: requesterUserId,
         ));
@@ -170,8 +171,8 @@ void main() {
     group('Parameter validation', () {
       test('should pass correct parameters to repository', () async {
         // Arrange
-        const baseId = 'test_base_id';
-        const requesterUserId = 'test_user_id';
+        final baseId = 'test_base_id'.bid;
+        final requesterUserId = 'test_user_id'.uid;
         
         when(() => mockRepository.generateInviteCode(
           baseId: any(named: 'baseId'),
@@ -179,7 +180,7 @@ void main() {
         )).thenAnswer((_) async => const Right('TEST123'));
 
         // Act
-        await usecase(const GenerateInviteCodeParams(
+        await usecase(GenerateInviteCodeParams(
           baseId: baseId,
           requesterUserId: requesterUserId,
         ));
@@ -193,8 +194,8 @@ void main() {
 
       test('should handle empty string parameters', () async {
         // Arrange
-        const baseId = '';
-        const requesterUserId = '';
+        final baseId = ''.bid;
+        final requesterUserId = ''.uid;
         
         when(() => mockRepository.generateInviteCode(
           baseId: any(named: 'baseId'),
@@ -202,7 +203,7 @@ void main() {
         )).thenAnswer((_) async => const Left(CacheFailure('Invalid parameters')));
 
         // Act
-        final result = await usecase(const GenerateInviteCodeParams(
+        final result = await usecase(GenerateInviteCodeParams(
           baseId: baseId,
           requesterUserId: requesterUserId,
         ));
@@ -225,9 +226,9 @@ void main() {
         )).thenAnswer((_) async => const Right(''));
 
         // Act
-        final result = await usecase(const GenerateInviteCodeParams(
-          baseId: 'base_123',
-          requesterUserId: 'user_456',
+        final result = await usecase(GenerateInviteCodeParams(
+          baseId: 'base_123'.bid,
+          requesterUserId: 'user_456'.uid,
         ));
 
         // Assert
@@ -240,8 +241,8 @@ void main() {
 
       test('should handle very long base and user IDs', () async {
         // Arrange
-        final longBaseId = 'a' * 1000;
-        final longUserId = 'b' * 1000;
+        final longBaseId = ('a' * 1000).bid;
+        final longUserId = ('b' * 1000).uid;
         
         when(() => mockRepository.generateInviteCode(
           baseId: any(named: 'baseId'),
