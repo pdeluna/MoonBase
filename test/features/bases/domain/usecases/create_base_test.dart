@@ -4,7 +4,7 @@ import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/bases/domain/usecases/create_base.dart';
-
+import 'package:moonbase_skeleton/core/ids.dart';
 import '../../../../test_utils/mocks_bases.dart';
 
 void main() {
@@ -13,7 +13,7 @@ void main() {
     final usecase = CreateBase(repo);
 
     when(() => repo.createBase(name: any(named: 'name'), ownerUserId: any(named: 'ownerUserId')))
-      .thenAnswer((_) async => Right(Base(id: 'b1', name: 'Home', ownerUserId: 'u1', createdAt: DateTime(2025, 1, 1))));
+      .thenAnswer((_) async => Right(Base(id: 'b1'.bid, name: 'Home', ownerUserId: 'u1'.uid, createdAt: DateTime(2025, 1, 1))));
 
     final res = await usecase(const CreateBaseParams(name: 'Home', ownerUserId: 'u1'));
 

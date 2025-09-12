@@ -4,7 +4,7 @@ import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/bases/domain/usecases/join_base.dart';
-
+import 'package:moonbase_skeleton/core/ids.dart';
 import '../../../../test_utils/mocks_bases.dart';
 
 void main() {
@@ -13,7 +13,7 @@ void main() {
     final usecase = JoinBase(repo);
 
     when(() => repo.joinBase(inviteCode: any(named: 'inviteCode'), userId: any(named: 'userId')))
-      .thenAnswer((_) async => Right(Base(id: 'b2', name: 'Friends', ownerUserId: 'u9', createdAt: DateTime(2025, 1, 2))));
+      .thenAnswer((_) async => Right(Base(id: 'b2'.bid, name: 'Friends', ownerUserId: 'u9'.uid, createdAt: DateTime(2025, 1, 2))));
 
     final res = await usecase(const JoinBaseParams(inviteCode: 'ABC123', userId: 'u1'));
 

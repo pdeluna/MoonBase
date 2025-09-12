@@ -1,3 +1,4 @@
+import 'package:moonbase_skeleton/core/ids.dart';
 class Message {
   const Message({
     required this.id,
@@ -7,9 +8,9 @@ class Message {
     required this.createdAt,
   });
 
-  final String id;
-  final String baseId;
-  final String userId;
+  final MessageId id;
+  final BaseId baseId;
+  final UserId userId;
   final String content;
   final DateTime createdAt;
 

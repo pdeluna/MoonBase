@@ -1,3 +1,4 @@
+import 'package:moonbase_skeleton/core/ids.dart';
 class Profile {
   const Profile({
     required this.userId,
@@ -6,7 +7,7 @@ class Profile {
     required this.updatedAt,
   });
 
-  final String userId;
+  final UserId userId;
   final String nickname; // keep aligned with your app
   final String? avatarUrl;
   final DateTime updatedAt;

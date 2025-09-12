@@ -1,7 +1,9 @@
+import 'package:moonbase_skeleton/core/ids.dart';
+
 class User {
   const User({required this.id, required this.nickname});
 
-  final String id;
+  final UserId id;
   final String nickname;
 
   @override

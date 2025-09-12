@@ -1,15 +1,14 @@
-class Base {
-  const Base({
-    required this.id,
-    required this.name,
-    required this.ownerUserId,
-    required this.createdAt,
-  });
+import 'package:moonbase_skeleton/core/ids.dart';
 
-  final String id;
+class Base {
+
+  const Base({required this.id, required this.name, required this.ownerUserId, required this.createdAt});
+
+  final BaseId id;
   final String name;
-  final String ownerUserId;
+  final UserId ownerUserId;
   final DateTime createdAt;
+
 
   Base copyWith({String? name}) => Base(
     id: id,

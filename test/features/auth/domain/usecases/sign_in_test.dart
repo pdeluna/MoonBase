@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_in.dart';
 import '../../../../test_utils/mocks_auth.dart';
@@ -33,8 +34,8 @@ void main() {
     const testNickname = 'testuser';
     const testUserId = 'user123';
     
-    const testUser = User(
-      id: testUserId,
+    final testUser = User(
+      id: testUserId.uid,
       nickname: testNickname,
     );
 
@@ -42,7 +43,7 @@ void main() {
       test('should return Right(User) when sign-in is successful', () async {
         // Arrange
         when(() => mockRepository.signIn(nickname: testNickname))
-            .thenAnswer((_) async => const Right(testUser));
+            .thenAnswer((_) async => Right(testUser));
 
         // Act
         final result = await useCase(const SignInParams(testNickname));
@@ -52,7 +53,7 @@ void main() {
         result.match(
           (failure) => fail('Should not return failure'),
           (user) {
-            expect(user.id, equals(testUserId));
+            expect(user.id, equals(testUserId.uid));
             expect(user.nickname, equals(testNickname));
           },
         );
@@ -101,7 +102,7 @@ void main() {
         // Arrange
         const customNickname = 'customuser';
         when(() => mockRepository.signIn(nickname: customNickname))
-            .thenAnswer((_) async => const Right(testUser));
+            .thenAnswer((_) async => Right(testUser));
 
         // Act
         await useCase(const SignInParams(customNickname));
@@ -114,7 +115,7 @@ void main() {
       test('should handle empty nickname', () async {
         // Arrange
         when(() => mockRepository.signIn(nickname: ''))
-            .thenAnswer((_) async => const Right(testUser));
+            .thenAnswer((_) async => Right(testUser));
 
         // Act
         final result = await useCase(const SignInParams(''));
@@ -129,7 +130,7 @@ void main() {
         // Arrange
         const whitespaceNickname = '   ';
         when(() => mockRepository.signIn(nickname: whitespaceNickname))
-            .thenAnswer((_) async => const Right(testUser));
+            .thenAnswer((_) async => Right(testUser));
 
         // Act
         final result = await useCase(const SignInParams(whitespaceNickname));
@@ -144,7 +145,7 @@ void main() {
         // Arrange
         final longNickname = 'a' * 100;
         when(() => mockRepository.signIn(nickname: longNickname))
-            .thenAnswer((_) async => const Right(testUser));
+            .thenAnswer((_) async => Right(testUser));
 
         // Act
         final result = await useCase(SignInParams(longNickname));
@@ -159,7 +160,7 @@ void main() {
         // Arrange
         const specialNickname = r'user@123!#$%';
         when(() => mockRepository.signIn(nickname: specialNickname))
-            .thenAnswer((_) async => const Right(testUser));
+            .thenAnswer((_) async => Right(testUser));
 
         // Act
         final result = await useCase(const SignInParams(specialNickname));
@@ -217,7 +218,7 @@ void main() {
       test('should return Future<Either<Failure, User>> from call method', () async {
         // Arrange
         when(() => mockRepository.signIn(nickname: any(named: 'nickname')))
-            .thenAnswer((_) async => const Right(testUser));
+            .thenAnswer((_) async => Right(testUser));
 
         // Act
         final result = await useCase(const SignInParams(testNickname));
@@ -284,7 +285,7 @@ void main() {
       test('should handle multiple consecutive calls', () async {
         // Arrange
         when(() => mockRepository.signIn(nickname: any(named: 'nickname')))
-            .thenAnswer((_) async => const Right(testUser));
+            .thenAnswer((_) async => Right(testUser));
 
         // Act
         final result1 = await useCase(const SignInParams('user1'));
@@ -302,7 +303,7 @@ void main() {
         // Arrange
         const failure = UnknownFailure('Test failure');
         when(() => mockRepository.signIn(nickname: 'success'))
-            .thenAnswer((_) async => const Right(testUser));
+            .thenAnswer((_) async => Right(testUser));
         when(() => mockRepository.signIn(nickname: 'failure'))
             .thenAnswer((_) async => const Left(failure));
 

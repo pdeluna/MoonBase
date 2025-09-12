@@ -1,4 +1,5 @@
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 
 class MessageModel {
   const MessageModel({
@@ -25,9 +26,9 @@ class MessageModel {
 
 
   Message toEntity() => Message(
-    id: id,
-    baseId: baseId,
-    userId: userId,
+    id: id.mid,
+    baseId: baseId.bid,
+    userId: userId.uid,
     content: content,
     createdAt: createdAt,
   );

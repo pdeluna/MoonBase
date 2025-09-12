@@ -1,3 +1,4 @@
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 
 class UserModel {
@@ -9,7 +10,7 @@ class UserModel {
   final String id;
   final String nickname;
 
-  User toEntity() => User(id: id, nickname: nickname);
+  User toEntity() => User(id: id.uid, nickname: nickname);
 
   Map<String, dynamic> toMap() => {'id': id, 'nickname': nickname};
 }

@@ -8,6 +8,7 @@ import 'package:moonbase_skeleton/features/bases/domain/usecases/join_base.dart'
 import 'package:moonbase_skeleton/features/bases/domain/usecases/list_bases.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/controllers/base_controller.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 
 void main() {
   group('BaseController (with real repo + in-memory DS)', () {
@@ -52,7 +53,7 @@ void main() {
       // owner creates a base
       final created = await repo.createBase(name: 'Friends', ownerUserId: 'u9') as Right<dynamic, Base>;
       final base = created.value;
-      final code = (await repo.generateInviteCode(baseId: base.id, requesterUserId: 'u9') as Right<dynamic, String>).value;
+      final code = (await repo.generateInviteCode(baseId: base.id.value, requesterUserId: 'u9'.uid.value) as Right<dynamic, String>).value;
 
       await c.load('u2');
       c.state.bases.maybeWhen(data: (l) => expect(l, isEmpty), orElse: () => fail('expected empty'));

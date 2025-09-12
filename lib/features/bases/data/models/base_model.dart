@@ -1,4 +1,5 @@
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 
 class BaseModel {
   const BaseModel({
@@ -21,9 +22,9 @@ class BaseModel {
   final DateTime createdAt;
 
   Base toEntity() => Base(
-    id: id,
+    id: id.bid,
     name: name,
-    ownerUserId: ownerUserId,
+    ownerUserId: ownerUserId.uid,
     createdAt: createdAt,
   );
 

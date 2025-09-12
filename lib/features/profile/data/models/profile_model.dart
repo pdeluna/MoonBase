@@ -1,4 +1,5 @@
 import 'package:moonbase_skeleton/features/profile/domain/entities/profile.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 
 class ProfileModel {
   const ProfileModel({
@@ -21,7 +22,7 @@ class ProfileModel {
   final DateTime updatedAt;
 
   Profile toEntity() => Profile(
-    userId: userId,
+    userId: userId.uid,
     nickname: nickname,
     avatarUrl: avatarUrl,
     updatedAt: updatedAt,
