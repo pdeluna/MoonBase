@@ -23,10 +23,12 @@ Future<Either<Failure, User>> signIn({required String nickname}) =>
   });
 
 @override
+@override
 Future<Either<Failure, void>> signOut() =>
   guardVoid(() async {
     await local.clear();
   });
+
 
 @override
 Future<Either<Failure, User?>> getCurrentUser() =>

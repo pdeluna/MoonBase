@@ -19,17 +19,32 @@ Future<Either<Failure, Profile?>> getProfile(UserId userId) =>
   guard(() async => (await local.readProfile(userId.value))?.toEntity());
 
 @override
-Future<Either<Failure, Profile>> updateProfile({required UserId userId, String? nickname, String? avatarUrl}) =>
+Future<Either<Failure, Profile>> updateProfile({
+  required UserId userId,
+  String? nickname,
+  String? avatarUrl,
+}) =>
   guard(() async {
     final existing = await local.readProfile(userId.value);
-    final updated = (existing ??
-      ProfileModel(userId: userId.value, nickname: nickname ?? '', avatarUrl: avatarUrl, updatedAt: DateTime.now().toUtc())
-    ).copyWith(
-      nickname: nickname ?? existing?.nickname,
-      avatarUrl: avatarUrl ?? existing?.avatarUrl,
-      updatedAt: DateTime.now().toUtc(),
-    );
-    final saved = await local.writeProfile(updated);
+
+    final nowUtc = DateTime.now().toUtc();
+    final trimmedNick = nickname?.trim();
+    final trimmedAvatar = avatarUrl?.trim();
+
+    final next = (existing ??
+        ProfileModel(
+          userId: userId.value,
+          nickname: trimmedNick ?? '',
+          avatarUrl: trimmedAvatar,
+          updatedAt: nowUtc,
+        )
+      ).copyWith(
+        nickname: trimmedNick ?? existing?.nickname,
+        avatarUrl: trimmedAvatar ?? existing?.avatarUrl,
+        updatedAt: nowUtc,
+      );
+
+    final saved = await local.writeProfile(next);
     return saved.toEntity();
   });
 }
