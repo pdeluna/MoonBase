@@ -37,7 +37,7 @@ void main() {
       await c.create('Home', 'u1');
       // create() triggers load() on success; wait for it to complete
       while (c.state.bases.isLoading) {
-        await Future.delayed(const Duration(milliseconds: 1));
+        await Future<void>.delayed(const Duration(milliseconds: 1));
       }
       c.state.bases.maybeWhen(
         data: (list) {

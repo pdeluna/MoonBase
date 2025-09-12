@@ -1,22 +1,6 @@
 import 'dart:convert';
 
 class BaseSettings {
-  final String baseId;
-  final bool allowMemberInvites; // can members invite others
-  final bool allowMemberPosts; // can members create posts
-  final bool allowMemberStories; // can members create stories
-  final bool allowMemberChat; // can members send chat messages
-  final bool requireApprovalForPosts; // posts need admin approval
-  final bool requireApprovalForStories; // stories need admin approval
-  final int maxMediaPerPost; // max media items per post
-  final int maxMediaPerStory; // max media items per story (usually 1)
-  final Duration storyTtl; // default story time-to-live
-  final bool enableLiveStreaming; // allow live sessions
-  final bool enableReactions; // allow reactions on posts/messages
-  final List<String> allowedMediaTypes; // allowed media types
-  final DateTime updatedAt;
-  final String updatedByUserId;
-
   const BaseSettings({
     required this.baseId,
     this.allowMemberInvites = false,
@@ -34,6 +18,43 @@ class BaseSettings {
     required this.updatedAt,
     required this.updatedByUserId,
   });
+
+  factory BaseSettings.fromJson(String source) => BaseSettings.fromMap(json.decode(source) as Map<String, dynamic>);
+
+  factory BaseSettings.fromMap(Map<String, dynamic> map) => BaseSettings(
+    baseId: map['baseId'] as String,
+    allowMemberInvites: (map['allowMemberInvites'] ?? false) as bool,
+    allowMemberPosts: (map['allowMemberPosts'] ?? true) as bool,
+    allowMemberStories: (map['allowMemberStories'] ?? true) as bool,
+    allowMemberChat: (map['allowMemberChat'] ?? true) as bool,
+    requireApprovalForPosts: (map['requireApprovalForPosts'] ?? false) as bool,
+    requireApprovalForStories: (map['requireApprovalForStories'] ?? false) as bool,
+    maxMediaPerPost: (map['maxMediaPerPost'] ?? 10) as int,
+    maxMediaPerStory: (map['maxMediaPerStory'] ?? 1) as int,
+    storyTtl: Duration(milliseconds: (map['storyTtlMs'] ?? 86400000) as int),
+    enableLiveStreaming: (map['enableLiveStreaming'] ?? true) as bool,
+    enableReactions: (map['enableReactions'] ?? true) as bool,
+    allowedMediaTypes: List<String>.from((map['allowedMediaTypes'] ?? const ['image', 'video', 'link']) as Iterable<dynamic>),
+    updatedAt: DateTime.parse(map['updatedAt'] as String),
+    updatedByUserId: map['updatedByUserId'] as String,
+  );
+
+  final String baseId;
+  final bool allowMemberInvites; // can members invite others
+  final bool allowMemberPosts; // can members create posts
+  final bool allowMemberStories; // can members create stories
+  final bool allowMemberChat; // can members send chat messages
+  final bool requireApprovalForPosts; // posts need admin approval
+  final bool requireApprovalForStories; // stories need admin approval
+  final int maxMediaPerPost; // max media items per post
+  final int maxMediaPerStory; // max media items per story (usually 1)
+  final Duration storyTtl; // default story time-to-live
+  final bool enableLiveStreaming; // allow live sessions
+  final bool enableReactions; // allow reactions on posts/messages
+  final List<String> allowedMediaTypes; // allowed media types
+  final DateTime updatedAt;
+  final String updatedByUserId;
+
 
   BaseSettings copyWith({
     String? baseId,
@@ -89,26 +110,7 @@ class BaseSettings {
     'updatedByUserId': updatedByUserId,
   };
 
-  factory BaseSettings.fromMap(Map<String, dynamic> map) => BaseSettings(
-    baseId: map['baseId'] as String,
-    allowMemberInvites: (map['allowMemberInvites'] ?? false) as bool,
-    allowMemberPosts: (map['allowMemberPosts'] ?? true) as bool,
-    allowMemberStories: (map['allowMemberStories'] ?? true) as bool,
-    allowMemberChat: (map['allowMemberChat'] ?? true) as bool,
-    requireApprovalForPosts: (map['requireApprovalForPosts'] ?? false) as bool,
-    requireApprovalForStories: (map['requireApprovalForStories'] ?? false) as bool,
-    maxMediaPerPost: (map['maxMediaPerPost'] ?? 10) as int,
-    maxMediaPerStory: (map['maxMediaPerStory'] ?? 1) as int,
-    storyTtl: Duration(milliseconds: (map['storyTtlMs'] ?? 86400000) as int),
-    enableLiveStreaming: (map['enableLiveStreaming'] ?? true) as bool,
-    enableReactions: (map['enableReactions'] ?? true) as bool,
-    allowedMediaTypes: List<String>.from(map['allowedMediaTypes'] ?? const ['image', 'video', 'link']),
-    updatedAt: DateTime.parse(map['updatedAt'] as String),
-    updatedByUserId: map['updatedByUserId'] as String,
-  );
-
   String toJson() => json.encode(toMap());
-  factory BaseSettings.fromJson(String source) => BaseSettings.fromMap(json.decode(source));
 
   @override
   bool operator ==(Object other) =>

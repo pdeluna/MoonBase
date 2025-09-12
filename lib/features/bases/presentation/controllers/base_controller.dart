@@ -1,25 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/entities/base.dart';
-import '../providers/base_providers.dart';
-import '../../domain/usecases/list_bases.dart';
-import '../../domain/usecases/create_base.dart';
-import '../../domain/usecases/join_base.dart';
+import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
+import 'package:moonbase_skeleton/features/bases/domain/usecases/list_bases.dart';
+import 'package:moonbase_skeleton/features/bases/domain/usecases/create_base.dart';
+import 'package:moonbase_skeleton/features/bases/domain/usecases/join_base.dart';
 
 
 class BaseState {
+  const BaseState({this.bases = const AsyncValue.data([])});
+
   final AsyncValue<List<Base>> bases;
-  const BaseState({this.bases = const AsyncValue.data(const [])});
 
   BaseState copyWith({AsyncValue<List<Base>>? bases}) => BaseState(bases: bases ?? this.bases);
 }
 
 class BaseController extends StateNotifier<BaseState> {
+  BaseController(this._listBases, this._createBase, this._joinBase) : super(const BaseState());
+
   final ListBases _listBases;
   final CreateBase _createBase;
   final JoinBase _joinBase;
-
-  BaseController(this._listBases, this._createBase, this._joinBase) : super(const BaseState());
 
   Future<void> load(String userId) async {
     state = state.copyWith(bases: const AsyncValue.loading());

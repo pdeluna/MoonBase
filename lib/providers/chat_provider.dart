@@ -45,10 +45,6 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<ChatMessage>>> 
     }
 
     try {
-      // Don't set loading again if already loading
-      if (state.isLoading) return;
-      
-      state = const AsyncValue.loading();
       final messages = await _repository.getMessages(baseId: _baseId, limit: 50);
       state = AsyncValue.data(messages);
     } catch (e, st) {
@@ -69,10 +65,6 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<ChatMessage>>> 
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }
 
 class ChatActionsNotifier extends StateNotifier<AsyncValue<void>> {
@@ -101,7 +93,7 @@ class ChatActionsNotifier extends StateNotifier<AsyncValue<void>> {
       // Make API call
       final message = await _repository.sendMessage(
         baseId: _selectedBase.id,
-        authorUserId: _session.value!.userId,
+        authorUserId: _session.value!.userId as String,
         type: type,
         text: text,
       );

@@ -1,19 +1,21 @@
-import '../../../../core/either.dart';
-import '../../../../core/failure.dart';
-import '../../../../core/usecase.dart';
-import '../entities/message.dart';
-import '../repositories/chat_repository.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/usecase.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
+import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
 
 class ListMessagesParams {
+  const ListMessagesParams({required this.baseId, this.before, this.limit = 50});
+
   final String baseId;
   final DateTime? before;
   final int limit;
-  const ListMessagesParams({required this.baseId, this.before, this.limit = 50});
 }
 
 class ListMessages implements UseCase<List<Message>, ListMessagesParams> {
-  final ChatRepository repo;
   const ListMessages(this.repo);
+
+  final ChatRepository repo;
 
   @override
   Future<Either<Failure, List<Message>>> call(ListMessagesParams p) =>

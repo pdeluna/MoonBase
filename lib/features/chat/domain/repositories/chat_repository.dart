@@ -1,6 +1,6 @@
-import '../../../../core/either.dart';
-import '../../../../core/failure.dart';
-import '../entities/message.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 
 abstract class ChatRepository {
   Future<Either<Failure, Message>> sendMessage({

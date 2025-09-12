@@ -1,4 +1,4 @@
-import '../models/base_model.dart';
+import 'package:moonbase_skeleton/features/bases/data/models/base_model.dart';
 
 abstract class BaseLocalDataSource {
   Future<List<BaseModel>> listBasesForUser(String userId);

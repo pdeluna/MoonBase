@@ -1,6 +1,7 @@
 abstract class Failure {
-  final String message;
   const Failure(this.message);
+
+  final String message;
 
   @override
   String toString() => '$runtimeType($message)';

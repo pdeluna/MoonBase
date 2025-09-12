@@ -190,7 +190,7 @@ class SpProfileRepository implements ProfileRepository {
 
     for (final entry in users.entries) {
       try {
-        final profile = Profile.fromJson(entry.value);
+        final profile = Profile.fromJson(entry.value as Map<String, dynamic>);
         if (profile.userId == userId) {
           return profile;
         }

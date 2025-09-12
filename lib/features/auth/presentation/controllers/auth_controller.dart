@@ -1,27 +1,28 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/usecase.dart';
-import '../../domain/entities/user.dart';
-import '../../domain/usecases/get_current_user.dart';
-import '../../domain/usecases/sign_in.dart';
-import '../../domain/usecases/sign_out.dart';
-import '../providers/auth_providers.dart';
+import 'package:moonbase_skeleton/core/usecase.dart';
+import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
+import 'package:moonbase_skeleton/features/auth/domain/usecases/get_current_user.dart';
+import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_in.dart';
+import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_out.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 
 class AuthState {
-  final AsyncValue<User?> current;
   const AuthState({this.current = const AsyncValue.loading()});
+
+  final AsyncValue<User?> current;
 
   AuthState copyWith({AsyncValue<User?>? current}) =>
       AuthState(current: current ?? this.current);
 }
 
 class AuthController extends StateNotifier<AuthState> {
+  AuthController(this._getCurrent, this._signIn, this._signOut)
+      : super(const AuthState());
+
   final GetCurrentUser _getCurrent;
   final SignIn _signIn;
   final SignOut _signOut;
-
-  AuthController(this._getCurrent, this._signIn, this._signOut)
-      : super(const AuthState());
 
   Future<void> load() async {
     state = state.copyWith(current: const AsyncValue.loading());

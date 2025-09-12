@@ -1,29 +1,30 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/entities/message.dart';
-import '../providers/chat_providers.dart';
-import '../../domain/usecases/list_messages.dart';
-import '../../domain/usecases/send_message.dart';
-import '../../domain/usecases/stream_messages.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
+import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
+import 'package:moonbase_skeleton/features/chat/domain/usecases/list_messages.dart';
+import 'package:moonbase_skeleton/features/chat/domain/usecases/send_message.dart';
+import 'package:moonbase_skeleton/features/chat/domain/usecases/stream_messages.dart';
 
 
 class ChatState {
+  const ChatState({this.messages = const AsyncValue.data([])});
+
   final AsyncValue<List<Message>> messages;
-  const ChatState({this.messages = const AsyncValue.data(const [])});
 
   ChatState copyWith({AsyncValue<List<Message>>? messages}) =>
       ChatState(messages: messages ?? this.messages);
 }
 
 class ChatController extends StateNotifier<ChatState> {
+  ChatController(this._listMessages, this._sendMessage, this._streamMessages)
+      : super(const ChatState());
+
   final ListMessages _listMessages;
   final SendMessage _sendMessage;
   final StreamMessages _streamMessages;
 
   StreamSubscription<List<Message>>? _sub;
-
-  ChatController(this._listMessages, this._sendMessage, this._streamMessages)
-      : super(const ChatState());
 
   @override
   void dispose() {
@@ -50,8 +51,8 @@ class ChatController extends StateNotifier<ChatState> {
   Future<void> send(String baseId, String userId, String content) async {
     final res = await _sendMessage(SendMessageParams(baseId: baseId, userId: userId, content: content));
     res.match(
-      (_) => {}, // on failure, keep existing state (UI can surface errors if you propagate)
-      (_) => {}, // stream will push the new list
+      (_) => <String, dynamic>{}, // on failure, keep existing state (UI can surface errors if you propagate)
+      (_) => <String, dynamic>{}, // stream will push the new list
     );
   }
 }

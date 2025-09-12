@@ -89,13 +89,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 }
 
 class _ChatMessagesList extends ConsumerWidget {
-  final String baseId;
-  final AsyncValue<dynamic> session;
-
   const _ChatMessagesList({
     required this.baseId,
     required this.session,
   });
+  
+  final String baseId;
+  final AsyncValue<dynamic> session;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -143,13 +143,13 @@ class _ChatMessagesList extends ConsumerWidget {
 }
 
 class _MessageBubble extends StatelessWidget {
-  final ChatMessage message;
-  final bool isMyMessage;
-
   const _MessageBubble({
     required this.message,
     required this.isMyMessage,
   });
+  
+  final ChatMessage message;
+  final bool isMyMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -259,13 +259,13 @@ class _MessageBubble extends StatelessWidget {
 }
 
 class _Composer extends StatelessWidget {
-  final TextEditingController messageController;
-  final VoidCallback onSendMessage;
-
   const _Composer({
     required this.messageController,
     required this.onSendMessage,
   });
+  
+  final TextEditingController messageController;
+  final VoidCallback onSendMessage;
 
   @override
   Widget build(BuildContext context) {

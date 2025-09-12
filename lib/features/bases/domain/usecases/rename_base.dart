@@ -1,18 +1,20 @@
-import '../../../../core/either.dart';
-import '../../../../core/failure.dart';
-import '../../../../core/usecase.dart';
-import '../repositories/base_repository.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/usecase.dart';
+import 'package:moonbase_skeleton/features/bases/domain/repositories/base_repository.dart';
 
 class RenameBaseParams {
+  const RenameBaseParams({required this.baseId, required this.newName, required this.requesterUserId});
+
   final String baseId;
   final String newName;
   final String requesterUserId;
-  const RenameBaseParams({required this.baseId, required this.newName, required this.requesterUserId});
 }
 
 class RenameBase implements UseCase<void, RenameBaseParams> {
-  final BaseRepository repo;
   const RenameBase(this.repo);
+
+  final BaseRepository repo;
 
   @override
   Future<Either<Failure, void>> call(RenameBaseParams p) =>

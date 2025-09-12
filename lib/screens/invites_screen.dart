@@ -27,7 +27,7 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
   void _showCreateInviteDialog() {
     _maxUsesController.clear();
     
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Create Invite'),
@@ -121,7 +121,7 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
   }
 
   void _showInviteDetails(BaseInvite invite) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Invite Details'),

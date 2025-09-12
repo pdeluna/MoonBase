@@ -114,13 +114,13 @@ void main() {
       verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should return Left(Failure) when repository throws exception', () async {
+    test('should return Left(Failure) when repository returns failure', () async {
       // Arrange
       when(() => mockRepository.updateProfile(
         userId: testUserId,
         nickname: testNickname,
         avatarUrl: testAvatarUrl,
-      )).thenThrow(Exception('Repository error'));
+      )).thenAnswer((_) async => const Left(CacheFailure('Repository error')));
 
       // Act
       final result = await useCase(const UpdateProfileParams(
@@ -132,7 +132,7 @@ void main() {
       // Assert
       expect(result, isA<Left<Failure, Profile>>());
       result.match(
-        (failure) => expect(failure, isA<UnknownFailure>()),
+        (failure) => expect(failure, isA<CacheFailure>()),
         (profile) => fail('Should not return success'),
       );
       verify(() => mockRepository.updateProfile(

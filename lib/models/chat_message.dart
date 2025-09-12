@@ -1,20 +1,8 @@
 import 'dart:convert';
-import 'media_ref.dart';
-import 'enums.dart';
+import 'package:moonbase_skeleton/models/media_ref.dart';
+import 'package:moonbase_skeleton/models/enums.dart';
 
 class ChatMessage {
-  final String id; // uuid v4
-  final String baseId;
-  final String authorUserId;
-  final MessageType type;
-  final String? text;
-  final List<MediaRef>? media;
-  final DateTime createdAt;
-  final DateTime? editedAt;
-  final String? replyToMessageId; // for threaded replies
-  final bool isEdited;
-  final bool isDeleted;
-
   const ChatMessage({
     required this.id,
     required this.baseId,
@@ -28,6 +16,39 @@ class ChatMessage {
     this.isEdited = false,
     this.isDeleted = false,
   });
+
+    factory ChatMessage.fromJson(String source) => ChatMessage.fromMap(json.decode(source) as Map<String, dynamic>);
+
+    factory ChatMessage.fromMap(Map<String, dynamic> map) => ChatMessage(
+    id: map['id'] as String,
+    baseId: map['baseId'] as String,
+    authorUserId: map['authorUserId'] as String,
+    type: MessageType.values.byName(map['type'] as String),
+    text: map['text'] as String?,
+    media: map['media'] != null 
+      ? (map['media'] as List<dynamic>)
+          .map((e) => MediaRef.fromMap(Map<String, dynamic>.from(e as Map)))
+          .toList()
+      : null,
+    createdAt: DateTime.parse(map['createdAt'] as String),
+    editedAt: map['editedAt'] != null ? DateTime.parse(map['editedAt'] as String) : null,
+    replyToMessageId: map['replyToMessageId'] as String?,
+    isEdited: (map['isEdited'] ?? false) as bool,
+    isDeleted: (map['isDeleted'] ?? false) as bool,
+  );
+
+  final String id; // uuid v4
+  final String baseId;
+  final String authorUserId;
+  final MessageType type;
+  final String? text;
+  final List<MediaRef>? media;
+  final DateTime createdAt;
+  final DateTime? editedAt;
+  final String? replyToMessageId; // for threaded replies
+  final bool isEdited;
+  final bool isDeleted;
+
 
   ChatMessage copyWith({
     String? id,
@@ -71,26 +92,7 @@ class ChatMessage {
     'isDeleted': isDeleted,
   };
 
-  factory ChatMessage.fromMap(Map<String, dynamic> map) => ChatMessage(
-    id: map['id'] as String,
-    baseId: map['baseId'] as String,
-    authorUserId: map['authorUserId'] as String,
-    type: MessageType.values.byName(map['type'] as String),
-    text: map['text'] as String?,
-    media: map['media'] != null 
-      ? (map['media'] as List<dynamic>)
-          .map((e) => MediaRef.fromMap(Map<String, dynamic>.from(e as Map)))
-          .toList()
-      : null,
-    createdAt: DateTime.parse(map['createdAt'] as String),
-    editedAt: map['editedAt'] != null ? DateTime.parse(map['editedAt'] as String) : null,
-    replyToMessageId: map['replyToMessageId'] as String?,
-    isEdited: (map['isEdited'] ?? false) as bool,
-    isDeleted: (map['isDeleted'] ?? false) as bool,
-  );
-
   String toJson() => json.encode(toMap());
-  factory ChatMessage.fromJson(String source) => ChatMessage.fromMap(json.decode(source));
 
   @override
   bool operator ==(Object other) =>

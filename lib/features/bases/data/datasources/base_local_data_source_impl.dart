@@ -1,6 +1,6 @@
 import 'dart:math';
-import '../models/base_model.dart';
-import 'base_local_data_source.dart';
+import 'package:moonbase_skeleton/features/bases/data/models/base_model.dart';
+import 'package:moonbase_skeleton/features/bases/data/datasources/base_local_data_source.dart';
 
 /// DEV-ONLY: In-memory store (no persistence). Resets on hot restart.
 class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
@@ -12,7 +12,7 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
 
   String _genId() {
     final r = Random();
-    return '${DateTime.now().microsecondsSinceEpoch}_${r.nextInt(1 << 32)}';
+    return '${DateTime.now().toUtc().microsecondsSinceEpoch}_${r.nextInt(1 << 32)}';
     // swap to your core/uuid later if preferred
   }
 
@@ -50,7 +50,7 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
       id: id,
       name: name,
       ownerUserId: ownerUserId,
-      createdAt: DateTime.now(),
+      createdAt: DateTime.now().toUtc(),
     );
 
     _bases[id] = model;

@@ -137,7 +137,7 @@ void main() {
           text: 'First message',
         );
 
-        await Future.delayed(const Duration(milliseconds: 10));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
 
         await repository.sendMessage(
           baseId: 'base_1',
@@ -172,7 +172,7 @@ void main() {
         );
 
         // Wait a bit for stream to update
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
         expect(messages.length, greaterThan(0));
         expect(messages.last.length, equals(1));

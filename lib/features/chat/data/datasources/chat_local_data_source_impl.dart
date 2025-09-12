@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
-import '../models/message_model.dart';
-import 'chat_local_data_source.dart';
+import 'package:moonbase_skeleton/features/chat/data/models/message_model.dart';
+import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
 
 /// DEV-ONLY in-memory messages; resets on hot restart.
 class InMemoryChatLocalDataSource implements ChatLocalDataSource {

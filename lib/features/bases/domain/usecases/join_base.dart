@@ -1,18 +1,20 @@
-import '../../../../core/either.dart';
-import '../../../../core/failure.dart';
-import '../../../../core/usecase.dart';
-import '../entities/base.dart';
-import '../repositories/base_repository.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/usecase.dart';
+import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
+import 'package:moonbase_skeleton/features/bases/domain/repositories/base_repository.dart';
 
 class JoinBaseParams {
+  const JoinBaseParams({required this.inviteCode, required this.userId});
+
   final String inviteCode;
   final String userId;
-  const JoinBaseParams({required this.inviteCode, required this.userId});
 }
 
 class JoinBase implements UseCase<Base, JoinBaseParams> {
-  final BaseRepository repo;
   const JoinBase(this.repo);
+
+  final BaseRepository repo;
 
   @override
   Future<Either<Failure, Base>> call(JoinBaseParams p) =>

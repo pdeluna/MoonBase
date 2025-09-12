@@ -11,7 +11,7 @@ import 'package:moonbase_skeleton/main.dart';
 void main() {
   testWidgets('MoonBase app basic structure test', (WidgetTester tester) async {
     // Test that the app can be instantiated without crashing
-    final app = MoonBaseApp();
+    const app = MoonBaseApp();
     expect(app, isNotNull);
     
     // Test that the app has the expected type

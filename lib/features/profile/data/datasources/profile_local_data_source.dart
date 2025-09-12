@@ -1,4 +1,4 @@
-import '../models/profile_model.dart';
+import 'package:moonbase_skeleton/features/profile/data/models/profile_model.dart';
 
 abstract class ProfileLocalDataSource {
   Future<ProfileModel?> readProfile(String userId);

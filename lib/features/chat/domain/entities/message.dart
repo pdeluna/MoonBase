@@ -1,10 +1,4 @@
 class Message {
-  final String id;
-  final String baseId;
-  final String userId;
-  final String content;
-  final DateTime createdAt;
-
   const Message({
     required this.id,
     required this.baseId,
@@ -12,4 +6,31 @@ class Message {
     required this.content,
     required this.createdAt,
   });
+
+  final String id;
+  final String baseId;
+  final String userId;
+  final String content;
+  final DateTime createdAt;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Message &&
+        other.id == id &&
+        other.baseId == baseId &&
+        other.userId == userId &&
+        other.content == content &&
+        other.createdAt == createdAt;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(id, baseId, userId, content, createdAt);
+  }
+
+  @override
+  String toString() {
+    return 'Message(id: $id, baseId: $baseId, userId: $userId, content: $content, createdAt: $createdAt)';
+  }
 }

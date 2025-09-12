@@ -1,11 +1,6 @@
-import '../../domain/entities/base.dart';
+import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 
 class BaseModel {
-  final String id;
-  final String name;
-  final String ownerUserId;
-  final DateTime createdAt;
-
   const BaseModel({
     required this.id,
     required this.name,
@@ -13,18 +8,23 @@ class BaseModel {
     required this.createdAt,
   });
 
-  Base toEntity() => Base(
-    id: id,
-    name: name,
-    ownerUserId: ownerUserId,
-    createdAt: createdAt,
-  );
-
   factory BaseModel.fromMap(Map<String, dynamic> map) => BaseModel(
     id: map['id'] as String,
     name: map['name'] as String,
     ownerUserId: map['ownerUserId'] as String,
     createdAt: DateTime.parse(map['createdAt'] as String),
+  );
+
+  final String id;
+  final String name;
+  final String ownerUserId;
+  final DateTime createdAt;
+
+  Base toEntity() => Base(
+    id: id,
+    name: name,
+    ownerUserId: ownerUserId,
+    createdAt: createdAt,
   );
 
   Map<String, dynamic> toMap() => {

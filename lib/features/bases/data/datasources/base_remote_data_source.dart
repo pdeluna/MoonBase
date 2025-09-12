@@ -1,4 +1,4 @@
-import '../models/base_model.dart';
+import 'package:moonbase_skeleton/features/bases/data/models/base_model.dart';
 
 /// Placeholder for future backend; keep interface even if unused for now.
 abstract class BaseRemoteDataSource {

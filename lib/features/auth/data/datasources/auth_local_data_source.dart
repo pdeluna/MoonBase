@@ -1,4 +1,4 @@
-import '../models/user_model.dart';
+import 'package:moonbase_skeleton/features/auth/data/models/user_model.dart';
 
 abstract class AuthLocalDataSource {
   Future<UserModel?> readCurrentUser();

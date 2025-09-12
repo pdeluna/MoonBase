@@ -1,24 +1,21 @@
-import '../../../../core/either.dart';
-import '../../../../core/failure.dart';
-import '../../../../core/usecase.dart';
-import '../entities/user.dart';
-import '../repositories/auth_repository.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/usecase.dart';
+import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
+import 'package:moonbase_skeleton/features/auth/domain/repositories/auth_repository.dart';
 
 class SignInParams {
-  final String nickname;
   const SignInParams(this.nickname);
+  
+  final String nickname;
 }
 
 class SignIn implements UseCase<User, SignInParams> {
-  final AuthRepository repo;
   const SignIn(this.repo);
 
+  final AuthRepository repo;
+
   @override
-  Future<Either<Failure, User>> call(SignInParams params) async {
-    try {
-      return await repo.signIn(nickname: params.nickname);
-    } catch (e) {
-      return Left(UnknownFailure('Sign in failed: ${e.toString()}'));
-    }
-  }
+  Future<Either<Failure, User>> call(SignInParams p) =>
+      repo.signIn(nickname: p.nickname);
 }

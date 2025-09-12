@@ -186,7 +186,7 @@ void main() {
       );
 
       // Wait for stream to process
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
       
       expect(receivedMessages, isNotEmpty);
       expect(receivedMessages.any((msg) => msg.text == 'Stream test message!'), isTrue);

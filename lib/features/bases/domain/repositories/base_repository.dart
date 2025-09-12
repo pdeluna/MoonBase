@@ -1,6 +1,6 @@
-import '../../../../core/either.dart';
-import '../../../../core/failure.dart';
-import '../entities/base.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 
 abstract class BaseRepository {
   Future<Either<Failure, Base>> createBase({

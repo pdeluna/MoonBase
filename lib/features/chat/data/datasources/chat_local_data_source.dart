@@ -1,4 +1,4 @@
-import '../models/message_model.dart';
+import 'package:moonbase_skeleton/features/chat/data/models/message_model.dart';
 
 abstract class ChatLocalDataSource {
   Future<MessageModel> sendMessage({

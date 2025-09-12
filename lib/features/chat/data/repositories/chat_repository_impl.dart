@@ -1,45 +1,33 @@
-import '../../../../core/either.dart';
-import '../../../../core/failure.dart';
-import '../../domain/entities/message.dart';
-import '../../domain/repositories/chat_repository.dart';
-import '../datasources/chat_local_data_source.dart';
-import '../datasources/chat_remote_data_source.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
+import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
+import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
+import 'package:moonbase_skeleton/features/chat/data/datasources/chat_remote_data_source.dart';
+import 'package:moonbase_skeleton/core/error_mapper.dart';
 
 class ChatRepositoryImpl implements ChatRepository {
+  ChatRepositoryImpl({required this.local, this.remote});
+
   final ChatLocalDataSource local;
   final ChatRemoteDataSource? remote;
 
-  ChatRepositoryImpl({required this.local, this.remote});
+  @override
+  Future<Either<Failure, Message>> sendMessage({required String baseId, required String userId, required String content}) =>
+    guard(() async {
+      final m = await local.sendMessage(baseId: baseId, userId: userId, content: content);
+      return m.toEntity();
+    });
 
   @override
-  Future<Either<Failure, Message>> sendMessage({
-    required String baseId,
-    required String userId,
-    required String content,
-  }) async {
-    try {
-      final m = await local.sendMessage(baseId: baseId, userId: userId, content: content);
-      return Right(m.toEntity());
-    } catch (e) {
-      return Left(CacheFailure(e.toString()));
-    }
-  }
+  Future<Either<Failure, List<Message>>> listMessages({required String baseId, DateTime? before, int limit = 50}) =>
+    guard(() async {
+      final ms = await local.listMessages(baseId: baseId, before: before, limit: limit);
+      return ms.map((m) => m.toEntity()).toList();
+    });
 
   @override
   Stream<List<Message>> streamMessages(String baseId) =>
       local.streamMessages(baseId).map((ms) => ms.map((m) => m.toEntity()).toList());
 
-  @override
-  Future<Either<Failure, List<Message>>> listMessages({
-    required String baseId,
-    DateTime? before,
-    int limit = 50,
-  }) async {
-    try {
-      final list = await local.listMessages(baseId: baseId, before: before, limit: limit);
-      return Right(list.map((m) => m.toEntity()).toList());
-    } catch (e) {
-      return Left(CacheFailure(e.toString()));
-    }
-  }
 }

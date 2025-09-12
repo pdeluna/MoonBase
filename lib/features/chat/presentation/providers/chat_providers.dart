@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../domain/repositories/chat_repository.dart';
-import '../../domain/usecases/send_message.dart';
-import '../../domain/usecases/stream_messages.dart';
-import '../../domain/usecases/list_messages.dart';
+import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
+import 'package:moonbase_skeleton/features/chat/domain/usecases/send_message.dart';
+import 'package:moonbase_skeleton/features/chat/domain/usecases/stream_messages.dart';
+import 'package:moonbase_skeleton/features/chat/domain/usecases/list_messages.dart';
 
 /// Override at app root with a concrete repo.
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {

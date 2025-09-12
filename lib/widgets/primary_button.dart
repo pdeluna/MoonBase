@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 class PrimaryButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onPressed;
-  final bool filled;
-
   const PrimaryButton({
     super.key,
     required this.label,
     required this.onPressed,
     this.filled = true,
   });
+  
+  final String label;
+  final VoidCallback onPressed;
+  final bool filled;
 
   @override
   Widget build(BuildContext context) {

@@ -5,11 +5,6 @@ import 'package:moonbase_skeleton/providers/bases_provider.dart';
 import 'package:moonbase_skeleton/providers/invites_provider.dart';
 
 class SwipableBaseSidebar extends ConsumerStatefulWidget {
-  final Widget child;
-  final double sidebarWidth;
-  final double swipeThreshold;
-  final Duration animationDuration;
-
   const SwipableBaseSidebar({
     super.key,
     required this.child,
@@ -17,6 +12,11 @@ class SwipableBaseSidebar extends ConsumerStatefulWidget {
     this.swipeThreshold = 50,
     this.animationDuration = const Duration(milliseconds: 300),
   });
+  
+  final Widget child;
+  final double sidebarWidth;
+  final double swipeThreshold;
+  final Duration animationDuration;
 
   static SwipableBaseSidebarState? of(BuildContext context) {
     return context.findAncestorStateOfType<SwipableBaseSidebarState>();
@@ -146,7 +146,7 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
     _closeSidebar();
     _baseNameController.clear();
     
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Create New Base'),
@@ -194,7 +194,7 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
     _closeSidebar();
     _inviteCodeController.clear();
     
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Join Base'),

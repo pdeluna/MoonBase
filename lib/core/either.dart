@@ -25,8 +25,9 @@ sealed class Either<L, R> {
 
 /// Left: typically error/failure.
 class Left<L, R> extends Either<L, R> {
-  final L value;
   const Left(this.value);
+
+  final L value;
 
   @override
   T match<T>(T Function(L l) left, T Function(R r) right) => left(value);
@@ -44,8 +45,9 @@ class Left<L, R> extends Either<L, R> {
 
 /// Right: typically success.
 class Right<L, R> extends Either<L, R> {
-  final R value;
   const Right(this.value);
+
+  final R value;
 
   @override
   T match<T>(T Function(L l) left, T Function(R r) right) => right(value);

@@ -79,10 +79,10 @@ void main() {
         verifyNoMoreInteractions(mockRepository);
       });
 
-      test('should return Left(Failure) when repository throws exception', () async {
+      test('should return Left(Failure) when repository returns failure', () async {
         // Arrange
         when(() => mockRepository.signIn(nickname: testNickname))
-            .thenThrow(Exception('Repository error'));
+            .thenAnswer((_) async => const Left(CacheFailure('Repository error')));
 
         // Act
         final result = await useCase(const SignInParams(testNickname));
@@ -90,7 +90,7 @@ void main() {
         // Assert
         expect(result, isA<Left<Failure, User>>());
         result.match(
-          (failure) => expect(failure, isA<UnknownFailure>()),
+          (failure) => expect(failure, isA<CacheFailure>()),
           (user) => fail('Should not return success'),
         );
         verify(() => mockRepository.signIn(nickname: testNickname)).called(1);
@@ -157,7 +157,7 @@ void main() {
 
       test('should handle special characters in nickname', () async {
         // Arrange
-        const specialNickname = 'user@123!#\$%';
+        const specialNickname = r'user@123!#$%';
         when(() => mockRepository.signIn(nickname: specialNickname))
             .thenAnswer((_) async => const Right(testUser));
 

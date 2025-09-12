@@ -41,10 +41,10 @@ void main() {
         updatedAt: DateTime(2024, 1, 1),
       );
       
-      testProfile = Profile(
+      testProfile = const Profile(
         userId: 'user_123',
         nickname: 'testuser',
-        createdAt: DateTime(2024, 1, 1).toIso8601String(),
+        createdAt: '2024-01-01T00:00:00.000Z',
         themeMode: 'light',
       );
       
@@ -205,7 +205,7 @@ void main() {
 
     group('Profile Model Tests', () {
       test('Profile can be created with required fields', () {
-        final profile = Profile(
+        const profile = Profile(
           userId: 'test_user_id',
           nickname: 'testnick',
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -276,9 +276,9 @@ void main() {
       testWidgets('ChatScreen can be wrapped in ProviderScope', (WidgetTester tester) async {
         // Test that the widget can be wrapped in ProviderScope without crashing
         await tester.pumpWidget(
-          ProviderScope(
+          const ProviderScope(
             child: MaterialApp(
-              home: const ChatScreen(),
+              home: ChatScreen(),
             ),
           ),
         );
@@ -294,9 +294,9 @@ void main() {
       testWidgets('ChatScreen shows some UI elements', (WidgetTester tester) async {
         // Test with a simple ProviderScope to see what actually renders
         await tester.pumpWidget(
-          ProviderScope(
+          const ProviderScope(
             child: MaterialApp(
-              home: const ChatScreen(),
+              home: ChatScreen(),
             ),
           ),
         );
@@ -313,9 +313,9 @@ void main() {
       testWidgets('ChatScreen handles async session loading', (WidgetTester tester) async {
         // This test specifically verifies that async operations complete properly
         await tester.pumpWidget(
-          ProviderScope(
+          const ProviderScope(
             child: MaterialApp(
-              home: const ChatScreen(),
+              home: ChatScreen(),
             ),
           ),
         );

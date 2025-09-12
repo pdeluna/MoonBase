@@ -1,33 +1,37 @@
-import '../../../../core/either.dart';
-import '../../../../core/failure.dart';
-import '../../domain/entities/user.dart';
-import '../../domain/repositories/auth_repository.dart';
-import '../datasources/auth_local_data_source.dart';
-import '../datasources/auth_remote_data_source.dart';
-import '../models/user_model.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
+import 'package:moonbase_skeleton/features/auth/domain/repositories/auth_repository.dart';
+import 'package:moonbase_skeleton/features/auth/data/datasources/auth_local_data_source.dart';
+import 'package:moonbase_skeleton/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:moonbase_skeleton/features/auth/data/models/user_model.dart';
+import 'package:moonbase_skeleton/core/error_mapper.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
+  AuthRepositoryImpl({required this.local, this.remote});
+
   final AuthLocalDataSource local;
   final AuthRemoteDataSource? remote; // optional for now
 
-  AuthRepositoryImpl({required this.local, this.remote});
+@override
+Future<Either<Failure, User>> signIn({required String nickname}) =>
+  guard(() async {
+    // example local-first sign-in
+    final userModel = UserModel(id: '550e8400-e29b-41d4-a716-446655440000', nickname: nickname);
+    await local.writeCurrentUser(userModel);
+    return userModel.toEntity();
+  });
 
-  @override
-  Future<Either<Failure, User>> signIn({required String nickname}) async {
-    // STEP 1 (later): local-first sign-in (uuid + persist), or remote if provided.
-    // For now, leave a stub so compile succeeds.
-    return const Left(UnknownFailure('Not implemented'));
-  }
+@override
+Future<Either<Failure, void>> signOut() =>
+  guardVoid(() async {
+    await local.clear();
+  });
 
-  @override
-  Future<Either<Failure, void>> signOut() async {
-    return const Left(UnknownFailure('Not implemented'));
-  }
-
-  @override
-  Future<Either<Failure, User?>> getCurrentUser() async {
-    // Safe default for initial wiring
-    final UserModel? stored = await local.readCurrentUser();
-    return Right(stored?.toEntity());
-  }
+@override
+Future<Either<Failure, User?>> getCurrentUser() =>
+  guard(() async {
+    final m = await local.readCurrentUser();
+    return m?.toEntity();
+  });
 }
