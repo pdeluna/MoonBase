@@ -84,6 +84,20 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
   }
 
   @override
+  Future<void> leaveBase({
+    required String baseId,
+    required String userId,
+  }) async {
+    _membersByBase[baseId]?.remove(userId);
+    _basesByUser[userId]?.remove(baseId);
+    
+    // Clean up empty sets
+    if (_basesByUser[userId]?.isEmpty == true) {
+      _basesByUser.remove(userId);
+    }
+  }
+
+  @override
   Future<void> renameBase({
     required String baseId,
     required String newName,

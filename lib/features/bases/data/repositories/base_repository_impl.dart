@@ -49,6 +49,19 @@ class BaseRepositoryImpl implements BaseRepository {
   }
 
   @override
+  Future<Either<Failure, void>> leaveBase({
+    required String baseId,
+    required String userId,
+  }) async {
+    try {
+      await local.leaveBase(baseId: baseId, userId: userId);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> renameBase({
     required String baseId,
     required String newName,
