@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moonbase_skeleton/main.dart';
-import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -49,15 +49,16 @@ class ProfileScreen extends ConsumerWidget {
                 value ? ThemeMode.dark : ThemeMode.light,
               );
               // 2) Persist to the profile
-              await ref.read(sessionProvider.notifier)
-                      .updateTheme(value ? 'dark' : 'light');
+              // TODO: Update theme persistence to use new auth system
+              // await ref.read(authControllerProvider.notifier)
+              //         .updateTheme(value ? 'dark' : 'light');
             },
           ),
 ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Log out'),
             onTap: () async {
-              await ref.read(sessionProvider.notifier).signOut();
+              await ref.read(authControllerProvider.notifier).logout();
               if (context.mounted) context.go('/login');
             },
           ),

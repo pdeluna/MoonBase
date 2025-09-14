@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -24,7 +24,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_valid || _submitting) return;
     setState(() => _submitting = true);
     try {
-      await ref.read(sessionProvider.notifier).signIn(_c.text);
+      await ref.read(authControllerProvider.notifier).signIn(_c.text.trim());
       if (mounted) context.go('/home');
     } catch (_) {
       setState(() => _error = 'Could not create profile. Try again.');
@@ -35,8 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(sessionProvider);
-    final disabled = _submitting || session.isLoading || !_valid;
+    final disabled = _submitting || !_valid;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Welcome')),

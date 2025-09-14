@@ -4,7 +4,8 @@ import 'package:moonbase_skeleton/models/chat_message.dart';
 import 'package:moonbase_skeleton/models/enums.dart';
 import 'package:moonbase_skeleton/providers/chat_provider.dart';
 import 'package:moonbase_skeleton/providers/bases_provider.dart';
-import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
+import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -55,7 +56,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedBase = ref.watch(effectiveSelectedBaseProvider);
-    final session = ref.watch(sessionProvider);
+    final user = ref.watch(currentUserProvider);
     
     if (selectedBase == null) {
       return const Scaffold(
@@ -75,7 +76,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           Expanded(
             child: _ChatMessagesList(
               baseId: selectedBase.id,
-              session: session,
+              user: user,
             ),
           ),
           _Composer(
@@ -91,11 +92,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 class _ChatMessagesList extends ConsumerWidget {
   const _ChatMessagesList({
     required this.baseId,
-    required this.session,
+    required this.user,
   });
   
   final String baseId;
-  final AsyncValue<dynamic> session;
+  final User? user;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -125,7 +126,7 @@ class _ChatMessagesList extends ConsumerWidget {
            itemCount: sortedMessages.length,
            itemBuilder: (context, index) {
              final message = sortedMessages[index];
-             final isMyMessage = session.value?.userId == message.authorUserId;
+             final isMyMessage = user?.id.value == message.authorUserId;
              
              return _MessageBubble(
                message: message,

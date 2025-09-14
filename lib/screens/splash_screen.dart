@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moonbase_skeleton/widgets/moon_spinner.dart';
-import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -27,31 +27,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         debugPrint('SplashScreen: _canNavigate set to true');
         
         // Navigate after minimum display time
-        final session = ref.read(sessionProvider);
-        session.when(
-          data: (profile) {
-            final signedIn = profile != null;
-            debugPrint('SplashScreen: Navigating to ${signedIn ? '/home' : '/login'}');
-            context.go(signedIn ? '/home' : '/login');
-          },
-          loading: () {
-            debugPrint('SplashScreen: Still loading, staying on splash');
-          },
-          error: (error, stack) {
-            debugPrint('SplashScreen: Error, navigating to login');
-            context.go('/login');
-          },
-        );
+        final user = ref.read(currentUserProvider);
+        final signedIn = user != null;
+        debugPrint('SplashScreen: Navigating to ${signedIn ? '/home' : '/login'}');
+        context.go(signedIn ? '/home' : '/login');
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(sessionProvider);
+    final user = ref.watch(currentUserProvider);
     final scheme = Theme.of(context).colorScheme;
     
-    debugPrint('SplashScreen: Building with session state: $session, _canNavigate: $_canNavigate');
+    debugPrint('SplashScreen: Building with user: $user, _canNavigate: $_canNavigate');
     
     return Scaffold(
       backgroundColor: scheme.primaryContainer.withValues(alpha: 0.2),

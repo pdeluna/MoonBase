@@ -3,7 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/screens/profile_screen.dart';
-import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:moonbase_skeleton/providers/bases_provider.dart';
 import 'package:moonbase_skeleton/widgets/primary_button.dart';
 import 'package:moonbase_skeleton/widgets/swipable_base_sidebar.dart';
@@ -26,9 +27,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(sessionProvider).value;
+    final user = ref.watch(currentUserProvider);
     final selectedBase = ref.watch(effectiveSelectedBaseProvider);
-    final nickname = profile?.nickname ?? 'Guest';
+    final nickname = user?.nickname ?? 'Guest';
     final baseName = selectedBase?.name ?? 'No Base Selected';
     
     return SwipableBaseSidebar(
@@ -94,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             IconButton(
               onPressed: () async {
-                await ref.read(sessionProvider.notifier).signOut();
+                await ref.read(authControllerProvider.notifier).logout();
                 if (context.mounted) context.go('/login');
               },
               icon: const Icon(Icons.logout_rounded),
