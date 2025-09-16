@@ -20,5 +20,9 @@ final getCurrentUserProvider = Provider((ref) => GetCurrentUser(ref.read(authRep
 /// Convenience provider for accessing the current user
 final currentUserProvider = Provider<User?>((ref) {
   final authState = ref.watch(authControllerProvider);
-  return authState.current.value;
+  return authState.current.when(
+    data: (user) => user,
+    loading: () => null,
+    error: (_, __) => null,
+  );
 });

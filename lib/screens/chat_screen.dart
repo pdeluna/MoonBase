@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:moonbase_skeleton/models/chat_message.dart';
 import 'package:moonbase_skeleton/models/enums.dart';
 import 'package:moonbase_skeleton/providers/chat_provider.dart';
 import 'package:moonbase_skeleton/providers/bases_provider.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
+import 'package:moonbase_skeleton/features/chat/presentation/widgets/chat_thread.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -116,25 +116,11 @@ class _ChatMessagesList extends ConsumerWidget {
           );
         }
         
-        // Sort messages by creation time (newest first for display)
-        final sortedMessages = List<ChatMessage>.from(messages)
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        
-        return ListView.builder(
-           reverse: true, // Show newest messages at the top
-           padding: const EdgeInsets.all(16),
-           itemCount: sortedMessages.length,
-           itemBuilder: (context, index) {
-             final message = sortedMessages[index];
-             final isMyMessage = user?.id.value == message.authorUserId;
-             
-             return _MessageBubble(
-               message: message,
-               isMyMessage: isMyMessage,
-             );
-           },
-         );
-       },
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: ChatThread(baseId: baseId),
+        );
+      },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(
         child: Text('Error loading messages: $error'),
@@ -143,121 +129,6 @@ class _ChatMessagesList extends ConsumerWidget {
   }
 }
 
-class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({
-    required this.message,
-    required this.isMyMessage,
-  });
-  
-  final ChatMessage message;
-  final bool isMyMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    if (message.isDeleted) {
-      return Align(
-        alignment: Alignment.center,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            'Message deleted',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Align(
-      alignment: isMyMessage ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        constraints: const BoxConstraints(maxWidth: 280),
-        decoration: BoxDecoration(
-          color: isMyMessage 
-            ? Theme.of(context).colorScheme.primary 
-            : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!isMyMessage) ...[
-              Text(
-                'User ${message.authorUserId.substring(0, 8)}...',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 2),
-            ],
-            if (message.text != null) ...[
-              Text(
-                message.text!,
-                style: TextStyle(
-                  color: isMyMessage 
-                    ? Theme.of(context).colorScheme.onPrimary 
-                    : Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-            ],
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _formatTime(message.createdAt),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isMyMessage 
-                      ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7)
-                      : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-                if (message.isEdited) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    '(edited)',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontStyle: FontStyle.italic,
-                      color: isMyMessage 
-                        ? Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7)
-                        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final messageDate = DateTime(time.year, time.month, time.day);
-    
-    if (messageDate == today) {
-      return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-    } else {
-      return '${time.month}/${time.day} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-    }
-  }
-}
 
 class _Composer extends StatelessWidget {
   const _Composer({

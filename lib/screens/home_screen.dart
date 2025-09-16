@@ -5,9 +5,9 @@ import 'package:moonbase_skeleton/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/screens/profile_screen.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:moonbase_skeleton/providers/bases_provider.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart' as refactored;
 import 'package:moonbase_skeleton/widgets/primary_button.dart';
-import 'package:moonbase_skeleton/widgets/swipable_base_sidebar.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/widgets/refactored_swipable_sidebar.dart';
 
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -28,11 +28,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    final selectedBase = ref.watch(effectiveSelectedBaseProvider);
+    final selectedBase = ref.watch(refactored.selectedBaseProvider);
     final nickname = user?.nickname ?? 'Guest';
     final baseName = selectedBase?.name ?? 'No Base Selected';
     
-    return SwipableBaseSidebar(
+    return RefactoredSwipableBaseSidebar(
       child: Scaffold(
         appBar: AppBar(
           leading: selectedBase != null
@@ -77,7 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           actions: [
             IconButton(
               onPressed: () {
-                final selectedBase = ref.read(effectiveSelectedBaseProvider);
+                final selectedBase = ref.read(refactored.selectedBaseProvider);
                 if (selectedBase != null) {
                   context.go('/invites');
                 } else {
@@ -132,7 +132,7 @@ class _FeedPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedBase = ref.watch(effectiveSelectedBaseProvider);
+    final selectedBase = ref.watch(refactored.selectedBaseProvider);
     
     if (selectedBase == null) {
       return Center(
@@ -165,7 +165,7 @@ class _FeedPage extends ConsumerWidget {
               PrimaryButton(
                 label: 'Create Base',
                 onPressed: () {
-                  final sidebarState = SwipableBaseSidebar.of(context);
+                  final sidebarState = RefactoredSwipableBaseSidebar.of(context);
                   sidebarState?.toggleSidebar();
                 },
                 filled: true,
