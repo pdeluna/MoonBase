@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/models/base.dart';
 import 'package:moonbase_skeleton/providers/bases_provider.dart';
-import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 import 'package:moonbase_skeleton/widgets/moon_spinner.dart';
 
 class BaseSidebar extends ConsumerWidget {
@@ -281,8 +281,8 @@ class BaseSidebar extends ConsumerWidget {
       itemBuilder: (context, index) {
         final base = bases[index];
         final isSelected = selectedBase?.id == base.id;
-        final currentUser = ref.watch(sessionProvider).value;
-        final isOwner = currentUser != null && base.ownerUserId == currentUser.userId;
+        final currentUser = ref.watch(currentUserProvider);
+        final isOwner = currentUser != null && base.ownerUserId == currentUser.id.value;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),

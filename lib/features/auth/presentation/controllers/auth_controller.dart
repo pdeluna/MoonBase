@@ -49,6 +49,16 @@ class AuthController extends StateNotifier<AuthState> {
       (_) => state.copyWith(current: const AsyncValue.data(null)),
     );
   }
+
+  /// Alias for signOut to match expected API
+  Future<void> logout() async => signOut();
+
+  /// Placeholder for updateProfile - TODO: implement when profile system is integrated
+  Future<void> updateProfile(dynamic profile) async {
+    // TODO: Implement profile update when profile system is integrated
+    // For now, just reload the current user
+    await load();
+  }
 }
 
 /// Controller provider (compose it where you need it)

@@ -1,20 +1,20 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
-import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 import 'package:moonbase_skeleton/screens/splash_screen.dart';
 import 'package:moonbase_skeleton/screens/login_screen.dart';
 import 'package:moonbase_skeleton/screens/signup_screen.dart';
 import 'package:moonbase_skeleton/screens/home_screen.dart';
-import 'package:moonbase_skeleton/screens/chat_screen.dart';
+import 'package:moonbase_skeleton/features/chat/presentation/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/screens/profile_screen.dart';
 import 'package:moonbase_skeleton/screens/base_picker_screen.dart';
-import 'package:moonbase_skeleton/screens/invites_screen.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/screens/invites_screen.dart';
 
 // Separate provider for authentication state to avoid router rebuilds on theme changes
 final authStateProvider = Provider<bool>((ref) {
-  final session = ref.watch(sessionProvider);
-  return session.value != null;
+  final user = ref.watch(currentUserProvider);
+  return user != null;
 });
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -36,9 +36,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
     redirect: (context, state) {
       final loc = state.uri.toString();
-      // Get session state directly for detailed checks
-      final session = ref.read(sessionProvider);
-      debugPrint('Router: redirect called with location: $loc, session: $session');
+      // Get current user for auth checks
+      final user = ref.read(currentUserProvider);
+      debugPrint('Router: redirect called with location: $loc, user: $user');
 
       // Always allow splash screen to control its own timing
       if (loc == '/splash') {
@@ -46,19 +46,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // While session is loading, redirect to splash
-      if (session.isLoading) {
-        debugPrint('Router: Session loading, redirecting to splash');
-        return '/splash';
-      }
-      
-      // If session has error, redirect to splash
-      if (session.hasError) {
-        debugPrint('Router: Session error, redirecting to splash');
-        return '/splash';
-      }
-
-      final signedIn = session.value != null;
+      final signedIn = user != null;
 
       // Not signed in → only allow login/signup
       if (!signedIn && loc != '/login' && loc != '/signup') {

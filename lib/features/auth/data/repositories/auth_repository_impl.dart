@@ -16,9 +16,11 @@ class AuthRepositoryImpl implements AuthRepository {
 @override
 Future<Either<Failure, User>> signIn({required String nickname}) =>
   guard(() async {
-    // example local-first sign-in
-    final userModel = UserModel(id: '550e8400-e29b-41d4-a716-446655440000', nickname: nickname);
+    // Generate unique user ID based on nickname (or use UUID in production)
+    final userId = 'user_${nickname.hashCode.abs()}';
+    final userModel = UserModel(id: userId, nickname: nickname);
     await local.writeCurrentUser(userModel);
+    // New users get no default base; they start with empty bases and create/join via UI.
     return userModel.toEntity();
   });
 

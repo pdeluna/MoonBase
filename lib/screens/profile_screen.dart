@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:moonbase_skeleton/main.dart';
-import 'package:moonbase_skeleton/services/session_controller.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart' as auth_controller;
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart' show currentUserProvider;
+import 'package:moonbase_skeleton/features/auth/presentation/providers/user_color_providers.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
+import 'package:moonbase_skeleton/features/theme/presentation/providers/theme_providers.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -11,6 +14,10 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final user = ref.watch(currentUserProvider);
+    final userColor = ref.watch(currentUserColorProvider);
+    final userTextColor = ref.watch(currentUserTextColorProvider);
+    
     return Scaffold(
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -18,12 +25,29 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           CircleAvatar(
             radius: 40,
-            child: Text('PD', style: Theme.of(context).textTheme.titleLarge),
+            backgroundColor: userColor,
+            child: Text(
+              user?.nickname.substring(0, 1).toUpperCase() ?? '?',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: userTextColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
-          Center(child: Text('Philip', style: Theme.of(context).textTheme.titleLarge)),
+          Center(
+            child: Text(
+              user?.nickname ?? 'Guest',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
           const SizedBox(height: 4),
-          Center(child: Text('philip@example.com', style: TextStyle(color: scheme.onSurfaceVariant))),
+          Center(
+            child: Text(
+              user?.id.value ?? 'No user ID',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ),
           const SizedBox(height: 16),
           const Divider(),
           ListTile(
@@ -44,20 +68,18 @@ class ProfileScreen extends ConsumerWidget {
             title: const Text('Dark Mode'),
             value: isDark,
             onChanged: (value) async {
-              // 1) Flip the app theme immediately
-              MoonBaseApp.of(context)?.setThemeMode(
+              // Update theme using the theme controller
+              ref.read(themeControllerProvider.notifier).set(
                 value ? ThemeMode.dark : ThemeMode.light,
               );
-              // 2) Persist to the profile
-              await ref.read(sessionProvider.notifier)
-                      .updateTheme(value ? 'dark' : 'light');
             },
           ),
 ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Log out'),
             onTap: () async {
-              await ref.read(sessionProvider.notifier).signOut();
+              ref.read(selectedBaseProvider.notifier).state = null;
+              await ref.read(auth_controller.authControllerProvider.notifier).logout();
               if (context.mounted) context.go('/login');
             },
           ),
