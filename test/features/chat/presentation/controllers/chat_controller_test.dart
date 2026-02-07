@@ -30,7 +30,6 @@ void main() {
     });
 
     test('load empty then send updates via stream', () async {
-      c.subscribe('b1');
       await c.load('b1');
       expect(expectData(c.state.messages), isEmpty);
 
@@ -41,7 +40,8 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
 
       final list = expectData(c.state.messages);
-      expect(list.map((m) => m.content).toList(), ['hello', 'world']);
+      // Controller keeps newest first so ListView(reverse: true) shows newest at bottom
+      expect(list.map((m) => m.content).toList(), ['world', 'hello']);
     });
   });
 }

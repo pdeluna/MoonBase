@@ -63,7 +63,7 @@ void main() {
     test('should round-trip JSON serialization correctly', () {
       // Arrange
       final originalProfile = Profile(
-        userId: UserId('roundtrip-uuid'),
+        userId: const UserId('roundtrip-uuid'),
         nickname: 'roundtripuser',
         avatarUrl: 'https://example.com/roundtrip.jpg',
         updatedAt: DateTime.utc(2025, 1, 15, 14, 30, 45, 123), // Use UTC

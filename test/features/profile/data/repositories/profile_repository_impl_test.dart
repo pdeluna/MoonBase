@@ -119,7 +119,7 @@ void main() {
 
     test('should handle deletion of non-existent user gracefully', () async {
       // Arrange: Non-existent user ID
-      final nonExistentUserId = UserId('non-existent-uuid');
+      const nonExistentUserId = UserId('non-existent-uuid');
       
       // Act: Try to delete non-existent user
       final deleteResult = await repository.deleteProfile(nonExistentUserId);

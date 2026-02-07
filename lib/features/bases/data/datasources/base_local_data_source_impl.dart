@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:moonbase_skeleton/features/bases/data/models/base_model.dart';
+import 'package:moonbase_skeleton/features/bases/data/models/invite_model.dart';
 import 'package:moonbase_skeleton/features/bases/data/datasources/base_local_data_source.dart';
 
 /// DEV-ONLY: In-memory store (no persistence). Resets on hot restart.
@@ -9,6 +10,7 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
   final Map<String, Set<String>> _basesByUser = {};
   final Map<String, String> _inviteToBase = {};
   final Map<String, Set<String>> _invitesByBase = {};
+  final Map<String, InviteModel> _invites = {};
 
   String _genId() {
     final r = Random();
@@ -146,5 +148,65 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
     _inviteToBase[code] = baseId;
     _invitesByBase[baseId]!.add(code);
     return code;
+  }
+
+  @override
+  Future<InviteModel> createInvite({
+    required String baseId,
+    required String createdByUserId,
+    int? maxUses,
+    DateTime? expiresAt,
+  }) async {
+    if (!_bases.containsKey(baseId)) {
+      throw StateError('Base not found');
+    }
+    _ensureBaseIndex(baseId);
+
+    final id = _genId();
+    final code = await generateInviteCode(baseId: baseId);
+    
+    final invite = InviteModel(
+      id: id,
+      baseId: baseId,
+      code: code,
+      createdByUserId: createdByUserId,
+      createdAt: DateTime.now(),
+      expiresAt: expiresAt,
+      maxUses: maxUses,
+      usedCount: 0,
+    );
+
+    _invites[id] = invite;
+    return invite;
+  }
+
+  @override
+  Future<List<InviteModel>> listInvitesForBase(String baseId) async {
+    return _invites.values
+        .where((invite) => invite.baseId == baseId)
+        .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  @override
+  Future<InviteModel?> getInviteByCode(String code) async {
+    try {
+      final invite = _invites.values.firstWhere(
+        (invite) => invite.code == code,
+      );
+      return invite;
+    } catch (e) {
+      return null; // Invite not found
+    }
+  }
+
+  @override
+  Future<BaseModel?> getLastAccessedBase(String userId) async {
+    return null;
+  }
+
+  @override
+  Future<void> setLastAccessedBase(String userId, String baseId) async {
+    // No-op for dev environment
   }
 }
