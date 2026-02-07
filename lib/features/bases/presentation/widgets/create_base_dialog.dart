@@ -69,8 +69,11 @@ class _CreateBaseDialogState extends ConsumerState<CreateBaseDialog> {
 
   Future<void> _createBase() async {
     try {
-      await ref.read(createBaseProvider(_nameController.text.trim()).future);
-      
+      final base = await ref.read(createBaseProvider(_nameController.text.trim()).future);
+      ref.invalidate(basesListProvider);
+      if (base != null) {
+        ref.read(selectedBaseProvider.notifier).state = base;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Base created successfully!')),

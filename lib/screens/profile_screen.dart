@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart' as auth_controller;
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart' show currentUserProvider;
 import 'package:moonbase_skeleton/features/auth/presentation/providers/user_color_providers.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
 import 'package:moonbase_skeleton/features/theme/presentation/providers/theme_providers.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -77,6 +78,7 @@ ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Log out'),
             onTap: () async {
+              ref.read(selectedBaseProvider.notifier).state = null;
               await ref.read(auth_controller.authControllerProvider.notifier).logout();
               if (context.mounted) context.go('/login');
             },

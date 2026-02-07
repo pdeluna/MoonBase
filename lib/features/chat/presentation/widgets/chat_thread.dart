@@ -1,47 +1,42 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:moonbase_skeleton/features/chat/presentation/providers/message_tile_vm_provider.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/widgets/message_bubble.dart';
-import 'package:moonbase_skeleton/features/chat/domain/providers/visible_message_ids_provider.dart';
-import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 
-class ChatThread extends ConsumerWidget {
-  const ChatThread({super.key, required this.baseId});
-  final String baseId; // the current base/room
+class ChatThread extends StatelessWidget {
+  const ChatThread({
+    super.key, 
+    required this.messages,
+    required this.currentUserId,
+  });
+  
+  final List<Message> messages;
+  final String? currentUserId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final idsAsync = ref.watch(visibleMessageIdsProvider(baseId.bid));
+  Widget build(BuildContext context) {
+    if (messages.isEmpty) {
+      return const Center(
+        child: Text(
+          'No messages yet. Start the conversation!',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey,
+          ),
+        ),
+      );
+    }
 
-    return idsAsync.when(
-      data: (ids) {
-        if (ids.isEmpty) {
-          return const Center(
-            child: Text(
-              'No messages yet. Start the conversation!',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          );
-        }
-
-        return ListView.builder(
-          reverse: true, // newest at bottom or top per your UX
-          itemCount: ids.length,
-          itemBuilder: (context, i) {
-            final id = ids[i];
-            final vm = ref.watch(messageTileVmProvider(id));
-            if (vm == null) return const SizedBox.shrink();
-            return MessageBubble(key: ValueKey(id.value), vm: vm);
-          },
+    return ListView.builder(
+      reverse: true, // newest at bottom
+      itemCount: messages.length,
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        return MessageBubble(
+          key: ValueKey(message.id.value),
+          message: message,
+          currentUserId: currentUserId,
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Text('Error loading messages: $error'),
-      ),
     );
   }
 }

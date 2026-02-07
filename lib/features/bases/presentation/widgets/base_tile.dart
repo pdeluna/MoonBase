@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/current_user_id_provider.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
 
 class BaseTile extends ConsumerWidget {
   const BaseTile({super.key, required this.baseId, this.onTap, this.onLongPress});
@@ -87,6 +90,16 @@ class BaseTile extends ConsumerWidget {
           try {
             final base = sidebarVm.bases.firstWhere((b) => b.id.value == baseId);
             ref.read(selectedBaseProvider.notifier).state = base;
+
+            final currentUserId = ref.read(currentUserIdProvider);
+            if (currentUserId != null) {
+              final baseRepository = ref.read(baseRepositoryProvider);
+              baseRepository.setLastAccessedBase(
+                userId: UserId(currentUserId),
+                baseId: base.id,
+              );
+            }
+
             onTap?.call();
           } catch (e) {
             // Base not found

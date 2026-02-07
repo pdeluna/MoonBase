@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:moonbase_skeleton/screens/chat_screen.dart';
+import 'package:moonbase_skeleton/features/chat/presentation/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/screens/profile_screen.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart' as refactored;
 import 'package:moonbase_skeleton/widgets/primary_button.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/refactored_swipable_sidebar.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/widgets/join_base_dialog.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/widgets/create_base_dialog.dart';
 
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -28,7 +30,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
-    final selectedBase = ref.watch(refactored.selectedBaseProvider);
+    final selectedBase = ref.watch(refactored.effectiveSelectedBaseProvider);
     final nickname = user?.nickname ?? 'Guest';
     final baseName = selectedBase?.name ?? 'No Base Selected';
     
@@ -95,6 +97,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             IconButton(
               onPressed: () async {
+                ref.read(refactored.selectedBaseProvider.notifier).state = null;
                 await ref.read(authControllerProvider.notifier).logout();
                 if (context.mounted) context.go('/login');
               },
@@ -132,7 +135,7 @@ class _FeedPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedBase = ref.watch(refactored.selectedBaseProvider);
+    final selectedBase = ref.watch(refactored.effectiveSelectedBaseProvider);
     
     if (selectedBase == null) {
       return Center(
@@ -165,10 +168,23 @@ class _FeedPage extends ConsumerWidget {
               PrimaryButton(
                 label: 'Create Base',
                 onPressed: () {
-                  final sidebarState = RefactoredSwipableBaseSidebar.of(context);
-                  sidebarState?.toggleSidebar();
+                  showDialog<void>(
+                    context: context,
+                    builder: (context) => const CreateBaseDialog(),
+                  );
                 },
                 filled: true,
+              ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () {
+                  showDialog<void>(
+                    context: context,
+                    builder: (context) => const JoinBaseDialog(),
+                  );
+                },
+                icon: const Icon(Icons.group_add, size: 20),
+                label: const Text('Join Base'),
               ),
             ],
           ),

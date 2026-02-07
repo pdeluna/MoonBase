@@ -199,4 +199,14 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
       return null; // Invite not found
     }
   }
+
+  @override
+  Future<BaseModel?> getLastAccessedBase(String userId) async {
+    return null;
+  }
+
+  @override
+  Future<void> setLastAccessedBase(String userId, String baseId) async {
+    // No-op for dev environment
+  }
 }

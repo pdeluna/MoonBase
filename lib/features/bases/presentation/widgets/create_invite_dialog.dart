@@ -99,6 +99,7 @@ class _CreateInviteDialogState extends ConsumerState<CreateInviteDialog> {
       final invite = await inviteAsync;
 
       if (mounted && invite != null) {
+        ref.invalidate(baseInvitesProvider(widget.baseId));
         _showInviteCodeDialog(invite.code);
       }
     } catch (e) {

@@ -19,4 +19,8 @@ abstract class BaseLocalDataSource {
   });
   Future<List<InviteModel>> listInvitesForBase(String baseId);
   Future<InviteModel?> getInviteByCode(String code);
+  
+  // Last accessed base methods (per user)
+  Future<BaseModel?> getLastAccessedBase(String userId);
+  Future<void> setLastAccessedBase(String userId, String baseId);
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
@@ -33,27 +34,42 @@ class ChatController extends StateNotifier<ChatState> {
     super.dispose();
   }
 
+  /// Sorts messages newest first so ListView(reverse: true) shows newest at bottom.
+  static List<Message> _newestFirst(List<Message> list) {
+    final copy = List<Message>.from(list);
+    copy.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return copy;
+  }
+
   Future<void> load(String baseId) async {
+    _sub?.cancel();
     state = state.copyWith(messages: const AsyncValue.loading());
+
     final res = await _listMessages(ListMessagesParams(baseId: baseId.bid));
     state = res.match(
       (f) => state.copyWith(messages: AsyncValue.error(f, StackTrace.current)),
-      (list) => state.copyWith(messages: AsyncValue.data(list)),
+      (list) => state.copyWith(messages: AsyncValue.data(_newestFirst(list))),
     );
-  }
 
-  void subscribe(String baseId) {
-    _sub?.cancel();
+    developer.log('ChatController: Starting stream for base $baseId');
     _sub = _streamMessages(baseId.bid).listen((list) {
-      state = state.copyWith(messages: AsyncValue.data(list));
+      developer.log('ChatController: Received ${list.length} messages from stream');
+      state = state.copyWith(messages: AsyncValue.data(_newestFirst(list)));
     });
   }
 
   Future<void> send(String baseId, String userId, String content) async {
+    developer.log('ChatController: Sending message to base $baseId');
     final res = await _sendMessage(SendMessageParams(baseId: baseId.bid, userId: userId.uid, content: content));
     res.match(
-      (_) => <String, dynamic>{}, // on failure, keep existing state (UI can surface errors if you propagate)
-      (_) => <String, dynamic>{}, // stream will push the new list
+      (failure) {
+        developer.log('ChatController: Send failed - ${failure.message}');
+        throw Exception(failure.message);
+      },
+      (message) {
+        developer.log('ChatController: Message sent successfully - ${message.id.value}');
+        // Stream will automatically update the UI
+      },
     );
   }
 }

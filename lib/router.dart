@@ -6,10 +6,10 @@ import 'package:moonbase_skeleton/screens/splash_screen.dart';
 import 'package:moonbase_skeleton/screens/login_screen.dart';
 import 'package:moonbase_skeleton/screens/signup_screen.dart';
 import 'package:moonbase_skeleton/screens/home_screen.dart';
-import 'package:moonbase_skeleton/screens/chat_screen.dart';
+import 'package:moonbase_skeleton/features/chat/presentation/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/screens/profile_screen.dart';
 import 'package:moonbase_skeleton/screens/base_picker_screen.dart';
-import 'package:moonbase_skeleton/screens/invites_screen.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/screens/invites_screen.dart';
 
 // Separate provider for authentication state to avoid router rebuilds on theme changes
 final authStateProvider = Provider<bool>((ref) {

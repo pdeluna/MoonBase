@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/invite_list.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/create_invite_dialog.dart';
-import 'package:moonbase_skeleton/providers/bases_provider.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
 
 class InvitesScreen extends ConsumerWidget {
   const InvitesScreen({super.key});
@@ -69,12 +69,12 @@ class InvitesScreen extends ConsumerWidget {
 
           // Invites list
           Expanded(
-            child: InviteList(baseId: selectedBase.id),
+            child: InviteList(baseId: selectedBase.id.value),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateInviteDialog(context, selectedBase.id),
+        onPressed: () => _showCreateInviteDialog(context, selectedBase.id.value),
         icon: const Icon(Icons.add),
         label: const Text('Create Invite'),
       ),

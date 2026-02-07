@@ -20,6 +20,7 @@ Future<Either<Failure, User>> signIn({required String nickname}) =>
     final userId = 'user_${nickname.hashCode.abs()}';
     final userModel = UserModel(id: userId, nickname: nickname);
     await local.writeCurrentUser(userModel);
+    // New users get no default base; they start with empty bases and create/join via UI.
     return userModel.toEntity();
   });
 

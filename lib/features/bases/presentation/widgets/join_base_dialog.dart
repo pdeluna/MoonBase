@@ -72,7 +72,7 @@ class _JoinBaseDialogState extends ConsumerState<JoinBaseDialog> {
   Future<void> _joinBase() async {
     try {
       await ref.read(joinBaseWithCodeProvider(_inviteCodeController.text.trim()).future);
-      
+      ref.invalidate(basesListProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Successfully joined base!')),

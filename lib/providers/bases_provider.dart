@@ -23,27 +23,63 @@ final basesProvider = StateNotifierProvider<BasesNotifier, AsyncValue<List<Base>
 final mostRecentBaseProvider = Provider<Base?>((ref) {
   final bases = ref.watch(basesProvider);
   
-  if (bases.isLoading || bases.hasError) return null;
+  if (bases.isLoading || bases.hasError) {
+    developer.log('mostRecentBaseProvider: bases loading or error - ${bases.isLoading ? "loading" : "error"}');
+    return null;
+  }
   
   final basesList = bases.value;
-  if (basesList == null || basesList.isEmpty) return null;
+  if (basesList == null || basesList.isEmpty) {
+    developer.log('mostRecentBaseProvider: no bases available');
+    return null;
+  }
+  
+  developer.log('mostRecentBaseProvider: available bases = ${basesList.map((b) => '${b.name} (${b.id})').join(', ')}');
   
   // Find the most recently accessed base (highest lastAccessedAt timestamp)
   // If lastAccessedAt is null, fall back to createdAt
-  return basesList.reduce((a, b) {
+  final mostRecent = basesList.reduce((a, b) {
     final aTime = a.lastAccessedAt ?? a.createdAt;
     final bTime = b.lastAccessedAt ?? b.createdAt;
     return aTime.isAfter(bTime) ? a : b;
   });
+  
+  developer.log('mostRecentBaseProvider: most recent base = ${mostRecent.name} (${mostRecent.id})');
+  return mostRecent;
 });
 
 // Computed provider that returns the selected base or falls back to the most recent base
+// but only if the user still has access to that base
 final effectiveSelectedBaseProvider = Provider<Base?>((ref) {
   final selectedBase = ref.watch(selectedBaseProvider);
   final mostRecentBase = ref.watch(mostRecentBaseProvider);
+  final bases = ref.watch(basesProvider);
   
-  // Return the manually selected base if available, otherwise return the most recent base
-  return selectedBase ?? mostRecentBase;
+  // Log base selection for debugging
+  developer.log('effectiveSelectedBaseProvider: selectedBase = ${selectedBase?.name} (${selectedBase?.id})');
+  developer.log('effectiveSelectedBaseProvider: mostRecentBase = ${mostRecentBase?.name} (${mostRecentBase?.id})');
+  
+  // Get the list of available bases
+  final availableBases = bases.value ?? [];
+  final availableBaseIds = availableBases.map((b) => b.id).toSet();
+  
+  developer.log('effectiveSelectedBaseProvider: available base IDs = $availableBaseIds');
+  
+  // Check if selected base is still available
+  if (selectedBase != null && availableBaseIds.contains(selectedBase.id)) {
+    developer.log('effectiveSelectedBaseProvider: using selected base = ${selectedBase.name}');
+    return selectedBase;
+  }
+  
+  // Check if most recent base is still available
+  if (mostRecentBase != null && availableBaseIds.contains(mostRecentBase.id)) {
+    developer.log('effectiveSelectedBaseProvider: using most recent base = ${mostRecentBase.name}');
+    return mostRecentBase;
+  }
+  
+  // No valid base found
+  developer.log('effectiveSelectedBaseProvider: no valid base found, returning null');
+  return null;
 });
 
 // Selected base provider - manages currently selected base
@@ -198,7 +234,26 @@ class BasesNotifier extends StateNotifier<AsyncValue<List<Base>>> {
 }
 
 class SelectedBaseNotifier extends StateNotifier<Base?> {
-  SelectedBaseNotifier(this._ref) : super(null);
+  SelectedBaseNotifier(this._ref) : super(null) {
+    // Watch for session changes to clear selection when user changes
+    _ref.listen(sessionProvider, (previous, next) {
+      if (previous?.value?.userId != next.value?.userId) {
+        developer.log('SelectedBaseNotifier: User changed, clearing base selection');
+        state = null;
+      }
+    });
+    
+    // Watch for bases changes to clear selection if current base is no longer available
+    _ref.listen(basesProvider, (previous, next) {
+      if (state != null && next.hasValue) {
+        final availableBaseIds = next.value?.map((b) => b.id).toSet() ?? <String>{};
+        if (!availableBaseIds.contains(state!.id)) {
+          developer.log('SelectedBaseNotifier: Current base no longer available, clearing selection');
+          state = null;
+        }
+      }
+    });
+  }
 
   final Ref _ref;
 

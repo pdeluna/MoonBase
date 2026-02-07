@@ -31,6 +31,38 @@ final basesListProvider = FutureProvider<List<Base>>((ref) async {
 /// Provider for selected base using domain entities
 final selectedBaseProvider = StateProvider<Base?>((ref) => null);
 
+/// Provider that manages base selection with auto-selection of last accessed base.
+/// Only uses last-accessed base if it belongs to the current user's bases (no cross-user leak).
+final effectiveSelectedBaseProvider = Provider<Base?>((ref) {
+  final selectedBase = ref.watch(selectedBaseProvider);
+  final lastAccessedBase = ref.watch(lastAccessedBaseProvider);
+  final basesAsync = ref.watch(basesListProvider);
+
+  if (selectedBase != null) {
+    return selectedBase;
+  }
+
+  final last = lastAccessedBase.value;
+  if (last == null) return null;
+
+  // Only use last-accessed base if it is in the current user's list
+  final userBases = basesAsync.valueOrNull ?? [];
+  final belongsToCurrentUser = userBases.any((b) => b.id == last.id);
+  return belongsToCurrentUser ? last : null;
+});
+
+/// Provider for last accessed base (scoped to current user)
+final lastAccessedBaseProvider = FutureProvider<Base?>((ref) async {
+  final currentUserId = ref.watch(currentUserIdProvider);
+  if (currentUserId == null) return null;
+  final baseRepository = ref.read(baseRepositoryProvider);
+  final result = await baseRepository.getLastAccessedBase(UserId(currentUserId));
+  return result.fold(
+    (failure) => null,
+    (base) => base,
+  );
+});
+
 /// Provider for sidebar view model
 final sidebarVmProvider = Provider<SidebarVM>((ref) {
   final basesAsync = ref.watch(basesListProvider);
@@ -85,23 +117,23 @@ final baseTileVmProvider = Provider.family<BaseTileVM?, String>((ref, baseId) {
   }
 });
 
-/// Provider for creating bases
-final createBaseProvider = FutureProvider.family<void, String>((ref, baseName) async {
+/// Provider for creating bases. Returns the created [Base] on success so callers can select it.
+final createBaseProvider = FutureProvider.family<Base?, String>((ref, baseName) async {
   final createBase = ref.read(createBaseUseCaseProvider);
   final currentUserId = ref.read(currentUserIdProvider);
-  
+
   if (currentUserId == null) {
     throw Exception('User not authenticated');
   }
-  
+
   final result = await createBase(CreateBaseParams(
     name: baseName,
     ownerUserId: currentUserId.uid,
   ));
-  
-  result.fold(
+
+  return result.fold<Base?>(
     (failure) => throw Exception(failure.message),
-    (_) => null,
+    (base) => base,
   );
 });
 
@@ -121,7 +153,10 @@ final joinBaseWithCodeProvider = FutureProvider.family<void, String>((ref, invit
   
   result.fold(
     (failure) => throw Exception(failure.message),
-    (_) => null,
+    (_) {
+      // Refresh the bases list after successful join
+      ref.refresh(basesListProvider);
+    },
   );
 });
 

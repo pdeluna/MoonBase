@@ -49,7 +49,13 @@ class DeleteBaseDialog extends ConsumerWidget {
   Future<void> _deleteBase(BuildContext context, WidgetRef ref) async {
     try {
       await ref.read(deleteBaseProvider(baseId).future);
-      
+
+      ref.invalidate(basesListProvider);
+      final selected = ref.read(selectedBaseProvider);
+      if (selected?.id.value == baseId) {
+        ref.read(selectedBaseProvider.notifier).state = null;
+      }
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Base deleted successfully')),

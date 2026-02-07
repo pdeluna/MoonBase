@@ -75,10 +75,23 @@ Future<Either<Failure, List<Invite>>> listInvitesForBase({required BaseId baseId
     return ms.map((m) => m.toEntity()).toList();
   });
 
-@override
-Future<Either<Failure, Invite?>> getInviteByCode({required String code}) =>
+  @override
+  Future<Either<Failure, Invite?>> getInviteByCode({required String code}) =>
   guard(() async {
     final m = await local.getInviteByCode(code);
     return m?.toEntity();
   });
+
+  @override
+  Future<Either<Failure, Base?>> getLastAccessedBase(UserId userId) =>
+      guard(() async {
+        final base = await local.getLastAccessedBase(userId.value);
+        return base?.toEntity();
+      });
+
+  @override
+  Future<Either<Failure, void>> setLastAccessedBase(
+          {required UserId userId, required BaseId baseId}) =>
+      guardVoid(() =>
+          local.setLastAccessedBase(userId.value, baseId.value));
 }

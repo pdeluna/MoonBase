@@ -32,4 +32,8 @@ abstract class BaseRepository {
   });
   Future<Either<Failure, List<Invite>>> listInvitesForBase({required BaseId baseId});
   Future<Either<Failure, Invite?>> getInviteByCode({required String code});
+  
+  // Last accessed base methods (per user)
+  Future<Either<Failure, Base?>> getLastAccessedBase(UserId userId);
+  Future<Either<Failure, void>> setLastAccessedBase({required UserId userId, required BaseId baseId});
 }
