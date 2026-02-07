@@ -62,3 +62,20 @@ class Right<L, R> extends Either<L, R> {
   @override
   String toString() => 'Right($value)';
 }
+
+/// Unit type for operations that don't return a meaningful value.
+/// Use this instead of `void` in Either types for better type safety.
+class Unit {
+  const Unit._();
+  
+  static const Unit instance = Unit._();
+  
+  @override
+  bool operator ==(Object other) => other is Unit;
+  
+  @override
+  int get hashCode => 0;
+  
+  @override
+  String toString() => 'Unit()';
+}
