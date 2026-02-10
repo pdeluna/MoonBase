@@ -1,5 +1,7 @@
 # Base Management Test Guide
 
+> **Deprecated.** This guide describes legacy base flows. For the current 3-layer architecture, see [REFACTOR_ARCHITECTURE.md](REFACTOR_ARCHITECTURE.md) and the bases feature under `lib/features/bases/`.
+
 ## Quick Test Steps
 
 ### 1. Start the App

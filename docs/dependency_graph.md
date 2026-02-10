@@ -1,3 +1,8 @@
+# Dependency Graph (Legacy)
+
+> **Deprecated.** This graph describes the legacy provider layer. For the current 3-layer architecture, see [REFACTOR_ARCHITECTURE.md](REFACTOR_ARCHITECTURE.md) and `lib/features/`.
+
+```mermaid
 graph TD
     %% Repository Layer (Bottom)
     PR[profileRepositoryProvider] --> SC[sessionProvider]
@@ -55,3 +60,4 @@ graph TD
     class CMP,CAP,CMP_FAMILY,CAP_STATE chat
     class AP,RP router
     class CHAT_UI ui
+```

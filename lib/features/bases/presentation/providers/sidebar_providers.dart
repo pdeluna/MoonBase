@@ -155,7 +155,7 @@ final joinBaseWithCodeProvider = FutureProvider.family<void, String>((ref, invit
     (failure) => throw Exception(failure.message),
     (_) {
       // Refresh the bases list after successful join
-      ref.refresh(basesListProvider);
+      ref.invalidate(basesListProvider);
     },
   );
 });

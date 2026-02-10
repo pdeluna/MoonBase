@@ -2,7 +2,7 @@
 
 ## Overview
 
-MoonBase is designed around the concept of "bases" - group spaces where users can chat, share media, create posts, stories, and eventually live stream. This document outlines the complete model architecture and current implementation status.
+MoonBase is designed around the concept of "bases" — group spaces where users can chat, share media, create posts, stories, and eventually live stream. This document outlines the model architecture and implementation status. **Domain entities** for the current 3-layer architecture live under `lib/features/<feature>/domain/entities/`; some names and concepts here may align with legacy models in `lib/models/` for context.
 
 ## Implementation Status
 

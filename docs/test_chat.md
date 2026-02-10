@@ -1,5 +1,7 @@
 # Chat Functionality Test Guide
 
+> **Deprecated.** This guide describes legacy chat flows. For the current 3-layer architecture, see [REFACTOR_ARCHITECTURE.md](REFACTOR_ARCHITECTURE.md) and the chat feature under `lib/features/chat/`.
+
 ## Quick Test Steps
 
 ### 1. Start the App
