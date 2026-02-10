@@ -1,5 +1,7 @@
 # BaseSidebar Widget Test Suite Documentation
 
+> **Deprecated.** This document describes tests for the legacy BaseSidebar. For the current implementation, see [REFACTOR_ARCHITECTURE.md](REFACTOR_ARCHITECTURE.md) and the bases feature under `lib/features/bases/`.
+
 ## Overview
 
 The BaseSidebar widget test suite provides comprehensive testing coverage for the BaseSidebar component, ensuring reliable functionality across all states and interactions. The suite uses **mocktail** for improved performance and **behavior-driven testing** to verify actual widget behavior rather than implementation details.

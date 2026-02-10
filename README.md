@@ -2,421 +2,255 @@
 
 A minimal Flutter skeleton for MoonBase (closed-circle streaming/chat). Pure navigation, no Firebase.
 
-## 📋 **Table of Contents**
+## Table of Contents
 
-- [Current Status](#-current-status-refactoring-in-progress)
+- [Current Status](#-current-status-phase-2-complete)
 - [Features](#-features)
-- [Architecture](#️-architecture)
+- [Architecture](#-architecture)
 - [Getting Started](#-getting-started)
 - [Testing](#-testing)
 - [Project Structure](#-project-structure)
 - [Documentation](#-documentation)
 - [Roadmap](#-roadmap)
 
-## 🚀 **Current Status: Refactoring in Progress**
+## Current Status: Phase 2 Complete
 
-MoonBase Skeleton is currently undergoing a major architectural refactor to implement Clean Architecture principles. The **legacy build** contains fully functional proof-of-concept features including chat, base management, and user authentication. The **refactor branch** is implementing a new 3-layer architecture with proper separation of concerns.
+Phase 2 MVP is complete. The app runs on a **3-layer Clean Architecture** (domain / data / presentation) with feature-based modules. Data persistence, UI wiring, and session management are in place. Unit test validation is approximately **80% complete**. Legacy code under `lib/providers/`, `lib/services/`, `lib/screens/`, and `lib/models/` is **deprecated** and retained only for reference; the active implementation lives under `lib/features/` and `lib/core/`.
 
-## ✨ **Features**
+## Features
 
-### 🏗️ **LEGACY BUILD (Proof of Concept)**
-- **Base Management**: Create, read, update bases with full CRUD operations
-- **User Authentication**: Profile-based authentication with persistence
-- **Invitation System**: Complete invite creation, redemption, and tracking
-- **Real-time Chat**: Full messaging system with persistence and base isolation
-- **Base Membership**: Role-based access control (owner, admin, member)
-- **Cross-platform**: Works on Android, iOS, Web, Windows, macOS, and Linux
+### Current (Phase 2 — 3-layer architecture)
 
-### 🚧 **REFACTOR BRANCH (In Progress)**
-- **Clean Architecture**: 3-layer architecture with proper separation of concerns
-- **Use Case Pattern**: Business logic encapsulated in testable use cases
-- **Repository Pattern**: Abstract interfaces with concrete implementations
-- **Type Safety**: Custom ID types and functional error handling
-- **Input Validation**: User-facing validation for crisp UX
-- **Test Structure**: Feature-based test organization
+- **Auth**: Profile-based sign-in/sign-out, current user and session
+- **Bases**: Full CRUD, create/join via invites, sidebar rename/delete, last-accessed base per user, clear selection on logout
+- **Invites**: Create, list, and redeem invite codes from home
+- **Chat**: Single source of truth (`ChatController`); load on base change and initial load; list from `AsyncValue<List<Message>>`; dumb `MessageBubble` and `MessageComposer` (no provider reads); nicknames and colored names via `memberPresentationProvider` at list level; scroll-to-latest; unified loading/empty/error and retry at screen level
+- **Profile**: View and update profile
+- **Cross-platform**: Android, iOS, Web, Windows, macOS, Linux
 
-### 📋 **PLANNED**
-- **Data Persistence**: Actual storage implementation
-- **UI/Widget Wiring**: Connecting controllers to UI components
-- **Session Management**: User authentication and session handling
-- **Live Streaming**: Session management and streaming functionality
-- **Media System**: File uploads and media handling
-- **Reactions System**: Like, heart, etc. on posts/messages
+### Legacy (deprecated)
 
-## 💬 **Chat Functionality**
+- Old provider layer: `basesProvider`, `sessionProvider`, `invitesProvider`, `chatMessagesProvider`, `chatStreamProvider`, `chatActionsProvider`
+- Old repositories: `SpBasesRepository`, `SpProfileRepository`, `SpInvitesRepository`, `SpChatRepository`
+- Legacy screens under `lib/screens/` (replaced by feature presentation layers)
 
-The app includes a complete chat system with the following features:
+### Planned
 
-### Core Features
-- **Real-time messaging**: Messages appear instantly using streams
-- **Message persistence**: All messages are stored locally using SharedPreferences
-- **Message types**: Support for text, media, and system messages
-- **Message actions**: Edit and delete messages (soft delete)
-- **User identification**: Messages show sender information
-- **Timestamps**: Messages display creation and edit times
-- **Base-specific chats**: Each base has its own isolated chat room
-- **Base consistency**: Messages are properly isolated by base
-- **User persistence**: Chat history persists across app restarts
+- Live streaming, media system, reactions, analytics (see Roadmap)
 
-### Technical Implementation
-- **Repository Pattern**: `SpChatRepository` handles data persistence
-- **State Management**: Riverpod providers manage chat state
-- **Streaming**: Real-time updates using Dart streams
-- **Error Handling**: Comprehensive error handling and user feedback
+## Chat Functionality
 
-## 🏗️ **Architecture**
+The chat system uses the Phase 2 architecture:
 
-### 🏗️ **Legacy Architecture**
+### Core behavior
+
+- **Single source of truth**: `ChatController` holds `AsyncValue<List<Message>>`; `load(baseId)` and stream ticks update state; `send()` persists and the stream drives UI refresh
+- **Real-time list**: Messages rendered from controller state only; no per-message providers in the list
+- **Dumb UI**: `MessageBubble` and `MessageComposer` receive data via props; no provider reads inside tiles or composer
+- **Presentation**: Nicknames and colors from `memberPresentationProvider` at list level, passed into each bubble
+- **States**: One place for loading, empty, error, and retry via `AsyncValue.when` at chat screen level
+- **Scroll-to-latest**: List uses `reverse: true` and a scroll controller to jump to bottom when new messages appear
+- **Persistence**: SharedPreferences via `ChatRepositoryImpl` / `ChatSharedPrefsDataSource`; base-isolated chats
+
+### Technical
+
+- **Repository**: `ChatRepository` (domain) implemented by `ChatRepositoryImpl` (data)
+- **Use cases**: `ListMessages`, `SendMessage`, `StreamMessages`
+- **State**: Riverpod `chatControllerProvider`, `chatScreenVmProvider`; sidebar/base selection via `effectiveSelectedBaseProvider`
+
+## Architecture
+
+### Current: 3-layer (feature-based)
+
 ```
-Repository Layer:
-├── SpBasesRepository     - Base CRUD operations
-├── SpProfileRepository   - User authentication & profiles
-├── SpInvitesRepository   - Invitation management
-└── SpChatRepository      - Chat message operations
-
-Provider Layer:
-├── basesProvider         - Base state management
-├── sessionProvider       - User session management
-├── invitesProvider       - Invite state management
-├── chatMessagesProvider  - Message state (per base)
-├── chatStreamProvider    - Real-time updates (per base)
-└── chatActionsProvider   - Message actions
-
-UI Layer:
-├── LoginScreen           - User authentication
-├── HomeScreen            - Base selection & management
-├── ChatScreen            - Real-time messaging
-├── ProfileScreen         - User profile management
-└── BasePickerScreen      - Base selection
+lib/
+├── core/                     # Shared utilities and abstractions
+│   ├── either.dart           # Result type for error handling
+│   ├── failure.dart          # Failure types (Network, Cache, Validation, Unknown)
+│   ├── ids.dart              # Type-safe ID wrappers (UserId, BaseId, MessageId, etc.)
+│   ├── usecase.dart          # Base use case interface
+│   ├── validators.dart       # Input validation
+│   └── error_mapper.dart     # Error handling utilities
+│
+├── features/                 # Feature modules (domain / data / presentation)
+│   ├── auth/                 # Authentication
+│   ├── bases/                # Base CRUD, invites, sidebar
+│   ├── chat/                 # Chat controller, screen, list, composer
+│   ├── profile/              # Profile management
+│   └── theme/                # Theme providers
+│
+├── providers/                # Legacy (deprecated)
+├── services/                 # Legacy (deprecated)
+├── screens/                  # Legacy (deprecated)
+├── models/                   # Legacy (deprecated)
+├── router.dart
+└── main.dart
 ```
 
-### 🚧 **New Refactored Architecture**
-```
-Core Layer (/core):
-├── either.dart           - Result type for error handling
-├── failure.dart          - Standardized failure types
-├── ids.dart              - Type-safe ID wrappers
-├── usecase.dart          - Base use case interface
-├── validators.dart       - Input validation functions
-└── error_mapper.dart     - Error handling utilities
+Each feature follows:
 
-Feature Modules (/features):
-├── auth/                 - Authentication feature
-│   ├── domain/           - Entities, repositories, use cases
-│   ├── data/             - Repository implementations
-│   └── presentation/     - Controllers
-├── bases/                - Base management feature
-├── chat/                 - Chat feature
-└── profile/              - Profile management feature
+- **Domain**: entities, repository interfaces, use cases
+- **Data**: repository implementations, data sources, models
+- **Presentation**: controllers, providers, screens, widgets
+
+### Legacy (deprecated — reference only)
+
+```
+Repository Layer: SpBasesRepository, SpProfileRepository, SpInvitesRepository, SpChatRepository
+Provider Layer:   basesProvider, sessionProvider, invitesProvider, chatMessagesProvider, etc.
+UI Layer:         LoginScreen, HomeScreen, ChatScreen (legacy paths under lib/screens/)
 ```
 
-## 🚀 **Getting Started**
+See [docs/REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) for the current architecture.
+
+## Getting Started
 
 ### Prerequisites
+
 - Flutter SDK (>=3.22.0)
 - Dart SDK (>=3.3.0)
 
 ### Installation
+
 1. Clone the repository
-2. Navigate to the project directory
-3. Run `flutter pub get` to install dependencies
-4. Run `flutter run` to start the app
+2. Navigate to the project directory (`moonbase_skeleton`)
+3. Run `flutter pub get`
+4. Run `flutter run`
 
 ### Quick Start
-1. **Sign In**: Enter any nickname to create a profile
-2. **Create a Base**: Navigate to base creation and create your first base
-3. **Start Chatting**: Select your base to enter the chat screen
-4. **Invite Friends**: Create invite codes to add others to your base
 
-## 🧪 **Testing**
+1. **Sign in**: Enter a nickname to create a profile
+2. **Create a base**: Use base creation from home
+3. **Chat**: Select a base and open the Chat tab; send messages
+4. **Invites**: Create invite codes and share; join bases via code
 
-### Running Tests
+## Testing
+
+### Running tests
+
 ```bash
-# Run all tests
+# Full test suite
 flutter test
 
-# Run only chat-related tests
-flutter test test/services/chat_repository_test.dart test/services/integration_test.dart
+# Chat feature only
+flutter test test/features/chat/
 
-# Run specific test categories
-flutter test test/services/chat_repository_test.dart
-flutter test test/services/bases_repository_test.dart
-flutter test test/services/invites_repository_test.dart
+# Other feature tests
+flutter test test/features/auth/
+flutter test test/features/bases/
+flutter test test/features/profile/
 ```
 
-### Test Coverage
-- **Unit Tests**: All repository methods (41 tests)
-- **Integration Tests**: Complete user flows (3 tests)
-- **Widget Tests**: Basic UI components
+### Coverage
 
-### Manual Testing Steps
-1. **Start the app**: Run `flutter run`
-2. **Sign in**: Use any nickname to create a profile
-3. **Create a base**: Navigate to the base creation screen
-4. **Access chat**: Select your base to enter the chat screen
-5. **Send messages**: Type in the composer and tap send
-6. **Test features**:
-   - Send multiple messages
-   - Verify real-time updates
-   - Check message timestamps
-   - Test message persistence (restart app)
-   - Create invites and test multi-user chat
+- **Feature tests**: Under `test/features/` (auth, bases, chat, profile) — repositories, controllers, use cases
+- **Unit test validation**: ~80% complete for Phase 2 scope
+- **Legacy tests**: `test/providers/`, `test/services/`, `test/screens/`, `test/widgets/` (legacy; may be retired)
 
-## 📊 **Data Storage**
+### Manual smoke (Phase 2 sign-off)
 
-- **SharedPreferences**: Local storage for messages and user data
-- **JSON serialization**: Messages stored as JSON strings
-- **Stream-based updates**: Real-time synchronization
+- Bases: create, join via invite, sidebar rename/delete
+- Invites: create, list, redeem
+- Chat: send message, switch base, see loading/empty/error and retry
+- Profile: view and update
+- Error/empty states and no regressions
+
+## Data storage
+
+- **SharedPreferences**: Local storage for messages, profiles, bases, invites
+- **Stream-based updates**: Chat list updates from message stream
 - **Base isolation**: Each base has its own chat history
-- **User persistence**: Profiles and sessions persist across restarts
 
-## 🔧 **Development**
+## Development
 
-### Adding New Features
-1. Update models in `lib/models/`
-2. Add repository methods in `lib/services/`
-3. Create providers in `lib/providers/`
-4. Update UI in `lib/screens/`
-5. Add tests in `test/`
+### Adding new features (3-layer)
 
-### Code Quality
+1. Add or extend entities and repository interfaces in `lib/features/<feature>/domain/`
+2. Implement use cases in `lib/features/<feature>/domain/usecases/`
+3. Implement repositories and data sources in `lib/features/<feature>/data/`
+4. Add controllers and providers in `lib/features/<feature>/presentation/`
+5. Add tests under `test/features/<feature>/`
+
+### Code quality
+
 ```bash
-# Linter
 flutter analyze
-
-# Format code
 flutter format lib/
-
-# Run tests
 flutter test
 ```
 
 ### Dependencies
+
 - `flutter_riverpod`: State management
 - `shared_preferences`: Local storage
 - `uuid`: Unique ID generation
 - `go_router`: Navigation
 
-## 📁 **Project Structure**
+## Project structure
 
-### 🏗️ **Legacy Structure**
-```
-lib/
-├── models/              # Data models
-│   ├── base.dart        # Base entity
-│   ├── chat_message.dart # Chat message model
-│   ├── enums.dart       # Enums and constants
-│   ├── invite.dart      # Invitation model
-│   ├── media_ref.dart   # Media reference model
-│   ├── profile.dart     # User profile model
-│   └── user.dart        # User entity
-├── services/            # Repository layer
-│   ├── bases_repository.dart
-│   ├── chat_repository.dart
-│   ├── invites_repository.dart
-│   ├── profile_repository.dart
-│   └── session_controller.dart
-├── providers/           # State management
-│   ├── bases_provider.dart
-│   ├── chat_provider.dart
-│   ├── invites_provider.dart
-│   └── providers.dart
-├── screens/             # UI screens
-│   ├── chat_screen.dart
-│   ├── home_screen.dart
-│   ├── login_screen.dart
-│   ├── profile_screen.dart
-│   └── splash_screen.dart
-└── widgets/             # Reusable widgets
-    ├── base_sidebar.dart
-    ├── moon_spinner.dart
-    └── primary_button.dart
-```
+### Current (feature-based)
 
-### 🚧 **New Refactored Structure**
 ```
 lib/
 ├── core/                           # Shared utilities and abstractions
-│   ├── either.dart                 # Result type for error handling
-│   ├── failure.dart                # Failure types (Network, Cache, Validation, Unknown)
-│   ├── ids.dart                    # Type-safe ID wrappers (UserId, BaseId, etc.)
-│   ├── usecase.dart                # Base use case interface
-│   ├── error_mapper.dart           # Error handling utilities
-│   └── validators.dart             # Input validation functions
-│
-├── features/                       # Feature-based modules
-│   ├── auth/                       # Authentication feature
-│   │   ├── data/
-│   │   │   └── repositories/
-│   │   │       └── auth_repository_impl.dart
-│   │   ├── domain/
-│   │   │   ├── entities/
-│   │   │   ├── repositories/
-│   │   │   │   └── auth_repository.dart
-│   │   │   └── usecases/
-│   │   └── presentation/
-│   │       └── controllers/
-│   │           └── auth_controller.dart
-│   │
-│   ├── bases/                      # Base management feature
-│   │   ├── data/
-│   │   │   └── repositories/
-│   │   │       └── base_repository_impl.dart
-│   │   ├── domain/
-│   │   │   ├── entities/
-│   │   │   │   └── base.dart
-│   │   │   ├── repositories/
-│   │   │   │   └── base_repository.dart
-│   │   │   └── usecases/
-│   │   │       ├── create_base.dart
-│   │   │       ├── delete_base.dart
-│   │   │       ├── generate_invite_code.dart
-│   │   │       ├── join_base.dart
-│   │   │       ├── leave_base.dart
-│   │   │       ├── list_bases.dart
-│   │   │       └── rename_base.dart
-│   │   └── presentation/
-│   │       └── controllers/
-│   │           └── base_controller.dart
-│   │
-│   ├── chat/                       # Chat feature
-│   │   ├── data/
-│   │   │   └── repositories/
-│   │   │       └── chat_repository_impl.dart
-│   │   ├── domain/
-│   │   │   ├── entities/
-│   │   │   ├── repositories/
-│   │   │   │   └── chat_repository.dart
-│   │   │   └── usecases/
-│   │   │       └── send_message.dart
-│   │   └── presentation/
-│   │       └── controllers/
-│   │           └── chat_controller.dart
-│   │
-│   └── profile/                    # Profile management feature
-│       ├── data/
-│       │   ├── datasources/
-│       │   │   ├── profile_local_data_source.dart
-│       │   │   └── profile_remote_data_source.dart
-│       │   ├── models/
-│       │   │   └── profile_model.dart
-│       │   └── repositories/
-│       │       └── profile_repository_impl.dart
-│       ├── domain/
-│       │   ├── entities/
-│       │   │   └── profile.dart
-│       │   ├── repositories/
-│       │   │   └── profile_repository.dart
-│       │   └── usecases/
-│       │       └── update_profile.dart
-│       └── presentation/
-│           └── controllers/
-│               └── profile_controller.dart
-│
-├── models/                         # Legacy models (to be migrated)
-├── providers/                      # Legacy providers (to be migrated)
-├── screens/                        # Legacy screens (to be migrated)
-├── services/                       # Legacy services (to be migrated)
-├── utils/                          # Legacy utilities (to be migrated)
-├── widgets/                        # Legacy widgets (to be migrated)
-├── router.dart                     # Navigation routing
-└── main.dart                       # Application entry point
+├── features/
+│   ├── auth/                        # domain, data, presentation
+│   ├── bases/                       # domain, data, presentation (incl. invites, sidebar)
+│   ├── chat/                        # domain, data, presentation (controller, screen, widgets)
+│   ├── profile/
+│   └── theme/
+├── providers/                       # Legacy (deprecated)
+├── services/                        # Legacy (deprecated)
+├── screens/                         # Legacy (deprecated)
+├── models/                          # Legacy (deprecated)
+├── router.dart
+└── main.dart
 
 test/
-├── features/                       # Feature-based test organization
-│   ├── auth/
-│   ├── bases/
-│   │   └── domain/
-│   │       └── usecases/
-│   │           └── join_base_test.dart
-│   ├── chat/
-│   └── profile/
-│       └── domain/
-│           └── usecases/
-│               └── update_profile_test.dart
-│
-├── providers/                      # Legacy provider tests
-├── screens/                        # Legacy screen tests
-├── services/                       # Legacy service tests
-├── widgets/                        # Legacy widget tests
-└── test_utils/                     # Shared test utilities (planned)
-    └── mocks/                      # Mock implementations (planned)
+├── features/                        # auth, bases, chat, profile
+├── providers/                       # Legacy
+├── screens/                         # Legacy
+├── services/                        # Legacy
+└── widgets/                         # Legacy
 ```
 
-## 🎯 **Current Capabilities**
+See [docs/REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) for detailed structure.
 
-### ✅ **Working Features**
-- User authentication with profile persistence
-- Base creation and management
-- Invitation system with code sharing
-- Real-time chat with message persistence
-- Base-specific chat isolation
-- User identification in messages
-- Message editing and deletion
-- Cross-user message visibility
-- Role-based access control
-- Error handling and validation
+## Documentation
 
-### 🔄 **Ready for Extension**
-- Media attachments (structure exists)
-- System messages (structure exists)
-- Message reactions (easy to add)
-- Read receipts (easy to add)
-- Typing indicators (easy to add)
-- Live streaming (models ready)
+- **[docs/README.md](docs/README.md)** — Index of all documentation (current vs deprecated)
+- [REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) — 3-layer architecture (current)
+- [PHASE2_DOD_ACTION_LIST.md](docs/PHASE2_DOD_ACTION_LIST.md) — Phase 2 DoD (completed; archive)
+- [DEV_GUIDE.md](docs/DEV_GUIDE.md) — Git, FVM, Flutter workflow
+- [MODEL_ARCHITECTURE.md](docs/MODEL_ARCHITECTURE.md) — Data/domain model reference
+- [PROFILE_PERSISTENCE.md](docs/PROFILE_PERSISTENCE.md) — Profile storage and auth flow
+- [git_alias_cheat_sheet.md](docs/git_alias_cheat_sheet.md) — Optional git shortcuts
 
-## 🤝 **Contributing**
+## Roadmap
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+### Phase 1: Legacy proof of concept — Complete
 
-## 📄 **Documentation**
+- User authentication, base management, invites, real-time chat, message persistence
 
-- [Refactor Architecture](docs/REFACTOR_ARCHITECTURE.md) - New Clean Architecture implementation
-- [Model Architecture](docs/MODEL_ARCHITECTURE.md) - Complete data model documentation
-- [Profile Persistence](docs/PROFILE_PERSISTENCE.md) - User authentication details
-- [Development Guide](docs/DEV_GUIDE.md) - Development setup and guidelines
-- [Git Alias Cheat Sheet](docs/git_alias_cheat_sheet.md) - Useful git shortcuts
+### Phase 2: Architecture refactor — Complete
 
-## 📈 **Roadmap**
+- 3-layer Clean Architecture, use cases, repository pattern, type-safe IDs
+- Feature-based layout, data persistence, UI/widget wiring, session management
+- Chat single source of truth, AsyncValue.when, dumb tiles, scroll-to-latest, nicknames/colors
+- Unit test validation ~80%
 
-### Phase 1: Legacy Proof of Concept ✅ **COMPLETE**
-- [x] User authentication
-- [x] Base management
-- [x] Invitation system
-- [x] Real-time chat
-- [x] Message persistence
+### Phase 3: Content features — Planned
 
-### Phase 2: Architecture Refactor 🚧 **IN PROGRESS**
-- [x] Clean Architecture implementation
-- [x] Use case pattern with validation
-- [x] Repository pattern with interfaces
-- [x] Type-safe ID system
-- [x] Feature-based organization
-- [ ] Complete test coverage
-- [ ] Data persistence implementation
-- [ ] UI/Widget wiring
-- [ ] Session management
+- Media upload and display, posts and stories, content moderation
 
-### Phase 3: Content Features 📋 **PLANNED**
-- [ ] Media upload and display
-- [ ] Posts and stories
-- [ ] Content moderation
+### Phase 4: Advanced features — Planned
 
-### Phase 4: Advanced Features 📋 **PLANNED**
-- [ ] Live streaming
-- [ ] Voice messages
-- [ ] File sharing
-- [ ] Reactions system
-- [ ] Analytics
+- Live streaming, voice messages, file sharing, reactions, analytics
 
-## 📄 **License**
+## License
 
 This project is licensed under the MIT License.
 
 ---
 
-**MoonBase Skeleton** - A minimal, production-ready Flutter app for closed-circle communication and content sharing.
+**MoonBase Skeleton** — A minimal Flutter app for closed-circle communication and content sharing.

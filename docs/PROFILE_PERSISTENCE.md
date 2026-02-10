@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation provides profile persistence using UUID-based identification with case-sensitive nicknames, including theme support (light/dark mode).
+This implementation provides profile persistence using UUID-based identification with case-sensitive nicknames, including theme support (light/dark mode). Still relevant to the auth feature in `lib/features/auth/`.
 
 ## Key Features
 

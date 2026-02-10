@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the current state of the MoonBase Skeleton refactor, implementing a clean 3-layer architecture with proper separation of concerns. This build represents the foundational structure **prior to** implementing data persistence, actual UI/widget wiring, or session management.
+This document outlines the MoonBase Skeleton 3-layer architecture. **Phase 2 is complete**: data persistence, UI/widget wiring, and session management are in place; the app runs on this architecture with unit test validation at approximately 80%.
 
 ## Architecture Overview
 
@@ -194,25 +194,24 @@ All business logic is encapsulated in use cases that:
 
 ## Current Implementation Status
 
-### ✅ Completed
+### ✅ Completed (Phase 2)
 - Core architecture and abstractions
-- Feature-based directory structure
+- Feature-based directory structure (auth, bases, chat, profile, theme)
 - Use case implementations with validation
-- Repository interfaces and basic implementations
-- Test structure for new features
+- Repository interfaces and implementations with persistence
+- UI/widget wiring; controllers drive screens and widgets
+- Session management and authentication flow
+- Chat: single source of truth, AsyncValue.when, dumb tiles, scroll-to-latest, nicknames/colors
+- Test structure under `test/features/`; unit test validation ~80%
 - Input validation system
 
-### 🚧 In Progress
-- Test coverage for new features
-- Mock implementations for testing
+### Legacy (deprecated)
+- `lib/providers/`, `lib/services/`, `lib/screens/`, `lib/models/` and related tests are deprecated and kept for reference only.
 
-### ⏳ Pending (Not Yet Implemented)
-- **Data Persistence**: Actual storage implementation
-- **UI/Widget Wiring**: Connecting controllers to UI components
-- **Session Management**: User authentication and session handling
-- **Navigation**: Screen routing and navigation logic
-- **State Management**: Provider/Bloc integration
-- **Legacy Migration**: Moving existing code to new architecture
+### Possible next steps
+- Increase test coverage and add mocks where needed
+- Remove or further isolate legacy code
+- Phase 3: media, posts, content moderation; Phase 4: streaming, reactions, analytics
 
 ## Benefits of This Architecture
 
@@ -222,15 +221,6 @@ All business logic is encapsulated in use cases that:
 4. **Flexibility**: Can swap implementations without affecting business logic
 5. **Type Safety**: Compile-time guarantees for critical operations
 6. **Error Handling**: Consistent error handling across the application
-
-## Next Steps
-
-1. **Complete Test Coverage**: Implement comprehensive tests for all use cases
-2. **Data Persistence**: Implement actual storage mechanisms
-3. **UI Integration**: Wire controllers to UI components
-4. **Session Management**: Implement authentication and session handling
-5. **Legacy Migration**: Gradually migrate existing code to new architecture
-6. **Performance Optimization**: Add caching and optimization layers
 
 ---
 

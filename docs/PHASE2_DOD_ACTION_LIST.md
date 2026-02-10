@@ -1,6 +1,6 @@
 # Phase 2 DoD – Action List (with Testing)
 
-Comprehensive checklist for completing Phase 2 MVP. Test at the indicated points.
+**Phase 2 DoD completed; retained for reference.** Comprehensive checklist for Phase 2 MVP and testing points.
 
 ---
 
