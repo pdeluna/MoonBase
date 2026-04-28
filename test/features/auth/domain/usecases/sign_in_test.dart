@@ -112,63 +112,68 @@ void main() {
         verifyNoMoreInteractions(mockRepository);
       });
 
-      test('should handle empty nickname', () async {
-        // Arrange
-        when(() => mockRepository.signIn(nickname: ''))
-            .thenAnswer((_) async => Right(testUser));
+      // The four cases below exercise the SignIn use case's input
+      // validation contract (isValidNickname in core/validators.dart):
+      // 1–24 chars, [A-Za-z0-9 _.\-] only, trimmed.
+      // For invalid input the use case must short-circuit with
+      // ValidationFailure and never reach the repository.
 
+      test('should return ValidationFailure for empty nickname', () async {
         // Act
         final result = await useCase(const SignInParams(''));
 
         // Assert
-        expect(result, isA<Right<Failure, User>>());
-        verify(() => mockRepository.signIn(nickname: '')).called(1);
-        verifyNoMoreInteractions(mockRepository);
+        expect(result, isA<Left<Failure, User>>());
+        result.match(
+          (failure) => expect(failure, isA<ValidationFailure>()),
+          (_) => fail('Should not return success for empty nickname'),
+        );
+        verifyNever(() => mockRepository.signIn(nickname: any(named: 'nickname')));
       });
 
-      test('should handle whitespace-only nickname', () async {
-        // Arrange
-        const whitespaceNickname = '   ';
-        when(() => mockRepository.signIn(nickname: whitespaceNickname))
-            .thenAnswer((_) async => Right(testUser));
-
+      test('should return ValidationFailure for whitespace-only nickname', () async {
         // Act
-        final result = await useCase(const SignInParams(whitespaceNickname));
+        final result = await useCase(const SignInParams('   '));
 
         // Assert
-        expect(result, isA<Right<Failure, User>>());
-        verify(() => mockRepository.signIn(nickname: whitespaceNickname)).called(1);
-        verifyNoMoreInteractions(mockRepository);
+        expect(result, isA<Left<Failure, User>>());
+        result.match(
+          (failure) => expect(failure, isA<ValidationFailure>()),
+          (_) => fail('Should not return success for whitespace-only nickname'),
+        );
+        verifyNever(() => mockRepository.signIn(nickname: any(named: 'nickname')));
       });
 
-      test('should handle long nickname', () async {
-        // Arrange
+      test('should return ValidationFailure for nickname longer than 24 chars', () async {
+        // Arrange: 100 'a's exceeds the 24-char cap
         final longNickname = 'a' * 100;
-        when(() => mockRepository.signIn(nickname: longNickname))
-            .thenAnswer((_) async => Right(testUser));
 
         // Act
         final result = await useCase(SignInParams(longNickname));
 
         // Assert
-        expect(result, isA<Right<Failure, User>>());
-        verify(() => mockRepository.signIn(nickname: longNickname)).called(1);
-        verifyNoMoreInteractions(mockRepository);
+        expect(result, isA<Left<Failure, User>>());
+        result.match(
+          (failure) => expect(failure, isA<ValidationFailure>()),
+          (_) => fail('Should not return success for over-long nickname'),
+        );
+        verifyNever(() => mockRepository.signIn(nickname: any(named: 'nickname')));
       });
 
-      test('should handle special characters in nickname', () async {
-        // Arrange
+      test('should return ValidationFailure for disallowed special characters', () async {
+        // Arrange: '@', '!', '#', '$', '%' are outside [A-Za-z0-9 _.\-]
         const specialNickname = r'user@123!#$%';
-        when(() => mockRepository.signIn(nickname: specialNickname))
-            .thenAnswer((_) async => Right(testUser));
 
         // Act
         final result = await useCase(const SignInParams(specialNickname));
 
         // Assert
-        expect(result, isA<Right<Failure, User>>());
-        verify(() => mockRepository.signIn(nickname: specialNickname)).called(1);
-        verifyNoMoreInteractions(mockRepository);
+        expect(result, isA<Left<Failure, User>>());
+        result.match(
+          (failure) => expect(failure, isA<ValidationFailure>()),
+          (_) => fail('Should not return success for disallowed characters'),
+        );
+        verifyNever(() => mockRepository.signIn(nickname: any(named: 'nickname')));
       });
     });
 
