@@ -1,7 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/viewmodels/invite_tile_vm.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/invite_providers.dart';
-import 'package:moonbase_skeleton/providers/bases_provider.dart';
+import 'package:moonbase_skeleton/legacy/providers/bases_provider.dart';
 
 final inviteTileVmProvider = Provider.family<InviteTileVM?, String>((ref, inviteId) {
   // For now, we'll get the invite from the base invites provider
