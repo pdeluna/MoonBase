@@ -10,6 +10,7 @@ This folder contains architecture, process, and reference docs. Documents are gr
 |----------|-------------|
 | [REFACTOR_ARCHITECTURE.md](REFACTOR_ARCHITECTURE.md) | Primary reference for the 3-layer Clean Architecture, feature layout, and implementation status. |
 | [PHASE2_DOD_ACTION_LIST.md](PHASE2_DOD_ACTION_LIST.md) | Phase 2 DoD checklist. **Completed**; retained as an archive. |
+| [PHASE3_DOD_ACTION_LIST.md](PHASE3_DOD_ACTION_LIST.md) | Phase 3 DoD checklist (media in chat, stories, posts, reactions). **Planned**; living doc until sign-off. |
 | [DEV_GUIDE.md](DEV_GUIDE.md) | Git workflow, FVM, Flutter basics, testing strategy. |
 | [git_alias_cheat_sheet.md](git_alias_cheat_sheet.md) | Optional git shortcuts. |
 
