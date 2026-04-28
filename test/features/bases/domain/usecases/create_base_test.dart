@@ -8,6 +8,8 @@ import 'package:moonbase_skeleton/core/ids.dart';
 import '../../../../test_utils/mocks_bases.dart';
 
 void main() {
+  setUpAll(registerBasesFallbacks);
+
   test('CreateBase calls repo.createBase and returns Right(Base)', () async {
     final repo = MockBaseRepository();
     final usecase = CreateBase(repo);
