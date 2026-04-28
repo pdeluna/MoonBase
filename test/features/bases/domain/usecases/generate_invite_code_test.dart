@@ -7,6 +7,8 @@ import 'package:moonbase_skeleton/features/bases/domain/usecases/generate_invite
 import '../../../../test_utils/mocks_bases.dart';
 
 void main() {
+  setUpAll(registerBasesFallbacks);
+
   group('GenerateInviteCode', () {
     late MockBaseRepository mockRepository;
     late GenerateInviteCode usecase;
