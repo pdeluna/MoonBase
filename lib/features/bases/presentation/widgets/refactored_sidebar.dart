@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
@@ -8,7 +8,7 @@ import 'package:moonbase_skeleton/features/bases/presentation/widgets/create_bas
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/join_base_dialog.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/update_base_dialog.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/delete_base_dialog.dart';
-import 'package:moonbase_skeleton/widgets/moon_spinner.dart';
+import 'package:moonbase_skeleton/legacy/widgets/moon_spinner.dart';
 
 class RefactoredSidebar extends ConsumerWidget {
   const RefactoredSidebar({

@@ -17,9 +17,18 @@ class ProfileRepositoryImpl implements ProfileRepository {
   static const _kCurrent = 'currentUserId';
   static const _kHandles = 'handlesIndex';
 
-  /// Mutex to ensure atomic read-modify-write operations
-  /// Prevents race conditions when multiple operations try to modify data simultaneously
-  Completer<void> _writeMutex = Completer<void>()..complete();
+  /// Tail of the serial write chain. Every write-locked operation chains on
+  /// the previous operation's completion, forming a FIFO queue.
+  ///
+  /// Why a Future (not a Completer + `await mutex.future`)?
+  /// `await` always yields a microtask, which opens a TOCTOU window between
+  /// reading the current mutex and assigning the new one. Concurrent callers
+  /// could all see the same already-complete mutex, all pass the await, and
+  /// all enter the critical section in parallel.
+  ///
+  /// [_withWriteLock] captures `_writeMutex` and reassigns it synchronously
+  /// in the same microtask, so there is no observable interleaving point.
+  Future<void> _writeMutex = Future<void>.value();
 
   /// Handle normalization and uniqueness rules:
   /// 
@@ -106,13 +115,23 @@ class ProfileRepositoryImpl implements ProfileRepository {
     await _saveHandlesIndex(handles);
   }
 
-  /// Acquires the write mutex to ensure atomic operations
-  /// Returns a function to release the mutex when done
-  Future<void Function()> _acquireWriteLock() async {
-    await _writeMutex.future;
-    final newMutex = Completer<void>();
-    _writeMutex = newMutex;
-    return () => newMutex.complete();
+  /// Runs [critical] under the write lock. Calls are serialized FIFO.
+  ///
+  /// IMPORTANT: this method is intentionally not `async`. The body up to the
+  /// `return` runs synchronously so the read of `_writeMutex` and the
+  /// reassignment to the new completer's future happen in the same microtask
+  /// — closing the TOCTOU window described on [_writeMutex].
+  ///
+  /// The completer is released via `whenComplete`, which fires whether
+  /// [critical] succeeds or throws, so a failing critical section never
+  /// poisons the chain for subsequent callers.
+  Future<T> _withWriteLock<T>(Future<T> Function() critical) {
+    final previous = _writeMutex;
+    final completer = Completer<void>();
+    _writeMutex = completer.future;
+    return previous
+        .then((_) => critical())
+        .whenComplete(completer.complete);
   }
 
   @override
@@ -129,30 +148,25 @@ class ProfileRepositoryImpl implements ProfileRepository {
     String? nickname,
     String? avatarUrl,
   }) =>
-    guard(() async {
-      final releaseLock = await _acquireWriteLock();
-      try {
-        final profiles = _profilesJson();
-        final existingJson = profiles[userId.value] as Map<String, dynamic>?;
-        
-        final nowUtc = DateTime.now().toUtc();
-        final trimmedNick = nickname?.trim();
-        final trimmedAvatar = avatarUrl?.trim();
+    guard(() => _withWriteLock(() async {
+      final profiles = _profilesJson();
+      final existingJson = profiles[userId.value] as Map<String, dynamic>?;
 
-        final updatedProfile = Profile(
-          userId: userId,
-          nickname: trimmedNick ?? (existingJson?['nickname'] as String?) ?? '',
-          avatarUrl: trimmedAvatar ?? (existingJson?['avatarUrl'] as String?),
-          updatedAt: nowUtc,
-        );
+      final nowUtc = DateTime.now().toUtc();
+      final trimmedNick = nickname?.trim();
+      final trimmedAvatar = avatarUrl?.trim();
 
-        profiles[userId.value] = updatedProfile.toJson();
-        await _saveProfiles(profiles);
-        return updatedProfile;
-      } finally {
-        releaseLock();
-      }
-    });
+      final updatedProfile = Profile(
+        userId: userId,
+        nickname: trimmedNick ?? (existingJson?['nickname'] as String?) ?? '',
+        avatarUrl: trimmedAvatar ?? (existingJson?['avatarUrl'] as String?),
+        updatedAt: nowUtc,
+      );
+
+      profiles[userId.value] = updatedProfile.toJson();
+      await _saveProfiles(profiles);
+      return updatedProfile;
+    }));
 
   @override
   Future<Either<Failure, Profile?>> readCurrent() =>
@@ -166,102 +180,87 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<Either<Failure, Profile>> signInByHandleOrCreate(String handle) =>
-    guard(() async {
-      final releaseLock = await _acquireWriteLock();
-      try {
-        final normalizedHandle = _normalizeHandle(handle);
-        final profiles = _profilesJson();
+    guard(() => _withWriteLock(() async {
+      final normalizedHandle = _normalizeHandle(handle);
+      final profiles = _profilesJson();
 
-        // Try to find existing user with this handle
-        String? userId = _getMostRecentUserForHandle(normalizedHandle);
-        
-        // Check if the user still exists in profiles
-        if (userId != null && profiles[userId] == null) {
-          // User was deleted but handle mapping still exists, clear it
-          userId = null;
-        }
+      // Try to find existing user with this handle
+      String? userId = _getMostRecentUserForHandle(normalizedHandle);
 
-        if (userId == null) {
-          // No existing user with this handle, create a new one
-          userId = const Uuid().v4();
-          final nowUtc = DateTime.now().toUtc();
-          final profile = Profile(
-            userId: UserId(userId),
-            nickname: handle.trim(), // Store original handle (not normalized)
-            avatarUrl: null,
-            updatedAt: nowUtc,
-          );
-          
-          // Save the new profile
-          profiles[userId] = profile.toJson();
-          await _saveProfiles(profiles);
-        }
-
-        // Update handle mapping to point to this user (most recent user with this handle)
-        await _updateHandleMapping(normalizedHandle, userId);
-
-        // Set as current user
-        await prefs.setString(_kCurrent, userId);
-        
-        // Return the profile
-        final json = profiles[userId] as Map<String, dynamic>;
-        return Profile.fromJson(json);
-      } finally {
-        releaseLock();
+      // Check if the user still exists in profiles
+      if (userId != null && profiles[userId] == null) {
+        // User was deleted but handle mapping still exists, clear it
+        userId = null;
       }
-    });
+
+      if (userId == null) {
+        // No existing user with this handle, create a new one
+        userId = const Uuid().v4();
+        final nowUtc = DateTime.now().toUtc();
+        final profile = Profile(
+          userId: UserId(userId),
+          nickname: handle.trim(), // Store original handle (not normalized)
+          avatarUrl: null,
+          updatedAt: nowUtc,
+        );
+
+        // Save the new profile
+        profiles[userId] = profile.toJson();
+        await _saveProfiles(profiles);
+      }
+
+      // Update handle mapping to point to this user (most recent user with this handle)
+      await _updateHandleMapping(normalizedHandle, userId);
+
+      // Set as current user
+      await prefs.setString(_kCurrent, userId);
+
+      // Return the profile
+      final json = profiles[userId] as Map<String, dynamic>;
+      return Profile.fromJson(json);
+    }));
 
   @override
   Future<Either<Failure, Unit>> deleteProfile(UserId userId) =>
-    guard(() async {
-      final releaseLock = await _acquireWriteLock();
-      try {
-        final profiles = _profilesJson();
-        final profileJson = profiles[userId.value] as Map<String, dynamic>?;
-        
-        if (profileJson == null) {
-          // Profile doesn't exist, nothing to delete
-          return Unit.instance;
-        }
-        
-        // Get the profile to find its handle for cleanup
-        final profile = Profile.fromJson(profileJson);
-        final normalizedHandle = _normalizeHandle(profile.nickname);
-        
-        // Remove from profiles
-        profiles.remove(userId.value);
-        await _saveProfiles(profiles);
-        
-        // Clean up handle mapping if this was the most recent user with this handle
-        final currentUserIdForHandle = _getMostRecentUserForHandle(normalizedHandle);
-        if (currentUserIdForHandle == userId.value) {
-          // This was the most recent user with this handle, remove the mapping
-          final handles = _handlesIndex();
-          handles.remove(normalizedHandle);
-          await _saveHandlesIndex(handles);
-        }
-        
-        // If this was the current user, clear the current user
-        final currentUserId = _currentUserId();
-        if (currentUserId == userId.value) {
-          await prefs.remove(_kCurrent);
-        }
-        
+    guard(() => _withWriteLock(() async {
+      final profiles = _profilesJson();
+      final profileJson = profiles[userId.value] as Map<String, dynamic>?;
+
+      if (profileJson == null) {
+        // Profile doesn't exist, nothing to delete
         return Unit.instance;
-      } finally {
-        releaseLock();
       }
-    });
+
+      // Get the profile to find its handle for cleanup
+      final profile = Profile.fromJson(profileJson);
+      final normalizedHandle = _normalizeHandle(profile.nickname);
+
+      // Remove from profiles
+      profiles.remove(userId.value);
+      await _saveProfiles(profiles);
+
+      // Clean up handle mapping if this was the most recent user with this handle
+      final currentUserIdForHandle = _getMostRecentUserForHandle(normalizedHandle);
+      if (currentUserIdForHandle == userId.value) {
+        // This was the most recent user with this handle, remove the mapping
+        final handles = _handlesIndex();
+        handles.remove(normalizedHandle);
+        await _saveHandlesIndex(handles);
+      }
+
+      // If this was the current user, clear the current user
+      final currentUserId = _currentUserId();
+      if (currentUserId == userId.value) {
+        await prefs.remove(_kCurrent);
+      }
+
+      return Unit.instance;
+    }));
 
   @override
   Future<Either<Failure, Unit>> clear() =>
-    guard(() async {
-      final releaseLock = await _acquireWriteLock();
-      try {
-        await prefs.remove(_kCurrent);
-        return Unit.instance;
-      } finally {
-        releaseLock();
-      }
-    });
+    guard(() => _withWriteLock(() async {
+      await prefs.remove(_kCurrent);
+      return Unit.instance;
+    }));
 }

@@ -70,11 +70,15 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     final profileJson = profiles[id] as Map<String, dynamic>?;
     if (profileJson == null) return null;
     
-    // Defensive parsing to avoid cast crashes from malformed data
-    // Handles cases where fields are missing, null, or wrong type
-    final nickname = (profileJson['nickname'] as String?) ?? '';
+    // Defensive parsing to avoid cast crashes from malformed data.
+    // `as String?` would throw on non-String/non-null values (e.g. int from
+    // hand-edited prefs), so we use type-checked reads with safe fallbacks.
+    final rawNickname = profileJson['nickname'];
+    final nickname = rawNickname is String ? rawNickname : '';
+    final rawUserId = profileJson['userId'];
+    final userId = rawUserId is String ? rawUserId : id;
     return UserModel(
-      id: (profileJson['userId'] as String?) ?? id,
+      id: userId,
       nickname: nickname,
     );
   }
