@@ -28,5 +28,10 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- Phase 3 (content features). See docs/PHASE3_DOD_ACTION_LIST.md §0.1.3. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Allow MoonBase to use your camera to take photos and videos for chats.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Allow MoonBase to use your microphone for video capture.</string>
 </dict>
 </plist>
