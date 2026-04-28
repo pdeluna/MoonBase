@@ -1,14 +1,14 @@
-import 'package:go_router/go_router.dart';
+﻿import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
-import 'package:moonbase_skeleton/screens/splash_screen.dart';
-import 'package:moonbase_skeleton/screens/login_screen.dart';
-import 'package:moonbase_skeleton/screens/signup_screen.dart';
-import 'package:moonbase_skeleton/screens/home_screen.dart';
+import 'package:moonbase_skeleton/legacy/screens/splash_screen.dart';
+import 'package:moonbase_skeleton/legacy/screens/login_screen.dart';
+import 'package:moonbase_skeleton/legacy/screens/signup_screen.dart';
+import 'package:moonbase_skeleton/legacy/screens/home_screen.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/screens/chat_screen.dart';
-import 'package:moonbase_skeleton/screens/profile_screen.dart';
-import 'package:moonbase_skeleton/screens/base_picker_screen.dart';
+import 'package:moonbase_skeleton/legacy/screens/profile_screen.dart';
+import 'package:moonbase_skeleton/legacy/screens/base_picker_screen.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/screens/invites_screen.dart';
 
 // Separate provider for authentication state to avoid router rebuilds on theme changes
