@@ -194,11 +194,14 @@ void main() {
         )).called(1);
       });
 
-      test('should handle empty string parameters', () async {
-        // Arrange
-        final baseId = ''.bid;
-        final requesterUserId = ''.uid;
-        
+      test('should pass minimal id parameters through to repository', () async {
+        // BaseId / UserId enforce a non-empty invariant in core/ids.dart, so
+        // "empty" inputs are not representable. We exercise the boundary with
+        // single-character ids and assert the use case forwards them as-is
+        // and propagates the repository's failure result unchanged.
+        final baseId = '_'.bid;
+        final requesterUserId = '_'.uid;
+
         when(() => mockRepository.generateInviteCode(
           baseId: any(named: 'baseId'),
           requesterUserId: any(named: 'requesterUserId'),
