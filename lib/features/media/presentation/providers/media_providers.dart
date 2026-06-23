@@ -5,6 +5,7 @@ import 'package:moonbase_skeleton/features/media/domain/repositories/media_picke
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
 import 'package:moonbase_skeleton/features/media/domain/usecases/delete_media.dart';
 import 'package:moonbase_skeleton/features/media/domain/usecases/pick_and_persist_media.dart';
+import 'package:moonbase_skeleton/features/media/domain/usecases/pick_and_persist_multiple_images.dart';
 
 /// Central caps for picked media (sizes, durations, fan-out per
 /// message/post). Overridable in `ProviderScope` if a base ever needs custom
@@ -41,6 +42,11 @@ final mediaPickerProvider = Provider<MediaPicker>(
 /// well-typed `Either<Failure, ...>` API, not on the picker / storage directly.
 final pickAndPersistMediaUseCaseProvider = Provider<PickAndPersistMedia>(
   (ref) => PickAndPersistMedia(ref.read(mediaPickerProvider)),
+);
+
+final pickAndPersistMultipleImagesUseCaseProvider =
+    Provider<PickAndPersistMultipleImages>(
+  (ref) => PickAndPersistMultipleImages(ref.read(mediaPickerProvider)),
 );
 
 final deleteMediaUseCaseProvider = Provider<DeleteMedia>(

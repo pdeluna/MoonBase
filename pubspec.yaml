@@ -26,6 +26,7 @@ dependencies:
   path_provider: ^2.1.4         # App documents dir for LocalFileMediaStorage
   mime: ^1.0.5                  # Content-type sniffing for MediaPickRequest validation
   flutter_image_compress: ^2.3.0 # Optional: enforce imageMaxBytes via lossy compression
+  app_settings: ^6.1.1          # POL-2: deep-link to OS app settings on permission denial
 
 dev_dependencies:
   flutter_test:

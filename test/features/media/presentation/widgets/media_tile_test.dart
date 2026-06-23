@@ -12,8 +12,10 @@ import 'package:moonbase_skeleton/features/media/presentation/widgets/video_thum
 
 /// Trivial `MediaStorage` stub for widget tests.
 class _StubMediaStorage implements MediaStorage {
-  _StubMediaStorage(this.uri);
+  _StubMediaStorage(this.uri, {this.keyedUris});
+
   final String uri;
+  final Map<String, String>? keyedUris;
 
   @override
   Future<String> putBytes({
@@ -24,7 +26,8 @@ class _StubMediaStorage implements MediaStorage {
       key;
 
   @override
-  Future<String> resolveUri(String key) async => uri;
+  Future<String> resolveUri(String key) async =>
+      keyedUris?[key] ?? uri;
 
   @override
   Future<void> delete(String key) async {}
@@ -96,6 +99,41 @@ void main() {
     expect(find.byType(VideoThumbnail), findsOneWidget);
     expect(find.byType(Image), findsNothing);
   });
+
+  testWidgets(
+    'video with thumbnailKey renders poster Image inside VideoThumbnail',
+    (tester) async {
+      final storage = _StubMediaStorage(
+        'file:///tmp/clip.mp4',
+        keyedUris: {
+          'b1/m3.thumb.jpg': 'file:///tmp/poster.jpg',
+        },
+      );
+      const media = MediaRef(
+        id: MediaId('m3'),
+        type: MediaType.video,
+        storageKey: 'b1/m3.mp4',
+        thumbnailKey: 'b1/m3.thumb.jpg',
+        duration: Duration(seconds: 12),
+      );
+
+      await tester.pumpWidget(ProviderScope(
+        overrides: [mediaStorageProvider.overrideWithValue(storage)],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: MediaTile(media: media, width: 120, height: 120),
+            ),
+          ),
+        ),
+      ));
+
+      await tester.pump();
+
+      expect(find.byType(VideoThumbnail), findsOneWidget);
+      expect(find.byType(Image), findsOneWidget);
+    },
+  );
 
   testWidgets('MediaTile.onTap fires when the tile is tapped', (tester) async {
     final storage = _StubMediaStorage('file:///tmp/clip.mp4');

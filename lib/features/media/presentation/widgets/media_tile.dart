@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
+import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 import 'package:moonbase_skeleton/features/media/presentation/widgets/video_thumbnail.dart';
 
@@ -31,10 +32,11 @@ ImageProvider imageProviderForUri(String uri) {
 ///
 /// Resolution flow:
 ///
-/// 1. Read `mediaStorageProvider` and call `resolveUri(storageKey)`.
+/// 1. Read `mediaStorageProvider` and resolve `storageKey` (images + video
+///    without poster) or `thumbnailKey` (video poster, POL-4).
 /// 2. Based on the returned URI scheme (`file://` vs `https://`), use
 ///    `Image.file` or `Image.network` for images; for video, paint a
-///    `VideoThumbnail` (tap → `onTap` to open `MediaPreview`).
+///    `VideoThumbnail` with an optional poster underlay.
 ///
 /// This widget is the **only** sanctioned "dumb tile" that reads a provider
 /// directly; URI resolution is platform-specific infrastructure that does
@@ -64,8 +66,9 @@ class MediaTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(mediaStorageProvider);
+    final uriFuture = _displayUriFuture(storage);
     return FutureBuilder<String>(
-      future: storage.resolveUri(media.storageKey),
+      future: uriFuture,
       builder: (context, snap) {
         final Widget body;
         if (snap.connectionState != ConnectionState.done) {
@@ -86,16 +89,27 @@ class MediaTile extends ConsumerWidget {
     );
   }
 
+  Future<String> _displayUriFuture(MediaStorage storage) {
+    if (media.type == MediaType.video && media.thumbnailKey != null) {
+      return storage.resolveUri(media.thumbnailKey!);
+    }
+    return storage.resolveUri(media.storageKey);
+  }
+
   Widget _renderFor(String uri) {
     switch (media.type) {
       case MediaType.image:
         return _ImageView(uri: uri, fit: fit);
       case MediaType.video:
+        final poster = media.thumbnailKey != null
+            ? _ImageView(uri: uri, fit: fit)
+            : null;
         return VideoThumbnail(
           duration: media.duration,
           width: width,
           height: height,
           borderRadius: BorderRadius.zero,
+          child: poster,
         );
     }
   }

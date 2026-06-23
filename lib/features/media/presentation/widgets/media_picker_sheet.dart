@@ -4,9 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/core/platform_settings.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_constraints.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_pick_request.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
+import 'package:moonbase_skeleton/features/media/domain/usecases/pick_and_persist_multiple_images.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 
 /// Modal bottom sheet that offers the four OS-mediated capture/pick paths:
@@ -16,27 +19,51 @@ import 'package:moonbase_skeleton/features/media/presentation/providers/media_pr
 /// 3. Photo Library
 /// 4. Video Library
 ///
-/// Each option drives `PickAndPersistMedia` with the appropriate
-/// `MediaPickRequest`, then pops the sheet with the resulting `MediaRef?`.
-/// Returns `null` on cancel.
+/// Each option drives the appropriate pick use case, then pops the sheet with
+/// the resulting refs. Returns an empty list on cancel or pick failure.
 ///
-/// Errors surface inline via `SnackBar`; `PermissionDeniedFailure` adds an
-/// "Open Settings" action (deep link wiring lives in the host app; the
-/// affordance is visible regardless).
+/// Pick failures dismiss the sheet first, then show a [SnackBar] on
+/// [hostContext]'s scaffold so the message is not hidden behind the modal
+/// layer (POL-1). `PermissionDeniedFailure` adds an "Open Settings" action
+/// that deep-links to the app's OS settings page (POL-2).
 class MediaPickerSheet extends ConsumerWidget {
-  const MediaPickerSheet({super.key, required this.baseId});
+  const MediaPickerSheet({
+    super.key,
+    required this.baseId,
+    required this.hostContext,
+    required this.remainingSlots,
+  });
 
   final BaseId baseId;
 
-  /// Convenience entrypoint. Returns the picked `MediaRef`, or `null` on
-  /// cancel / failure.
-  static Future<MediaRef?> show(BuildContext context, BaseId baseId) {
-    return showModalBottomSheet<MediaRef?>(
+  /// Scaffold context below the modal (e.g. [ChatScreen]). Snackbars are
+  /// shown here after the sheet is dismissed.
+  final BuildContext hostContext;
+
+  /// How many more attachments the caller can stage (caps gallery multi-pick).
+  final int remainingSlots;
+
+  /// Convenience entrypoint. Returns picked refs (empty on cancel / failure).
+  ///
+  /// [remainingSlots] limits gallery multi-select (POL-3). Camera and video
+  /// library paths always return at most one item.
+  static Future<List<MediaRef>> show(
+    BuildContext context,
+    BaseId baseId, {
+    int remainingSlots = MediaConstraints.maxMediaPerMessageDefault,
+  }) async {
+    final hostContext = context;
+    final result = await showModalBottomSheet<List<MediaRef>?>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => MediaPickerSheet(baseId: baseId),
+      builder: (_) => MediaPickerSheet(
+        baseId: baseId,
+        hostContext: hostContext,
+        remainingSlots: remainingSlots,
+      ),
     );
+    return result ?? const [];
   }
 
   @override
@@ -71,12 +98,7 @@ class MediaPickerSheet extends ConsumerWidget {
             _PickerOption(
               icon: Icons.photo_library_outlined,
               label: 'Photo Library',
-              onTap: () => _runPick(
-                context,
-                ref,
-                source: MediaSource.gallery,
-                kind: MediaType.image,
-              ),
+              onTap: () => _runGalleryImages(sheetContext: context, ref: ref),
             ),
             _PickerOption(
               icon: Icons.video_library_outlined,
@@ -99,8 +121,35 @@ class MediaPickerSheet extends ConsumerWidget {
     );
   }
 
+  Future<void> _runGalleryImages({
+    required BuildContext sheetContext,
+    required WidgetRef ref,
+  }) async {
+    if (remainingSlots <= 0) {
+      Navigator.of(sheetContext).pop(const <MediaRef>[]);
+      return;
+    }
+
+    final useCase = ref.read(pickAndPersistMultipleImagesUseCaseProvider);
+    final request = MediaPickRequest(
+      baseId: baseId,
+      kind: MediaType.image,
+      source: MediaSource.gallery,
+    );
+    final Either<Failure, List<MediaRef>> result = await useCase(
+      PickMultipleImagesParams(request: request, limit: remainingSlots),
+    );
+
+    if (!sheetContext.mounted) return;
+
+    result.match(
+      (failure) => _showFailure(sheetContext, failure),
+      (refs) => Navigator.of(sheetContext).pop(refs),
+    );
+  }
+
   Future<void> _runPick(
-    BuildContext context,
+    BuildContext sheetContext,
     WidgetRef ref, {
     required MediaSource source,
     required MediaType kind,
@@ -113,23 +162,24 @@ class MediaPickerSheet extends ConsumerWidget {
     );
     final Either<Failure, MediaRef?> result = await useCase(request);
 
-    // Guard against the sheet being popped underneath us mid-await.
-    if (!context.mounted) return;
+    if (!sheetContext.mounted) return;
 
     result.match(
-      (failure) {
-        _showFailure(context, failure);
-      },
+      (failure) => _showFailure(sheetContext, failure),
       (mediaRef) {
-        // User-cancel returns Right(null); pop with null so callers can
-        // distinguish "no pick" from a failure (which keeps the sheet open).
-        Navigator.of(context).pop(mediaRef);
+        final refs = mediaRef == null ? const <MediaRef>[] : [mediaRef];
+        Navigator.of(sheetContext).pop(refs);
       },
     );
   }
 
-  void _showFailure(BuildContext context, Failure failure) {
-    final messenger = ScaffoldMessenger.of(context);
+  void _showFailure(BuildContext sheetContext, Failure failure) {
+    // Dismiss the modal first — snackbars on the sheet's scaffold render
+    // underneath the bottom sheet and are invisible until the user closes it.
+    Navigator.of(sheetContext).pop();
+    if (!hostContext.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(hostContext);
     if (failure is PermissionDeniedFailure) {
       messenger.showSnackBar(
         SnackBar(
@@ -138,10 +188,7 @@ class MediaPickerSheet extends ConsumerWidget {
           ),
           action: SnackBarAction(
             label: 'Open Settings',
-            // The "Open Settings" deep-link is platform-specific and lives in
-            // a future `app_settings` integration. Showing the affordance now
-            // satisfies the Phase 3 UX contract for permission denial.
-            onPressed: () {},
+            onPressed: () => _openSettingsFromSnackBar(messenger),
           ),
         ),
       );
@@ -150,6 +197,17 @@ class MediaPickerSheet extends ConsumerWidget {
     messenger.showSnackBar(
       SnackBar(content: Text(_friendlyFailure(failure))),
     );
+  }
+
+  void _openSettingsFromSnackBar(ScaffoldMessengerState messenger) {
+    openAppPermissionSettings().then((opened) {
+      if (opened || !hostContext.mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Could not open Settings on this device.'),
+        ),
+      );
+    });
   }
 
   String _friendlyFailure(Failure f) {

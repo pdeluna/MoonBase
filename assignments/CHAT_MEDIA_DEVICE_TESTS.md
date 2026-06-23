@@ -21,7 +21,7 @@ device tests), **T1.2**, and **T1.3** (Slice A device tests).
 | Check | Result | Notes |
 | ----- | ------ | ----- |
 | **T0.2** | **Pass** | All four picker paths send; media survives hot restart and force-stop within the same install. |
-| **T0.3** | **Partial pass** | Snackbar appears with correct copy + "Open Settings" action, but renders **behind** the open picker sheet until dismissed. "Open Settings" tap is a no-op (tracked in polish ticket). |
+| **T0.3** | **Pass** | Snackbar visible after sheet dismiss (POL-1 ✅); "Open Settings" opens app settings (POL-2 ✅). |
 | **T1.2** | **Pass** | Text-only, image-only, 4-image grid, video, base-switch isolation all verified. |
 | **T1.3** | **Pass** | Force-stop / relaunch preserves sent media tiles. |
 
@@ -112,11 +112,9 @@ as `PermissionDeniedFailure` with the "Open Settings" affordance.
 
    > "Permission required. Enable camera or photo access in Settings."
 
-   …and an **"Open Settings"** action.
+   …and an **"Open Settings"** action. The sheet **auto-dismisses** before the snackbar appears (POL-1 ✅).
 
-   **Known gap (polish ticket):** snackbar may appear **behind** the picker sheet until you dismiss the sheet. After polish, it should be visible immediately.
-
-5. Tap "Open Settings" — currently a no-op; polish ticket wires the deep link.
+5. Tap "Open Settings" — opens this app's page in Android Settings (Permissions). Re-grant camera/photo access, return to MoonBase, and retry attach.
 6. Repeat for the **Photo Library** path (deny photo-library access).
 
 **Pass criteria:**
@@ -134,8 +132,9 @@ Run each of the following in order:
 
 1. **Text-only regression.** Send "hello world." The bubble should look exactly like Phase 2 (no media block, no thumbnails).
 2. **Image-only.** Tap attach → Photo Library → pick one image → **leave the text field empty** → press send. Bubble shows a single 240×240 tile, no text block under it.
+2b. **Multi-image (POL-3 ✅).** With an empty composer, tap attach → Photo Library → select **up to 4 images in one gallery session** → confirm all appear in the staged strip → send. Bubble shows the tile grid. With 1 image already staged, gallery allows **at most 3 more** (4-cap total).
 3. **4 images.** Stage four images. Confirm attach disabled at 4; × removes and re-enables attach; send with caption → 2×2 grid above text.
-4. **One video ≤ 30 s.** Stage a single video → send with caption → bubble shows `VideoThumbnail` (placeholder + play icon). Tap → `MediaPreview` plays.
+4. **One video ≤ 30 s.** Stage a single video → send with caption → bubble shows `VideoThumbnail` with a **visible poster frame** when capture succeeds (POL-4), plus play icon. Tap → `MediaPreview` plays.
 5. **One video > 30 s** (negative path). Trim forced or snackbar "That video is longer than allowed."
 6. **Base switch persistence.** Switch base away and back; media from step 4 still loads.
 
@@ -168,12 +167,9 @@ Run each of the following in order:
 
 ## Known not-blocking items
 
-Tracked in [`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md):
+Tracked in [`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md): all POL items **done** pending POL-4 device retest on video poster.
 
-- Permission snackbar hidden behind modal picker sheet (P1).
-- "Open Settings" deep link no-op (P2).
-- Gallery multi-image pick in one session (P3).
-- Video first-frame poster thumbnail in chat bubbles (P3).
+**Done on `phase3-media-polish`:** POL-1 ✅ · POL-2 ✅ · POL-3 ✅ · POL-4 (video poster) — device retest pending.
 
 Other:
 

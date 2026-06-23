@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 /// Small composite used in grids: a placeholder surface stamped with a
 /// centered play indicator and (optionally) a duration badge.
 ///
-/// Phase 3 keeps thumbnails generative rather than pre-rendered (see
-/// `docs/PHASE3_DOD_ACTION_LIST.md` §0.3.5: "defer thumbnail to widget if too
-/// costly"). The `child` slot lets callers paint a real first-frame
-/// underneath when one is available (e.g. a future `MediaRef.thumbnailKey`),
-/// while the chrome (play icon + scrim + duration pill) stays consistent.
+/// Phase 3 renders a first-frame poster when [MediaRef.thumbnailKey] is set
+/// (POL-4). The `child` slot paints that poster underneath the play chrome.
 class VideoThumbnail extends StatelessWidget {
   const VideoThumbnail({
     super.key,

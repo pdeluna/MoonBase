@@ -32,10 +32,10 @@ Android device testing on **2026-06-22** signed off Foundation (T0.2, T0.3 parti
 
 | ID | Priority | Issue | Device test ref |
 | --- | --- | --- | --- |
-| **POL-1** | P1 — Bug | Permission-denied snackbar renders behind open `MediaPickerSheet` | T0.3 partial |
-| **POL-2** | P2 — Polish | "Open Settings" snackbar action is a no-op | T0.3 partial |
-| **POL-3** | P3 — Enhancement | Gallery multi-image pick in one session (cap at 4) | T1.2 observation |
-| **POL-4** | P3 — Enhancement | Video first-frame poster in chat bubbles | T1.2 observation |
+| **POL-1** | P1 — Bug | Permission-denied snackbar renders behind open `MediaPickerSheet` | T0.3 — **✅ fixed** |
+| **POL-2** | P2 — Polish | "Open Settings" snackbar action is a no-op | T0.3 — **✅ fixed** |
+| **POL-3** | P3 — Enhancement | Gallery multi-image pick in one session (cap at 4) | T1.2 — **✅ fixed** |
+| **POL-4** | P3 — Enhancement | Video first-frame poster in chat bubbles | T1.2 — **wired; device retest** |
 
 ---
 

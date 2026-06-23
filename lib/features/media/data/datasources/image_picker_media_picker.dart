@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,6 +7,8 @@ import 'package:uuid/uuid.dart';
 
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/media/data/datasources/image_byte_normalizer.dart';
+import 'package:moonbase_skeleton/features/media/data/datasources/video_poster_generator.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_constraints.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_pick_request.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
@@ -24,15 +26,23 @@ import 'package:moonbase_skeleton/features/media/domain/repositories/media_stora
 /// becomes a problem; default is conservative and skips the check.
 typedef VideoDurationProbe = Future<Duration?> Function(String filePath);
 
+typedef ImageByteNormalizer = Future<Uint8List> Function({
+  required XFile source,
+  required Uint8List bytes,
+  required int maxBytes,
+});
+
 /// `MediaPicker` backed by the `image_picker` plugin.
 ///
 /// Phase 3 design:
 ///
 /// 1. Raw pick via `ImagePicker().pickImage/pickVideo` (configurable
 ///    `ImageSource`).
-/// 2. Bytes are read and capped against `MediaConstraints`. Over-cap →
-///    `MediaTooLargeFailure`.
+/// 2. Bytes are read and capped against `MediaConstraints`. Oversized images
+///    are lossy-compressed via `flutter_image_compress` before rejection.
+///    Still over-cap → `MediaTooLargeFailure`.
 /// 3. (Video only) optional duration probe. Over-cap → `MediaTooLongFailure`.
+///    Optional first-frame poster JPEG via [VideoPosterGenerator] (POL-4).
 /// 4. MIME is sniffed from headers and validated against the requested kind.
 ///    Mismatch → `MediaUnsupportedFailure`.
 /// 5. A base-scoped, content-addressable storage key
@@ -52,15 +62,22 @@ class ImagePickerMediaPicker implements MediaPicker {
     this.constraints = MediaConstraints.defaults,
     ImagePicker? imagePicker,
     VideoDurationProbe? videoDurationProbe,
+    ImageByteNormalizer? imageByteNormalizer,
+    VideoPosterGenerator? videoPosterGenerator,
     String Function()? idGenerator,
   })  : _imagePicker = imagePicker ?? ImagePicker(),
         _videoDurationProbe = videoDurationProbe ?? _noopDurationProbe,
+        _imageByteNormalizer = imageByteNormalizer ?? normalizeImageBytes,
+        _videoPosterGenerator =
+            videoPosterGenerator ?? captureVideoPosterWithPlayer,
         _idGenerator = idGenerator ?? _defaultIdGenerator;
 
   final MediaStorage storage;
   final MediaConstraints constraints;
   final ImagePicker _imagePicker;
   final VideoDurationProbe _videoDurationProbe;
+  final ImageByteNormalizer _imageByteNormalizer;
+  final VideoPosterGenerator _videoPosterGenerator;
   final String Function() _idGenerator;
 
   static Future<Duration?> _noopDurationProbe(String _) async => null;
@@ -74,6 +91,33 @@ class ImagePickerMediaPicker implements MediaPicker {
       request: request,
       pick: () => _imagePicker.pickImage(source: ImageSource.gallery),
     );
+  }
+
+  @override
+  Future<List<MediaRef>> pickMultipleImages(
+    MediaPickRequest request, {
+    required int limit,
+  }) async {
+    assert(request.kind == MediaType.image,
+        'pickMultipleImages requires MediaPickRequest.kind == image');
+    assert(limit > 0, 'limit must be positive');
+
+    final picked = await _invokeOsMultiPicker(
+      () => _imagePicker.pickMultiImage(limit: limit),
+    );
+    if (picked.isEmpty) return const [];
+
+    final refs = <MediaRef>[];
+    Failure? firstFailure;
+    for (final file in picked) {
+      try {
+        refs.add(await _persistPickedImage(file, request));
+      } on Failure catch (f) {
+        firstFailure ??= f;
+      }
+    }
+    if (refs.isEmpty && firstFailure != null) throw firstFailure;
+    return refs;
   }
 
   @override
@@ -114,14 +158,24 @@ class ImagePickerMediaPicker implements MediaPicker {
   }) async {
     final picked = await _invokeOsPicker(pick);
     if (picked == null) return null;
+    return _persistPickedImage(picked, request);
+  }
 
-    final bytes = await picked.readAsBytes();
+  Future<MediaRef> _persistPickedImage(
+    XFile picked,
+    MediaPickRequest request,
+  ) async {
+    final rawBytes = await picked.readAsBytes();
     final maxBytes = request.effectiveMaxBytes(constraints);
-    if (bytes.length > maxBytes) {
-      throw const MediaTooLargeFailure();
-    }
+    final bytes = await _imageByteNormalizer(
+      source: picked,
+      bytes: Uint8List.fromList(rawBytes),
+      maxBytes: maxBytes,
+    );
 
-    final mimeType = _sniffMime(picked.path, bytes, fallback: 'image/jpeg');
+    final mimeType = imageWasCompressed(rawBytes.length, bytes)
+        ? 'image/jpeg'
+        : _sniffMime(picked.path, bytes, fallback: 'image/jpeg');
     if (!mimeType.startsWith('image/')) {
       throw const MediaUnsupportedFailure();
     }
@@ -167,14 +221,43 @@ class ImagePickerMediaPicker implements MediaPicker {
     final key = _composeKey(request.baseId, mediaId, picked.path, mimeType);
     await storage.putBytes(key: key, bytes: bytes, mimeType: mimeType);
 
+    final thumbnailKey = await _tryPersistVideoPoster(
+      picked: picked,
+      request: request,
+      mediaId: mediaId,
+    );
+
     return MediaRef(
       id: mediaId,
       type: MediaType.video,
       storageKey: key,
+      thumbnailKey: thumbnailKey,
       duration: probed,
       sizeBytes: bytes.length,
       mimeType: mimeType,
     );
+  }
+
+  /// Best-effort first-frame poster; never blocks the video pick (POL-4).
+  Future<String?> _tryPersistVideoPoster({
+    required XFile picked,
+    required MediaPickRequest request,
+    required MediaId mediaId,
+  }) async {
+    try {
+      final jpeg = await _videoPosterGenerator(picked.path);
+      if (jpeg == null || jpeg.isEmpty) return null;
+
+      final thumbKey = videoPosterStorageKey(request.baseId, mediaId);
+      await storage.putBytes(
+        key: thumbKey,
+        bytes: jpeg,
+        mimeType: 'image/jpeg',
+      );
+      return thumbKey;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Wraps the OS picker call so the iOS / Android permission-denied
@@ -182,6 +265,19 @@ class ImagePickerMediaPicker implements MediaPicker {
   /// which the UI layer knows how to render with an "Open Settings"
   /// affordance.
   Future<XFile?> _invokeOsPicker(Future<XFile?> Function() pick) async {
+    try {
+      return await pick();
+    } on PlatformException catch (e) {
+      if (_isPermissionDenied(e)) {
+        throw PermissionDeniedFailure(e.message ?? 'Permission denied.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<XFile>> _invokeOsMultiPicker(
+    Future<List<XFile>> Function() pick,
+  ) async {
     try {
       return await pick();
     } on PlatformException catch (e) {

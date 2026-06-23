@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/media/data/datasources/image_picker_media_picker.dart';
+import 'package:moonbase_skeleton/features/media/data/datasources/video_poster_generator.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_constraints.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_pick_request.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
@@ -41,6 +42,17 @@ final Uint8List _tinyMp4 = Uint8List.fromList(<int>[
   0x61, 0x76, 0x63, 0x31, 0x6D, 0x70, 0x34, 0x31, // avc1mp41
   0x00, 0x00, 0x00, 0x08, 0x6D, 0x64, 0x61, 0x74, // ....mdat
 ]);
+
+Future<Uint8List> _strictByteCap({
+  required XFile source,
+  required Uint8List bytes,
+  required int maxBytes,
+}) async {
+  if (bytes.length > maxBytes) throw const MediaTooLargeFailure();
+  return bytes;
+}
+
+Future<Uint8List?> _noopVideoPoster(String _) async => null;
 
 void main() {
   late Directory tempDir;
@@ -82,12 +94,16 @@ void main() {
   ImagePickerMediaPicker buildPicker({
     MediaConstraints constraints = MediaConstraints.defaults,
     VideoDurationProbe? videoDurationProbe,
+    ImageByteNormalizer? imageByteNormalizer,
+    VideoPosterGenerator? videoPosterGenerator,
   }) {
     return ImagePickerMediaPicker(
       storage: mockStorage,
       constraints: constraints,
       imagePicker: mockImagePicker,
       videoDurationProbe: videoDurationProbe,
+      imageByteNormalizer: imageByteNormalizer ?? _strictByteCap,
+      videoPosterGenerator: videoPosterGenerator ?? _noopVideoPoster,
       idGenerator: () => 'media-${++idCounter}',
     );
   }
@@ -260,6 +276,74 @@ void main() {
         throwsA(isA<MediaTooLargeFailure>()),
       );
     });
+    test('pickMultipleImages throws MediaTooLargeFailure when any file over cap',
+        () async {
+      final file = await writeFile('big.png', _tinyPng);
+      when(() => mockImagePicker.pickMultiImage(limit: any(named: 'limit')))
+          .thenAnswer((_) async => [XFile(file.path)]);
+
+      await expectLater(
+        buildPicker(constraints: tinyCaps).pickMultipleImages(
+          MediaPickRequest(
+            baseId: baseId,
+            kind: MediaType.image,
+            source: MediaSource.gallery,
+          ),
+          limit: 2,
+        ),
+        throwsA(isA<MediaTooLargeFailure>()),
+      );
+    });
+  });
+
+  group('multi-image pick', () {
+    test('returns one ref per picked file and forwards limit to OS picker',
+        () async {
+      final f1 = await writeFile('a.png', _tinyPng);
+      final f2 = await writeFile('b.png', _tinyPng);
+      when(() => mockImagePicker.pickMultiImage(limit: 3)).thenAnswer(
+        (_) async => [XFile(f1.path), XFile(f2.path)],
+      );
+
+      final result = await buildPicker().pickMultipleImages(
+        MediaPickRequest(
+          baseId: baseId,
+          kind: MediaType.image,
+          source: MediaSource.gallery,
+        ),
+        limit: 3,
+      );
+
+      expect(result, hasLength(2));
+      expect(result.every((r) => r.type == MediaType.image), isTrue);
+      verify(() => mockImagePicker.pickMultiImage(limit: 3)).called(1);
+      verify(() => mockStorage.putBytes(
+            key: any(named: 'key'),
+            bytes: any(named: 'bytes'),
+            mimeType: any(named: 'mimeType'),
+          )).called(2);
+    });
+
+    test('returns empty list when user cancels gallery multi-select', () async {
+      when(() => mockImagePicker.pickMultiImage(limit: any(named: 'limit')))
+          .thenAnswer((_) async => []);
+
+      final result = await buildPicker().pickMultipleImages(
+        MediaPickRequest(
+          baseId: baseId,
+          kind: MediaType.image,
+          source: MediaSource.gallery,
+        ),
+        limit: 4,
+      );
+
+      expect(result, isEmpty);
+      verifyNever(() => mockStorage.putBytes(
+            key: any(named: 'key'),
+            bytes: any(named: 'bytes'),
+            mimeType: any(named: 'mimeType'),
+          ));
+    });
   });
 
   group('duration cap enforcement', () {
@@ -336,6 +420,62 @@ void main() {
       expect(captured[0], 'base-1/media-1.png');
       expect(captured[1], _tinyPng);
       expect(captured[2], 'image/png');
+    });
+
+    test('pickVideo persists poster and sets thumbnailKey when generator succeeds',
+        () async {
+      final file = await writeFile('clip.mp4', _tinyMp4);
+      when(() => mockImagePicker.pickVideo(
+            source: ImageSource.gallery,
+            maxDuration: any(named: 'maxDuration'),
+          )).thenAnswer((_) async => XFile(file.path));
+
+      final picker = buildPicker(
+        videoPosterGenerator: (_) async => _tinyPng,
+      );
+
+      final ref = await picker.pickVideo(MediaPickRequest(
+        baseId: baseId,
+        kind: MediaType.video,
+        source: MediaSource.gallery,
+      ));
+
+      expect(ref, isNotNull);
+      expect(ref!.thumbnailKey, 'base-1/media-1.thumb.jpg');
+
+      verify(() => mockStorage.putBytes(
+            key: 'base-1/media-1.mp4',
+            bytes: _tinyMp4,
+            mimeType: 'video/mp4',
+          )).called(1);
+      verify(() => mockStorage.putBytes(
+            key: 'base-1/media-1.thumb.jpg',
+            bytes: _tinyPng,
+            mimeType: 'image/jpeg',
+          )).called(1);
+    });
+
+    test('pickVideo succeeds without thumbnailKey when poster generator fails',
+        () async {
+      final file = await writeFile('clip.mp4', _tinyMp4);
+      when(() => mockImagePicker.pickVideo(
+            source: ImageSource.gallery,
+            maxDuration: any(named: 'maxDuration'),
+          )).thenAnswer((_) async => XFile(file.path));
+
+      final ref = await buildPicker().pickVideo(MediaPickRequest(
+        baseId: baseId,
+        kind: MediaType.video,
+        source: MediaSource.gallery,
+      ));
+
+      expect(ref, isNotNull);
+      expect(ref!.thumbnailKey, isNull);
+      verify(() => mockStorage.putBytes(
+            key: any(named: 'key'),
+            bytes: any(named: 'bytes'),
+            mimeType: any(named: 'mimeType'),
+          )).called(1);
     });
   });
 }
