@@ -51,9 +51,9 @@ A Phase 3 build is "done" when:
 > local-only (SharedPreferences + app documents dir; no cloud backup).
 >
 > **T0.3 — Partial pass.** Denying camera or photo-library permission surfaces
-> the correct snackbar copy and an "Open Settings" action. Known gaps (polish
-> ticket): snackbar renders **behind** the open picker sheet until dismissed;
-> "Open Settings" is a **no-op** until deep-link wiring lands.
+> the correct snackbar copy and an "Open Settings" action. Snackbar layering
+> fixed (POL-1, `phase3-media-polish`). "Open Settings" is still a **no-op**
+> until POL-2 deep-link wiring lands.
 >
 > iOS device parity for T0.2/T0.3 is **deferred** (not blocking Slice B).
 

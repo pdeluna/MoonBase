@@ -21,7 +21,7 @@ device tests), **T1.2**, and **T1.3** (Slice A device tests).
 | Check | Result | Notes |
 | ----- | ------ | ----- |
 | **T0.2** | **Pass** | All four picker paths send; media survives hot restart and force-stop within the same install. |
-| **T0.3** | **Partial pass** | Snackbar appears with correct copy + "Open Settings" action, but renders **behind** the open picker sheet until dismissed. "Open Settings" tap is a no-op (tracked in polish ticket). |
+| **T0.3** | **Partial pass** | Snackbar appears with correct copy + "Open Settings" action; sheet auto-dismisses before snackbar (POL-1 ✅). "Open Settings" tap is a no-op (POL-2). |
 | **T1.2** | **Pass** | Text-only, image-only, 4-image grid, video, base-switch isolation all verified. |
 | **T1.3** | **Pass** | Force-stop / relaunch preserves sent media tiles. |
 
@@ -112,11 +112,9 @@ as `PermissionDeniedFailure` with the "Open Settings" affordance.
 
    > "Permission required. Enable camera or photo access in Settings."
 
-   …and an **"Open Settings"** action.
+   …and an **"Open Settings"** action. The sheet **auto-dismisses** before the snackbar appears (POL-1 ✅).
 
-   **Known gap (polish ticket):** snackbar may appear **behind** the picker sheet until you dismiss the sheet. After polish, it should be visible immediately.
-
-5. Tap "Open Settings" — currently a no-op; polish ticket wires the deep link.
+5. Tap "Open Settings" — currently a no-op; POL-2 wires the deep link.
 6. Repeat for the **Photo Library** path (deny photo-library access).
 
 **Pass criteria:**
@@ -170,7 +168,7 @@ Run each of the following in order:
 
 Tracked in [`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md):
 
-- Permission snackbar hidden behind modal picker sheet (P1).
+- Permission snackbar hidden behind modal picker sheet (**POL-1 ✅**).
 - "Open Settings" deep link no-op (P2).
 - Gallery multi-image pick in one session (P3).
 - Video first-frame poster thumbnail in chat bubbles (P3).
