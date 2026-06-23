@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:moonbase_skeleton/features/chat/data/models/message_model.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 
 /// SharedPreferences-backed chat data source for the new architecture
 /// Uses the same storage format as the legacy SpChatRepository
@@ -67,16 +68,18 @@ class ChatSharedPrefsDataSource implements ChatLocalDataSource {
     required String baseId,
     required String userId,
     required String content,
+    List<MediaRef> media = const [],
   }) async {
     final messageId = 'm_${DateTime.now().microsecondsSinceEpoch}';
     final now = DateTime.now();
-    
+
     final message = MessageModel(
       id: messageId,
       baseId: baseId,
       userId: userId,
       content: content,
       createdAt: now,
+      media: List<MediaRef>.unmodifiable(media),
     );
 
     // Save message

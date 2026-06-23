@@ -19,6 +19,14 @@ dependencies:
   # Keep dependencies minimal to avoid build issues
   cupertino_icons: ^1.0.8
 
+  # Phase 3 (content features) — added in foundation slice.
+  # See docs/PHASE3_DOD_ACTION_LIST.md §0.1.1.
+  image_picker: ^1.1.2          # OS camera + gallery picker (used by ImagePickerMediaPicker)
+  video_player: ^2.9.2          # Video playback for MediaPreview
+  path_provider: ^2.1.4         # App documents dir for LocalFileMediaStorage
+  mime: ^1.0.5                  # Content-type sniffing for MediaPickRequest validation
+  flutter_image_compress: ^2.3.0 # Optional: enforce imageMaxBytes via lossy compression
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

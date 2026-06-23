@@ -10,6 +10,8 @@ import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/member_presentation_provider.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
+import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -22,35 +24,77 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   String? _loadedBaseId;
 
+  /// Parent-owned list of staged attachments; the dumb composer renders it
+  /// and emits stage / unstage intents we route through here. Cleared on
+  /// successful send; preserved on failure so the user can retry.
+  List<MediaRef> _stagedMedia = const <MediaRef>[];
+
   @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
   }
 
+  void _stageMedia(MediaRef ref) {
+    setState(() {
+      _stagedMedia = [..._stagedMedia, ref];
+    });
+  }
+
+  Future<void> _unstageMedia(MediaRef m) async {
+    setState(() {
+      _stagedMedia = _stagedMedia.where((s) => s.id != m.id).toList();
+    });
+    // Clean up the bytes we wrote when the user picked this media. The
+    // bytes were persisted by PickAndPersistMedia; an explicit × is a
+    // "throw it away" signal, not a "keep an orphan" one.
+    final deleteMedia = ref.read(deleteMediaUseCaseProvider);
+    final result = await deleteMedia(m.storageKey);
+    result.match(
+      (failure) {
+        // Best-effort delete failure is non-fatal — the file may be GC'd
+        // by a future sweep. Log via snackbar so the dev sees it in debug.
+        if (mounted) _showErrorSnackBar('Could not remove attachment: ${failure.message}');
+      },
+      (_) {},
+    );
+  }
+
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (!isValidMessage(text)) {
-      _showErrorSnackBar('Message must be between 1 and 1000 characters');
+    if (!isValidMessageInput(text: text, mediaCount: _stagedMedia.length)) {
+      _showErrorSnackBar(
+        text.length > kMessageMaxLen
+            ? 'Message can\'t exceed $kMessageMaxLen characters'
+            : 'Message must contain text or at least one attachment',
+      );
       return;
     }
 
     final vm = ref.read(chatScreenVmProvider);
     if (!vm.canSendMessage) {
-      _showErrorSnackBar('Cannot send message: no base selected or user not authenticated');
+      _showErrorSnackBar(
+        'Cannot send message: no base selected or user not authenticated',
+      );
       return;
     }
 
+    final mediaToSend = _stagedMedia;
     try {
       final chatController = ref.read(chatControllerProvider.notifier);
       await chatController.send(
         vm.selectedBase!.id.value,
         vm.currentUser!.id.value,
         text,
+        media: mediaToSend,
       );
 
       _messageController.clear();
+      setState(() {
+        _stagedMedia = const <MediaRef>[];
+      });
     } catch (e) {
+      // Keep _stagedMedia intact so the user can retry without re-picking.
       _showErrorSnackBar('Failed to send message: $e');
     }
   }
@@ -148,6 +192,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             messageController: _messageController,
             onSendMessage: _sendMessage,
             canSend: vm.canSendMessage,
+            baseId: vm.selectedBase!.id,
+            stagedMedia: _stagedMedia,
+            onStage: _stageMedia,
+            onUnstage: _unstageMedia,
           ),
         ],
       ),

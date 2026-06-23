@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:moonbase_skeleton/features/chat/data/models/message_model.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 
 /// DEV-ONLY in-memory messages; resets on hot restart.
 class InMemoryChatLocalDataSource implements ChatLocalDataSource {
@@ -37,6 +38,7 @@ class InMemoryChatLocalDataSource implements ChatLocalDataSource {
     required String baseId,
     required String userId,
     required String content,
+    List<MediaRef> media = const [],
   }) async {
     final msg = MessageModel(
       id: _genId(),
@@ -44,6 +46,7 @@ class InMemoryChatLocalDataSource implements ChatLocalDataSource {
       userId: userId,
       content: content,
       createdAt: DateTime.now(),
+      media: List<MediaRef>.unmodifiable(media),
     );
     final list = _byBase.putIfAbsent(baseId, () => <MessageModel>[]);
     list.add(msg);
