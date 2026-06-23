@@ -18,6 +18,25 @@ bool isValidMessage(String s) {
   return t.isNotEmpty && t.length <= kMessageMaxLen;
 }
 
+/// Phase 3 (Slice A) message-payload predicate.
+///
+/// A chat message is sendable when **either** the trimmed text is non-empty
+/// **or** at least one media attachment is staged, and the trimmed text
+/// never exceeds [kMessageMaxLen].
+///
+/// Used by:
+/// - `SendMessage` use case to gate the repository call.
+/// - `MessageComposer` to enable/disable the send button.
+/// - `ChatScreen._sendMessage` for the snackbar guard.
+///
+/// Keeping the rule in one place ensures the UI cannot disagree with the
+/// use case about what "a valid message" is.
+bool isValidMessageInput({required String text, required int mediaCount}) {
+  final t = text.trim();
+  if (t.length > kMessageMaxLen) return false;
+  return t.isNotEmpty || mediaCount > 0;
+}
+
 /// 1–24 chars: letters, numbers, space, underscore, dot, dash
 bool isValidNickname(String s) {
   final t = s.trim();
