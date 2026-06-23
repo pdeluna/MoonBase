@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:moonbase_skeleton/app.dart';
@@ -19,33 +20,46 @@ import 'package:moonbase_skeleton/features/bases/data/datasources/base_shared_pr
 import 'package:moonbase_skeleton/features/bases/data/repositories/base_repository_impl.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
 
+import 'package:moonbase_skeleton/features/media/data/datasources/image_picker_media_picker.dart';
+import 'package:moonbase_skeleton/features/media/data/datasources/local_file_media_storage.dart';
+import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
+
 import 'package:moonbase_skeleton/core/di/providers.dart' show sharedPrefsProvider;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
 
+  // Phase 3 foundation: resolve the app documents directory once at startup
+  // so the local media root (`<docsDir>/media/<baseId>/<uuid>.<ext>`) is
+  // available to LocalFileMediaStorage. See docs/PHASE3_DOD_ACTION_LIST.md
+  // §0.3.5.
+  final docsDir = await getApplicationDocumentsDirectory();
+  final mediaStorage = LocalFileMediaStorage(docsDir);
+  final mediaPicker = ImagePickerMediaPicker(storage: mediaStorage);
+
   final overrides = <Override>[
-    // SharedPreferences provider
     sharedPrefsProvider.overrideWithValue(prefs),
 
-    // Profile repo (backed by SharedPreferences)
     profile_providers.profileRepositoryProvider.overrideWithValue(ProfileRepositoryImpl(prefs)),
 
-    // Auth repo (local only, via the tiny impl above)
     authRepositoryProvider.overrideWithValue(
       AuthRepositoryImpl(local: AuthLocalDataSourceImpl(prefs)),
     ),
 
-    // Chat repo (SharedPreferences-backed for persistence)
     chatRepositoryProvider.overrideWithValue(
       ChatRepositoryImpl(local: ChatSharedPrefsDataSource(prefs)),
     ),
 
-    // Bases repo (SharedPreferences-backed for persistence)
     baseRepositoryProvider.overrideWithValue(
       BaseRepositoryImpl(local: BaseSharedPrefsDataSource(prefs)),
     ),
+
+    // Phase 3 media foundation. The only file that has to change when Phase 4
+    // cloud storage lands is this one (swap LocalFileMediaStorage for the
+    // cloud impl; everything downstream is wired through the ports).
+    mediaStorageProvider.overrideWithValue(mediaStorage),
+    mediaPickerProvider.overrideWithValue(mediaPicker),
   ];
 
   runApp(ProviderScope(overrides: overrides, child: const App()));
