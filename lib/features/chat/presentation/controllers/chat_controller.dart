@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
-import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/list_messages.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/send_message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/stream_messages.dart';
-import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 
 
 class ChatState {
@@ -58,17 +59,32 @@ class ChatController extends StateNotifier<ChatState> {
     });
   }
 
-  Future<void> send(String baseId, String userId, String content) async {
-    developer.log('ChatController: Sending message to base $baseId');
-    final res = await _sendMessage(SendMessageParams(baseId: baseId.bid, userId: userId.uid, content: content));
+  Future<void> send(
+    String baseId,
+    String userId,
+    String content, {
+    List<MediaRef> media = const [],
+  }) async {
+    developer.log(
+      'ChatController: Sending message to base $baseId '
+      '(media=${media.length})',
+    );
+    final res = await _sendMessage(SendMessageParams(
+      baseId: baseId.bid,
+      userId: userId.uid,
+      content: content,
+      media: media,
+    ));
     res.match(
       (failure) {
         developer.log('ChatController: Send failed - ${failure.message}');
         throw Exception(failure.message);
       },
       (message) {
-        developer.log('ChatController: Message sent successfully - ${message.id.value}');
-        // Stream will automatically update the UI
+        developer.log(
+          'ChatController: Message sent successfully - ${message.id.value}',
+        );
+        // Stream will automatically update the UI.
       },
     );
   }
