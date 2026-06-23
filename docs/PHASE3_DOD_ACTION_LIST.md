@@ -1,6 +1,6 @@
 # Phase 3 DoD — Action List (with Testing)
 
-**Status:** Planned. Comprehensive checklist for the Phase 3 MVP (content features) and its testing points. Mirrors the structure of `PHASE2_DOD_ACTION_LIST.md`.
+**Status:** In progress. **Foundation (Section 0) and Slice A (chat media) are code-complete and Android device-verified** (2026-06-22). Slice B (Stories) and Slice C (Posts + Reactions) remain. See device sign-off notes under Sections 0 and 1; follow-up UX fixes are tracked in [`assignments/PHASE3_MEDIA_POLISH_TICKET.md`](../assignments/PHASE3_MEDIA_POLISH_TICKET.md).
 
 ---
 
@@ -37,18 +37,25 @@ A Phase 3 build is "done" when:
 
 ## 0. Foundation (cross-cutting; lands before any slice)
 
-> **Status: Complete (code) — manual device verification pending.**
+> **Status: Complete (code + Android device sign-off — 2026-06-22).**
 >
-> All items in 0.1, 0.2, and 0.3 are implemented on `phase3-foundation`:
-> dependencies (0.1.1) and platform permissions (0.1.3) are in place across
-> Android/iOS/macOS; core abstractions (0.2.x) and the entire `media` feature
-> module (0.3.x) are shipped; **33 unit tests pass** in
-> `test/features/media/` (covers T0.1). The two remaining items —
-> **T0.2** (device pick + reinstall round-trip) and **T0.3** (permission
-> denial UX) — require a physical Android/iOS device and will be exercised
-> alongside the Slice A (chat media) device tests in
-> `assignments/CHAT_MEDIA_DEVICE_TESTS.md` (to be authored when Slice A
-> lands).
+> All items in 0.1, 0.2, and 0.3 are implemented on `main` (merged from
+> `phase3-foundation` + `phase3-chat-media`). **33 unit tests pass** in
+> `test/features/media/` (T0.1). Manual device checks T0.2 and T0.3 were
+> run on **Android** per [`assignments/CHAT_MEDIA_DEVICE_TESTS.md`](../assignments/CHAT_MEDIA_DEVICE_TESTS.md).
+>
+> **T0.2 — Pass.** All four `MediaPickerSheet` paths (camera photo/video,
+> gallery photo/video) send successfully; media survives **hot restart** and
+> **force-stop / relaunch** within the same install. Full **app uninstall
+> wipes users, bases, chats, and media files** — expected for Phase 3
+> local-only (SharedPreferences + app documents dir; no cloud backup).
+>
+> **T0.3 — Partial pass.** Denying camera or photo-library permission surfaces
+> the correct snackbar copy and an "Open Settings" action. Known gaps (polish
+> ticket): snackbar renders **behind** the open picker sheet until dismissed;
+> "Open Settings" is a **no-op** until deep-link wiring lands.
+>
+> iOS device parity for T0.2/T0.3 is **deferred** (not blocking Slice B).
 
 ### 0.1 Dependencies
 
@@ -105,12 +112,20 @@ A Phase 3 build is "done" when:
   - Picker (with mocked `image_picker`): `pickImage` and `pickVideo` return `null` on cancel; `captureFromCamera` dispatches by `MediaPickRequest.kind`; all three throw `MediaTooLargeFailure` over cap and `MediaTooLongFailure` over 30s.
   - `LocalFileMediaStorage`: round-trip put → resolve → file exists → delete clears it.
   - `MediaTile`: renders image for `file://` and `https://` schemes (golden or pump).
-- **T0.2** Manual: from `MediaPickerSheet`, exercise (a) Camera (Photo), (b) Camera (Video), (c) Photo Library, (d) Video Library on Android + iOS; confirm file lives under `/media/<baseId>/<uuid>.<ext>`. Reinstall app, confirm `resolveUri` still finds it (proves the relative-key design).
-- **T0.3** Manual: deny camera permission on first OS prompt → confirm `PermissionDeniedFailure` surfaces with a UX affordance (snackbar / dialog with "Open Settings" action).
+- **T0.2** Manual (Android verified 2026-06-22): from `MediaPickerSheet`, exercise (a) Camera (Photo), (b) Camera (Video), (c) Photo Library, (d) Video Library; confirm files live under `documents/media/<baseId>/<uuid>.<ext>`. Confirm media re-renders after **hot restart** or **force-stop + relaunch** (relative-key resolver). **Do not** expect chat history to survive **full app uninstall** in Phase 3 local-only — uninstall removes SharedPreferences and the app sandbox together.
+- **T0.3** Manual (Android verified 2026-06-22, partial): deny camera or photo-library permission on first OS prompt → confirm `PermissionDeniedFailure` surfaces with snackbar copy and an "Open Settings" affordance. Polish follow-ups: snackbar layering above modal sheet; Settings deep link (see polish ticket).
 
 ---
 
 ## 1. Slice A — Chat media (images + short video)
+
+> **Status: Complete (code + Android device sign-off — 2026-06-22).**
+>
+> Merged to `main`. Unit tests: **15** in `test/features/chat/` (T1.1).
+> Manual device checks T1.2 and T1.3 **pass on Android**. Enhancement
+> requests from device testing (gallery multi-select, video poster thumbnails)
+> are **out of DoD scope** and tracked in
+> [`assignments/PHASE3_MEDIA_POLISH_TICKET.md`](../assignments/PHASE3_MEDIA_POLISH_TICKET.md).
 
 ### 1.1 Domain extensions to chat
 
@@ -135,9 +150,9 @@ A Phase 3 build is "done" when:
 
 **Testing:**
 
-- **T1.1** Run `flutter test test/features/chat/` and `test/features/media/`.
-- **T1.2** Manual: send text-only (regression); send image-only; send 4 images; send a video (≤ 30s); switch base → media still loads on previous base.
-- **T1.3** Restart app, confirm media re-renders (relative-key resolver works after a fresh app launch).
+- **T1.1** Run `flutter test test/features/chat/` and `test/features/media/`. **Pass** (106 feature tests total on `main`).
+- **T1.2** Manual (Android verified 2026-06-22): send text-only (regression); send image-only; send 4 images; send a video (≤ 30s); switch base → media still loads per base. **Pass.**
+- **T1.3** Manual (Android verified 2026-06-22): force-stop or hot restart app → confirm media re-renders (relative-key resolver). **Pass.**
 
 ---
 
@@ -217,11 +232,12 @@ Reactions are a separate, narrow domain so chat can opt in later without restruc
 
 | After              | Action                                                                                                                            |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Foundation (0)** | T0.1: `flutter test test/features/media/`. T0.2: device pick + reinstall round-trip.                                              |
-| **Slice A (1)**    | T1.1: `flutter test test/features/chat/ test/features/media/`. T1.2: device chat media flow. T1.3: app restart re-resolves media. |
+| **Foundation (0)** | T0.1: `flutter test test/features/media/`. T0.2: device pick + relaunch round-trip (**Android ✅ 2026-06-22**). T0.3: permission denial UX (**Android partial ✅**). |
+| **Slice A (1)**    | T1.1: `flutter test test/features/chat/ test/features/media/`. T1.2: device chat media flow (**Android ✅ 2026-06-22**). T1.3: app restart re-resolves media (**Android ✅ 2026-06-22**). |
 | **Slice B (2)**    | T2.1: `flutter test test/features/bases/ test/features/stories/`. T2.2: device expiry + archive toggle. T2.3: base isolation.     |
 | **Slice C (3)**    | T3.1: `flutter test test/features/posts/`. T3.2: device post + reactions flows.                                                   |
 | **Sign-off (4)**   | Full `flutter test` + full device smoke + disk audit.                                                                             |
+| **Polish (follow-up)** | [`PHASE3_MEDIA_POLISH_TICKET.md`](../assignments/PHASE3_MEDIA_POLISH_TICKET.md): permission snackbar layering, Open Settings, multi-pick, video thumbnails. |
 
 
 ---

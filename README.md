@@ -229,7 +229,8 @@ See [docs/REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) for detailed 
 
 ### Phase 3 (in progress)
 
-- [PHASE3_DOD_ACTION_LIST.md](docs/PHASE3_DOD_ACTION_LIST.md) — Phase 3 DoD checklist (foundation done; Slice A in progress)
+- [PHASE3_DOD_ACTION_LIST.md](docs/PHASE3_DOD_ACTION_LIST.md) — Phase 3 DoD checklist (Foundation + Slice A device-verified on Android 2026-06-22; Slice B in progress)
+- [PHASE3_MEDIA_POLISH_TICKET.md](assignments/PHASE3_MEDIA_POLISH_TICKET.md) — Post-sign-off media/chat UX polish (permission snackbar, Settings link, multi-pick, video posters)
 - [PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md](docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) — Architectural blueprint: state flow, layer boundaries, Phase 4-ready API contract
 - [assignments/STORIES_FEATURE_REQUEST.md](assignments/STORIES_FEATURE_REQUEST.md) — Junior-facing Stories ticket (Slice B)
 - [assignments/STORIES_FIRST_STEPS.md](assignments/STORIES_FIRST_STEPS.md) — Solo onboarding guide for the Stories slice
@@ -251,7 +252,8 @@ See [docs/REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) for detailed 
 ### Phase 3: Content features — In progress
 
 - Media foundation: shared `media` feature module (`MediaStorage` + `MediaPicker` ports, `LocalFileMediaStorage` + `ImagePickerMediaPicker` impls, `MediaTile`/`MediaPreview`/`MediaPickerSheet` widgets, base-scoped content-addressable storage keys) — **complete on `phase3-foundation`**
-- Slice A — chat media (image + short video attachments) — **in progress**
+- Slice A — chat media (image + short video attachments) — **complete on `main`** (Android device-verified 2026-06-22)
+- Media polish — permission snackbar layering, Open Settings, multi-pick, video posters — **tracked** ([`PHASE3_MEDIA_POLISH_TICKET.md`](assignments/PHASE3_MEDIA_POLISH_TICKET.md))
 - Slice B — Stories (24h ephemeral feed + per-base Highlights archive) — scaffolded on `phase3-stories`, junior-owned
 - Slice C — Posts (text + up to 10 media) and Reactions (👍 ❤️ 😂 😮 😢 🔥) — planned
 
