@@ -19,6 +19,13 @@ class _DummyPicker implements MediaPicker {
       throw UnimplementedError();
 
   @override
+  Future<List<MediaRef>> pickMultipleImages(
+    MediaPickRequest request, {
+    required int limit,
+  }) =>
+      throw UnimplementedError();
+
+  @override
   Future<MediaRef?> pickVideo(MediaPickRequest request) =>
       throw UnimplementedError();
 

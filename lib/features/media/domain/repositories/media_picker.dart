@@ -28,6 +28,16 @@ abstract class MediaPicker {
   /// Pick an image from the OS gallery.
   Future<MediaRef?> pickImage(MediaPickRequest request);
 
+  /// Pick up to [limit] images from the OS gallery in one session.
+  ///
+  /// Returns an empty list when the user cancels. Each item is fully validated
+  /// and persisted before being included. Throws typed [Failure] values on
+  /// validation or permission errors (same contract as [pickImage]).
+  Future<List<MediaRef>> pickMultipleImages(
+    MediaPickRequest request, {
+    required int limit,
+  });
+
   /// Pick a video from the OS gallery.
   Future<MediaRef?> pickVideo(MediaPickRequest request);
 

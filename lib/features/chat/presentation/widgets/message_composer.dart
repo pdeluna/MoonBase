@@ -91,11 +91,20 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
       widget.canSend && widget.stagedMedia.length < widget.maxMedia;
 
   Future<void> _openPicker() async {
-    final picked = await MediaPickerSheet.show(context, widget.baseId);
-    if (!mounted || picked == null) return;
-    // Defensive: race against rapid taps that staged in the meantime.
-    if (widget.stagedMedia.length >= widget.maxMedia) return;
-    widget.onStage(picked);
+    final remaining = widget.maxMedia - widget.stagedMedia.length;
+    if (remaining <= 0) return;
+
+    final picked = await MediaPickerSheet.show(
+      context,
+      widget.baseId,
+      remainingSlots: remaining,
+    );
+    if (!mounted || picked.isEmpty) return;
+
+    for (final ref in picked) {
+      if (widget.stagedMedia.length >= widget.maxMedia) break;
+      widget.onStage(ref);
+    }
   }
 
   @override

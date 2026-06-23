@@ -42,6 +42,15 @@ final Uint8List _tinyMp4 = Uint8List.fromList(<int>[
   0x00, 0x00, 0x00, 0x08, 0x6D, 0x64, 0x61, 0x74, // ....mdat
 ]);
 
+Future<Uint8List> _strictByteCap({
+  required XFile source,
+  required Uint8List bytes,
+  required int maxBytes,
+}) async {
+  if (bytes.length > maxBytes) throw const MediaTooLargeFailure();
+  return bytes;
+}
+
 void main() {
   late Directory tempDir;
   late _MockImagePicker mockImagePicker;
@@ -82,12 +91,14 @@ void main() {
   ImagePickerMediaPicker buildPicker({
     MediaConstraints constraints = MediaConstraints.defaults,
     VideoDurationProbe? videoDurationProbe,
+    ImageByteNormalizer? imageByteNormalizer,
   }) {
     return ImagePickerMediaPicker(
       storage: mockStorage,
       constraints: constraints,
       imagePicker: mockImagePicker,
       videoDurationProbe: videoDurationProbe,
+      imageByteNormalizer: imageByteNormalizer ?? _strictByteCap,
       idGenerator: () => 'media-${++idCounter}',
     );
   }
@@ -259,6 +270,74 @@ void main() {
         )),
         throwsA(isA<MediaTooLargeFailure>()),
       );
+    });
+    test('pickMultipleImages throws MediaTooLargeFailure when any file over cap',
+        () async {
+      final file = await writeFile('big.png', _tinyPng);
+      when(() => mockImagePicker.pickMultiImage(limit: any(named: 'limit')))
+          .thenAnswer((_) async => [XFile(file.path)]);
+
+      await expectLater(
+        buildPicker(constraints: tinyCaps).pickMultipleImages(
+          MediaPickRequest(
+            baseId: baseId,
+            kind: MediaType.image,
+            source: MediaSource.gallery,
+          ),
+          limit: 2,
+        ),
+        throwsA(isA<MediaTooLargeFailure>()),
+      );
+    });
+  });
+
+  group('multi-image pick', () {
+    test('returns one ref per picked file and forwards limit to OS picker',
+        () async {
+      final f1 = await writeFile('a.png', _tinyPng);
+      final f2 = await writeFile('b.png', _tinyPng);
+      when(() => mockImagePicker.pickMultiImage(limit: 3)).thenAnswer(
+        (_) async => [XFile(f1.path), XFile(f2.path)],
+      );
+
+      final result = await buildPicker().pickMultipleImages(
+        MediaPickRequest(
+          baseId: baseId,
+          kind: MediaType.image,
+          source: MediaSource.gallery,
+        ),
+        limit: 3,
+      );
+
+      expect(result, hasLength(2));
+      expect(result.every((r) => r.type == MediaType.image), isTrue);
+      verify(() => mockImagePicker.pickMultiImage(limit: 3)).called(1);
+      verify(() => mockStorage.putBytes(
+            key: any(named: 'key'),
+            bytes: any(named: 'bytes'),
+            mimeType: any(named: 'mimeType'),
+          )).called(2);
+    });
+
+    test('returns empty list when user cancels gallery multi-select', () async {
+      when(() => mockImagePicker.pickMultiImage(limit: any(named: 'limit')))
+          .thenAnswer((_) async => []);
+
+      final result = await buildPicker().pickMultipleImages(
+        MediaPickRequest(
+          baseId: baseId,
+          kind: MediaType.image,
+          source: MediaSource.gallery,
+        ),
+        limit: 4,
+      );
+
+      expect(result, isEmpty);
+      verifyNever(() => mockStorage.putBytes(
+            key: any(named: 'key'),
+            bytes: any(named: 'bytes'),
+            mimeType: any(named: 'mimeType'),
+          ));
     });
   });
 

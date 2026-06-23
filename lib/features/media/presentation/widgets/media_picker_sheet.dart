@@ -5,9 +5,11 @@ import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/platform_settings.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_constraints.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_pick_request.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
+import 'package:moonbase_skeleton/features/media/domain/usecases/pick_and_persist_multiple_images.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 
 /// Modal bottom sheet that offers the four OS-mediated capture/pick paths:
@@ -17,9 +19,8 @@ import 'package:moonbase_skeleton/features/media/presentation/providers/media_pr
 /// 3. Photo Library
 /// 4. Video Library
 ///
-/// Each option drives `PickAndPersistMedia` with the appropriate
-/// `MediaPickRequest`, then pops the sheet with the resulting `MediaRef?`.
-/// Returns `null` on cancel or pick failure.
+/// Each option drives the appropriate pick use case, then pops the sheet with
+/// the resulting refs. Returns an empty list on cancel or pick failure.
 ///
 /// Pick failures dismiss the sheet first, then show a [SnackBar] on
 /// [hostContext]'s scaffold so the message is not hidden behind the modal
@@ -30,6 +31,7 @@ class MediaPickerSheet extends ConsumerWidget {
     super.key,
     required this.baseId,
     required this.hostContext,
+    required this.remainingSlots,
   });
 
   final BaseId baseId;
@@ -38,19 +40,30 @@ class MediaPickerSheet extends ConsumerWidget {
   /// shown here after the sheet is dismissed.
   final BuildContext hostContext;
 
-  /// Convenience entrypoint. Returns the picked `MediaRef`, or `null` on
-  /// cancel / failure.
-  static Future<MediaRef?> show(BuildContext context, BaseId baseId) {
+  /// How many more attachments the caller can stage (caps gallery multi-pick).
+  final int remainingSlots;
+
+  /// Convenience entrypoint. Returns picked refs (empty on cancel / failure).
+  ///
+  /// [remainingSlots] limits gallery multi-select (POL-3). Camera and video
+  /// library paths always return at most one item.
+  static Future<List<MediaRef>> show(
+    BuildContext context,
+    BaseId baseId, {
+    int remainingSlots = MediaConstraints.maxMediaPerMessageDefault,
+  }) async {
     final hostContext = context;
-    return showModalBottomSheet<MediaRef?>(
+    final result = await showModalBottomSheet<List<MediaRef>?>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => MediaPickerSheet(
         baseId: baseId,
         hostContext: hostContext,
+        remainingSlots: remainingSlots,
       ),
     );
+    return result ?? const [];
   }
 
   @override
@@ -85,12 +98,7 @@ class MediaPickerSheet extends ConsumerWidget {
             _PickerOption(
               icon: Icons.photo_library_outlined,
               label: 'Photo Library',
-              onTap: () => _runPick(
-                context,
-                ref,
-                source: MediaSource.gallery,
-                kind: MediaType.image,
-              ),
+              onTap: () => _runGalleryImages(sheetContext: context, ref: ref),
             ),
             _PickerOption(
               icon: Icons.video_library_outlined,
@@ -113,6 +121,33 @@ class MediaPickerSheet extends ConsumerWidget {
     );
   }
 
+  Future<void> _runGalleryImages({
+    required BuildContext sheetContext,
+    required WidgetRef ref,
+  }) async {
+    if (remainingSlots <= 0) {
+      Navigator.of(sheetContext).pop(const <MediaRef>[]);
+      return;
+    }
+
+    final useCase = ref.read(pickAndPersistMultipleImagesUseCaseProvider);
+    final request = MediaPickRequest(
+      baseId: baseId,
+      kind: MediaType.image,
+      source: MediaSource.gallery,
+    );
+    final Either<Failure, List<MediaRef>> result = await useCase(
+      PickMultipleImagesParams(request: request, limit: remainingSlots),
+    );
+
+    if (!sheetContext.mounted) return;
+
+    result.match(
+      (failure) => _showFailure(sheetContext, failure),
+      (refs) => Navigator.of(sheetContext).pop(refs),
+    );
+  }
+
   Future<void> _runPick(
     BuildContext sheetContext,
     WidgetRef ref, {
@@ -132,9 +167,8 @@ class MediaPickerSheet extends ConsumerWidget {
     result.match(
       (failure) => _showFailure(sheetContext, failure),
       (mediaRef) {
-        // User-cancel returns Right(null); pop with null so callers can
-        // distinguish "no pick" from a failure (failures also pop, below).
-        Navigator.of(sheetContext).pop(mediaRef);
+        final refs = mediaRef == null ? const <MediaRef>[] : [mediaRef];
+        Navigator.of(sheetContext).pop(refs);
       },
     );
   }
