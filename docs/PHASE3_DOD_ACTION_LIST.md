@@ -37,6 +37,19 @@ A Phase 3 build is "done" when:
 
 ## 0. Foundation (cross-cutting; lands before any slice)
 
+> **Status: Complete (code) — manual device verification pending.**
+>
+> All items in 0.1, 0.2, and 0.3 are implemented on `phase3-foundation`:
+> dependencies (0.1.1) and platform permissions (0.1.3) are in place across
+> Android/iOS/macOS; core abstractions (0.2.x) and the entire `media` feature
+> module (0.3.x) are shipped; **33 unit tests pass** in
+> `test/features/media/` (covers T0.1). The two remaining items —
+> **T0.2** (device pick + reinstall round-trip) and **T0.3** (permission
+> denial UX) — require a physical Android/iOS device and will be exercised
+> alongside the Slice A (chat media) device tests in
+> `assignments/CHAT_MEDIA_DEVICE_TESTS.md` (to be authored when Slice A
+> lands).
+
 ### 0.1 Dependencies
 
 - **0.1.1** Add to `pubspec.yaml`:

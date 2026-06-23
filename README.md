@@ -222,9 +222,18 @@ See [docs/REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) for detailed 
 - [REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) — 3-layer architecture (current)
 - [PHASE2_DOD_ACTION_LIST.md](docs/PHASE2_DOD_ACTION_LIST.md) — Phase 2 DoD (completed; archive)
 - [DEV_GUIDE.md](docs/DEV_GUIDE.md) — Git, FVM, Flutter workflow
+- [DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md) — VS Code workspace, FVM, dart format/analyze, env strategy, conventional commits + rebase
 - [MODEL_ARCHITECTURE.md](docs/MODEL_ARCHITECTURE.md) — Data/domain model reference
 - [PROFILE_PERSISTENCE.md](docs/PROFILE_PERSISTENCE.md) — Profile storage and auth flow
 - [git_alias_cheat_sheet.md](docs/git_alias_cheat_sheet.md) — Optional git shortcuts
+
+### Phase 3 (in progress)
+
+- [PHASE3_DOD_ACTION_LIST.md](docs/PHASE3_DOD_ACTION_LIST.md) — Phase 3 DoD checklist (foundation done; Slice A in progress)
+- [PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md](docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) — Architectural blueprint: state flow, layer boundaries, Phase 4-ready API contract
+- [assignments/STORIES_FEATURE_REQUEST.md](assignments/STORIES_FEATURE_REQUEST.md) — Junior-facing Stories ticket (Slice B)
+- [assignments/STORIES_FIRST_STEPS.md](assignments/STORIES_FIRST_STEPS.md) — Solo onboarding guide for the Stories slice
+- [assignments/CHAT_ARCHITECTURE_DEMO_GUIDE.md](assignments/CHAT_ARCHITECTURE_DEMO_GUIDE.md) — Mentor playbook for demoing the chat slice as the Stories tracer bullet
 
 ## Roadmap
 
@@ -239,13 +248,18 @@ See [docs/REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) for detailed 
 - Chat single source of truth, AsyncValue.when, dumb tiles, scroll-to-latest, nicknames/colors
 - Unit test validation ~80%
 
-### Phase 3: Content features — Planned
+### Phase 3: Content features — In progress
 
-- Media upload and display, posts and stories, content moderation
+- Media foundation: shared `media` feature module (`MediaStorage` + `MediaPicker` ports, `LocalFileMediaStorage` + `ImagePickerMediaPicker` impls, `MediaTile`/`MediaPreview`/`MediaPickerSheet` widgets, base-scoped content-addressable storage keys) — **complete on `phase3-foundation`**
+- Slice A — chat media (image + short video attachments) — **in progress**
+- Slice B — Stories (24h ephemeral feed + per-base Highlights archive) — scaffolded on `phase3-stories`, junior-owned
+- Slice C — Posts (text + up to 10 media) and Reactions (👍 ❤️ 😂 😮 😢 🔥) — planned
+
+See [PHASE3_DOD_ACTION_LIST.md](docs/PHASE3_DOD_ACTION_LIST.md) for the full Phase 3 checklist and [PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md](docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) for the architectural blueprint.
 
 ### Phase 4: Advanced features — Planned
 
-- Live streaming, voice messages, file sharing, reactions, analytics
+- Cloud sync (swap `LocalFileMediaStorage` for `CloudMediaStorage`; non-null `remote` on every `*RepositoryImpl`), live streaming, voice messages, custom in-app camera surface, push notifications, analytics
 
 ## License
 
