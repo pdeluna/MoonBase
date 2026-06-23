@@ -1,6 +1,7 @@
 ﻿import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
+import 'package:moonbase_skeleton/core/app_navigator.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 import 'package:moonbase_skeleton/legacy/screens/splash_screen.dart';
 import 'package:moonbase_skeleton/legacy/screens/login_screen.dart';
@@ -23,6 +24,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   debugPrint('RouterProvider: Rebuilding router with auth state: $isAuthenticated');
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),

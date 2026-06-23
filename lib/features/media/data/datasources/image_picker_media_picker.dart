@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/media/data/datasources/image_byte_normalizer.dart';
+import 'package:moonbase_skeleton/features/media/data/datasources/video_poster_generator.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_constraints.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_pick_request.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
@@ -41,6 +42,7 @@ typedef ImageByteNormalizer = Future<Uint8List> Function({
 ///    are lossy-compressed via `flutter_image_compress` before rejection.
 ///    Still over-cap → `MediaTooLargeFailure`.
 /// 3. (Video only) optional duration probe. Over-cap → `MediaTooLongFailure`.
+///    Optional first-frame poster JPEG via [VideoPosterGenerator] (POL-4).
 /// 4. MIME is sniffed from headers and validated against the requested kind.
 ///    Mismatch → `MediaUnsupportedFailure`.
 /// 5. A base-scoped, content-addressable storage key
@@ -61,10 +63,13 @@ class ImagePickerMediaPicker implements MediaPicker {
     ImagePicker? imagePicker,
     VideoDurationProbe? videoDurationProbe,
     ImageByteNormalizer? imageByteNormalizer,
+    VideoPosterGenerator? videoPosterGenerator,
     String Function()? idGenerator,
   })  : _imagePicker = imagePicker ?? ImagePicker(),
         _videoDurationProbe = videoDurationProbe ?? _noopDurationProbe,
         _imageByteNormalizer = imageByteNormalizer ?? normalizeImageBytes,
+        _videoPosterGenerator =
+            videoPosterGenerator ?? captureVideoPosterWithPlayer,
         _idGenerator = idGenerator ?? _defaultIdGenerator;
 
   final MediaStorage storage;
@@ -72,6 +77,7 @@ class ImagePickerMediaPicker implements MediaPicker {
   final ImagePicker _imagePicker;
   final VideoDurationProbe _videoDurationProbe;
   final ImageByteNormalizer _imageByteNormalizer;
+  final VideoPosterGenerator _videoPosterGenerator;
   final String Function() _idGenerator;
 
   static Future<Duration?> _noopDurationProbe(String _) async => null;
@@ -215,14 +221,43 @@ class ImagePickerMediaPicker implements MediaPicker {
     final key = _composeKey(request.baseId, mediaId, picked.path, mimeType);
     await storage.putBytes(key: key, bytes: bytes, mimeType: mimeType);
 
+    final thumbnailKey = await _tryPersistVideoPoster(
+      picked: picked,
+      request: request,
+      mediaId: mediaId,
+    );
+
     return MediaRef(
       id: mediaId,
       type: MediaType.video,
       storageKey: key,
+      thumbnailKey: thumbnailKey,
       duration: probed,
       sizeBytes: bytes.length,
       mimeType: mimeType,
     );
+  }
+
+  /// Best-effort first-frame poster; never blocks the video pick (POL-4).
+  Future<String?> _tryPersistVideoPoster({
+    required XFile picked,
+    required MediaPickRequest request,
+    required MediaId mediaId,
+  }) async {
+    try {
+      final jpeg = await _videoPosterGenerator(picked.path);
+      if (jpeg == null || jpeg.isEmpty) return null;
+
+      final thumbKey = videoPosterStorageKey(request.baseId, mediaId);
+      await storage.putBytes(
+        key: thumbKey,
+        bytes: jpeg,
+        mimeType: 'image/jpeg',
+      );
+      return thumbKey;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Wraps the OS picker call so the iOS / Android permission-denied

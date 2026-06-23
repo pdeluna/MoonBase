@@ -134,7 +134,7 @@ Run each of the following in order:
 2. **Image-only.** Tap attach → Photo Library → pick one image → **leave the text field empty** → press send. Bubble shows a single 240×240 tile, no text block under it.
 2b. **Multi-image (POL-3 ✅).** With an empty composer, tap attach → Photo Library → select **up to 4 images in one gallery session** → confirm all appear in the staged strip → send. Bubble shows the tile grid. With 1 image already staged, gallery allows **at most 3 more** (4-cap total).
 3. **4 images.** Stage four images. Confirm attach disabled at 4; × removes and re-enables attach; send with caption → 2×2 grid above text.
-4. **One video ≤ 30 s.** Stage a single video → send with caption → bubble shows `VideoThumbnail` (placeholder + play icon). Tap → `MediaPreview` plays.
+4. **One video ≤ 30 s.** Stage a single video → send with caption → bubble shows `VideoThumbnail` with a **visible poster frame** when capture succeeds (POL-4), plus play icon. Tap → `MediaPreview` plays.
 5. **One video > 30 s** (negative path). Trim forced or snackbar "That video is longer than allowed."
 6. **Base switch persistence.** Switch base away and back; media from step 4 still loads.
 
@@ -167,11 +167,9 @@ Run each of the following in order:
 
 ## Known not-blocking items
 
-Tracked in [`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md) (remaining):
+Tracked in [`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md): all POL items **done** pending POL-4 device retest on video poster.
 
-- Video first-frame poster thumbnail in chat bubbles (POL-4).
-
-**Done on `phase3-media-polish`:** POL-1 ✅ · POL-2 ✅ · POL-3 (gallery multi-pick + image compression) ✅.
+**Done on `phase3-media-polish`:** POL-1 ✅ · POL-2 ✅ · POL-3 ✅ · POL-4 (video poster) — device retest pending.
 
 Other:
 
