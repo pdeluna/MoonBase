@@ -21,7 +21,7 @@ device tests), **T1.2**, and **T1.3** (Slice A device tests).
 | Check | Result | Notes |
 | ----- | ------ | ----- |
 | **T0.2** | **Pass** | All four picker paths send; media survives hot restart and force-stop within the same install. |
-| **T0.3** | **Partial pass** | Snackbar appears with correct copy + "Open Settings" action; sheet auto-dismisses before snackbar (POL-1 ✅). "Open Settings" tap is a no-op (POL-2). |
+| **T0.3** | **Pass** | Snackbar visible after sheet dismiss (POL-1 ✅); "Open Settings" opens app settings (POL-2 ✅). |
 | **T1.2** | **Pass** | Text-only, image-only, 4-image grid, video, base-switch isolation all verified. |
 | **T1.3** | **Pass** | Force-stop / relaunch preserves sent media tiles. |
 
@@ -114,7 +114,7 @@ as `PermissionDeniedFailure` with the "Open Settings" affordance.
 
    …and an **"Open Settings"** action. The sheet **auto-dismisses** before the snackbar appears (POL-1 ✅).
 
-5. Tap "Open Settings" — currently a no-op; POL-2 wires the deep link.
+5. Tap "Open Settings" — opens this app's page in Android Settings (Permissions). Re-grant camera/photo access, return to MoonBase, and retry attach.
 6. Repeat for the **Photo Library** path (deny photo-library access).
 
 **Pass criteria:**
@@ -166,12 +166,12 @@ Run each of the following in order:
 
 ## Known not-blocking items
 
-Tracked in [`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md):
+Tracked in [`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md) (remaining P3–P4):
 
-- Permission snackbar hidden behind modal picker sheet (**POL-1 ✅**).
-- "Open Settings" deep link no-op (P2).
-- Gallery multi-image pick in one session (P3).
-- Video first-frame poster thumbnail in chat bubbles (P3).
+- Gallery multi-image pick in one session (POL-3).
+- Video first-frame poster thumbnail in chat bubbles (POL-4).
+
+**Done on `phase3-media-polish`:** POL-1 (snackbar layering) ✅ · POL-2 (Open Settings deep link) ✅.
 
 Other:
 

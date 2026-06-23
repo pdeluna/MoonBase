@@ -50,10 +50,9 @@ A Phase 3 build is "done" when:
 > wipes users, bases, chats, and media files** — expected for Phase 3
 > local-only (SharedPreferences + app documents dir; no cloud backup).
 >
-> **T0.3 — Partial pass.** Denying camera or photo-library permission surfaces
-> the correct snackbar copy and an "Open Settings" action. Snackbar layering
-> fixed (POL-1, `phase3-media-polish`). "Open Settings" is still a **no-op**
-> until POL-2 deep-link wiring lands.
+> **T0.3 — Pass (Android 2026-06-22).** Denying camera or photo-library permission
+> surfaces the correct snackbar; sheet auto-dismisses before snackbar (POL-1 ✅).
+> "Open Settings" deep-links to the app's OS settings page (POL-2 ✅).
 >
 > iOS device parity for T0.2/T0.3 is **deferred** (not blocking Slice B).
 
@@ -113,7 +112,7 @@ A Phase 3 build is "done" when:
   - `LocalFileMediaStorage`: round-trip put → resolve → file exists → delete clears it.
   - `MediaTile`: renders image for `file://` and `https://` schemes (golden or pump).
 - **T0.2** Manual (Android verified 2026-06-22): from `MediaPickerSheet`, exercise (a) Camera (Photo), (b) Camera (Video), (c) Photo Library, (d) Video Library; confirm files live under `documents/media/<baseId>/<uuid>.<ext>`. Confirm media re-renders after **hot restart** or **force-stop + relaunch** (relative-key resolver). **Do not** expect chat history to survive **full app uninstall** in Phase 3 local-only — uninstall removes SharedPreferences and the app sandbox together.
-- **T0.3** Manual (Android verified 2026-06-22, partial): deny camera or photo-library permission on first OS prompt → confirm `PermissionDeniedFailure` surfaces with snackbar copy and an "Open Settings" affordance. Polish follow-ups: snackbar layering above modal sheet; Settings deep link (see polish ticket).
+- **T0.3** Manual (Android verified 2026-06-22): deny camera or photo-library permission → `PermissionDeniedFailure` snackbar with "Open Settings". POL-1 ✅ · POL-2 ✅.
 
 ---
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/core/platform_settings.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_pick_request.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
@@ -23,7 +24,7 @@ import 'package:moonbase_skeleton/features/media/presentation/providers/media_pr
 /// Pick failures dismiss the sheet first, then show a [SnackBar] on
 /// [hostContext]'s scaffold so the message is not hidden behind the modal
 /// layer (POL-1). `PermissionDeniedFailure` adds an "Open Settings" action
-/// (deep link wiring is POL-2).
+/// that deep-links to the app's OS settings page (POL-2).
 class MediaPickerSheet extends ConsumerWidget {
   const MediaPickerSheet({
     super.key,
@@ -153,8 +154,7 @@ class MediaPickerSheet extends ConsumerWidget {
           ),
           action: SnackBarAction(
             label: 'Open Settings',
-            // POL-2: wire `app_settings` / `permission_handler` here.
-            onPressed: () {},
+            onPressed: () => _openSettingsFromSnackBar(messenger),
           ),
         ),
       );
@@ -163,6 +163,17 @@ class MediaPickerSheet extends ConsumerWidget {
     messenger.showSnackBar(
       SnackBar(content: Text(_friendlyFailure(failure))),
     );
+  }
+
+  void _openSettingsFromSnackBar(ScaffoldMessengerState messenger) {
+    openAppPermissionSettings().then((opened) {
+      if (opened || !hostContext.mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Could not open Settings on this device.'),
+        ),
+      );
+    });
   }
 
   String _friendlyFailure(Failure f) {
