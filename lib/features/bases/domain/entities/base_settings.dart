@@ -1,58 +1,69 @@
 import 'package:flutter/foundation.dart';
-// TODO(stories Step 1.2): uncomment the IDs import once you start declaring
-// `BaseId baseId` and `UserId updatedByUserId`. The import is intentionally
-// commented to keep `unused_import` quiet on the scaffold stub.
-//
-// import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 
-/// Owner-configurable settings for a single base.
-///
-/// **Scaffold stub** — see `assignments/STORIES_FIRST_STEPS.md` Section 3.2.
-///
-/// Reference pattern: `lib/features/media/domain/entities/media_ref.dart` is
-/// the canonical `@immutable` value-class shape in this project. Mirror its
-/// constructor / fields / copyWith / `==` / hashCode / toString layout
-/// exactly. Do **not** copy the legacy `lib/legacy/models/base_settings.dart`
-/// shape — its field surface is much wider than the Phase 3 DoD MVP.
-///
-/// Required fields (Phase 3 DoD Section 2.1.1, MVP scope):
-///
-/// - `BaseId baseId`
-/// - `bool storiesEnabled` (default `true`)
-/// - `bool storiesArchiveEnabled` (default `true`)
-/// - `Duration storyTtl` (default `Duration(hours: 24)`)
-/// - `int maxMediaPerStory` (default `1`)
-/// - `DateTime updatedAt`
-/// - `UserId updatedByUserId`
-///
-/// Required behaviour:
-///
-/// - `const` constructor (lint: `prefer_const_constructors_in_immutables`).
-/// - Constructor declared **before** the field declarations (lint:
-///   `sort_constructors_first`).
-/// - `copyWith`, `==`, `hashCode`, optional `toString`.
-/// - **No** `fromJson` / `toMap`. Serialisation belongs on
-///   `BaseSettingsModel` in the data layer.
+/// MVP shape per Phase 3 DoD Section 2.1.1. Deliberately a narrower surface
+/// than the legacy BaseSettings; the legacy class can be retired in Phase 4.
 @immutable
 class BaseSettings {
-  // TODO(stories Step 1.2): replace this placeholder constructor with the
-  // real one taking all seven fields above (six required + the defaults).
-  // Once the real constructor exists, delete this stub.
-  const BaseSettings();
+  const BaseSettings({
+    required this.baseId,
+    required this.updatedAt,
+    required this.updatedByUserId,
+    this.storiesEnabled = true,
+    this.storiesArchiveEnabled = true,
+    this.storyTtl = const Duration(hours: 24),
+    this.maxMediaPerStory = 1,
+  });
 
-  // TODO(stories Step 1.2): declare the seven fields below the constructor.
-  // Use the typed IDs from `package:moonbase_skeleton/core/ids.dart` — never
-  // raw `String` for `baseId` or `updatedByUserId`.
+  final BaseId baseId;
+  final bool storiesEnabled;
+  final bool storiesArchiveEnabled;
+  final Duration storyTtl;
+  final int maxMediaPerStory;
+  final DateTime updatedAt;
+  final UserId updatedByUserId;
 
-  // TODO(stories Step 1.2): implement `copyWith`. Mirror the shape used by
-  // `MediaRef.copyWith` (one nullable named parameter per field, falling
-  // back to `this.field`).
+  BaseSettings copyWith({
+    BaseId? baseId,
+    bool? storiesEnabled,
+    bool? storiesArchiveEnabled,
+    Duration? storyTtl,
+    int? maxMediaPerStory,
+    DateTime? updatedAt,
+    UserId? updatedByUserId,
+  }) {
+    return BaseSettings(
+      baseId: baseId ?? this.baseId,
+      storiesEnabled: storiesEnabled ?? this.storiesEnabled,
+      storiesArchiveEnabled: storiesArchiveEnabled ?? this.storiesArchiveEnabled,
+      storyTtl: storyTtl ?? this.storyTtl,
+      maxMediaPerStory: maxMediaPerStory ?? this.maxMediaPerStory,
+      updatedAt: updatedAt ?? this.updatedAt,
+      updatedByUserId: updatedByUserId ?? this.updatedByUserId,
+    );
+  }
 
-  // TODO(stories Step 1.2): implement `==` and `hashCode`. The project does
-  // **not** depend on `Equatable`; write them by hand. Use
-  // `Object.hash(...)` for the hash, and compare every field explicitly in
-  // `operator ==`.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is BaseSettings &&
+        other.baseId == baseId &&
+        other.storiesEnabled == storiesEnabled &&
+        other.storiesArchiveEnabled == storiesArchiveEnabled &&
+        other.storyTtl == storyTtl &&
+        other.maxMediaPerStory == maxMediaPerStory &&
+        other.updatedAt == updatedAt &&
+        other.updatedByUserId == updatedByUserId;
+  }
 
-  // TODO(stories Step 1.2): optional `toString()` for debug logs. Match the
-  // style in `MediaRef.toString`.
+  @override
+  int get hashCode => Object.hash(
+        baseId,
+        storiesEnabled,
+        storiesArchiveEnabled,
+        storyTtl,
+        maxMediaPerStory,
+        updatedAt,
+        updatedByUserId,
+      );
 }
