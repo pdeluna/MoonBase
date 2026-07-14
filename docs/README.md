@@ -41,4 +41,4 @@ These describe the **legacy** provider/repository/screen layer. For current beha
 
 ---
 
-*Last updated for Phase 2 completion and docs consolidation.*
+*Last updated for the Phase 4 Firebase foundation (Core/Auth/Firestore/Storage initialized in `lib/main.dart`; config in `lib/firebase_options.dart` and `android/app/google-services.json`).*
