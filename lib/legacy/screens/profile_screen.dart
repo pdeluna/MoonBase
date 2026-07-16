@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:moonbase_skeleton/core/debug/firestore_smoke_probe.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart' as auth_controller;
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart' show currentUserProvider;
 import 'package:moonbase_skeleton/features/auth/presentation/providers/user_color_providers.dart';
@@ -9,6 +11,29 @@ import 'package:moonbase_skeleton/features/theme/presentation/providers/theme_pr
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  Future<void> _runFirestoreSmoke(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Running Firestore smoke test…')),
+    );
+
+    final result = await runFirestoreSmokeProbe();
+    if (!context.mounted) return;
+
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          result.ok
+              ? 'Wrote/read ${result.docPath}'
+              : 'Firestore smoke failed: ${result.errorCode ?? 'error'}'
+                  '${result.message != null ? ' — ${result.message}' : ''}',
+        ),
+        duration: const Duration(seconds: 6),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -61,6 +86,13 @@ class ProfileScreen extends ConsumerWidget {
             title: const Text('Settings'),
             onTap: () {},
           ),
+          if (kDebugMode)
+            ListTile(
+              leading: const Icon(Icons.cloud_done_outlined),
+              title: const Text('Firestore smoke test'),
+              subtitle: const Text('Write then read _smoke_tests'),
+              onTap: () => _runFirestoreSmoke(context),
+            ),
           
           // Appearance
           SwitchListTile(
@@ -74,7 +106,7 @@ class ProfileScreen extends ConsumerWidget {
               );
             },
           ),
-ListTile(
+          ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Log out'),
             onTap: () async {
