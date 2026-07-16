@@ -2,6 +2,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 import 'package:moonbase_skeleton/legacy/widgets/base_sidebar.dart';
 import 'package:moonbase_skeleton/legacy/providers/bases_provider.dart';
 import 'package:moonbase_skeleton/legacy/services/session_controller.dart';
@@ -10,6 +14,7 @@ import 'package:moonbase_skeleton/legacy/services/profile_repository.dart';
 import 'package:moonbase_skeleton/legacy/models/base.dart';
 import 'package:moonbase_skeleton/legacy/models/profile.dart';
 import 'package:moonbase_skeleton/legacy/widgets/moon_spinner.dart';
+import '../../test_utils/mocks_auth.dart';
 
 // Create mocks using mocktail
 class MockBasesRepository extends Mock implements BasesRepository {}
@@ -19,12 +24,14 @@ void main() {
   group('BaseSidebar Widget Tests', () {
     late MockBasesRepository mockBasesRepository;
     late MockProfileRepository mockProfileRepository;
+    late MockAuthRepository mockAuthRepository;
     late List<Base> testBases;
     late Profile testProfile;
     
     setUp(() {
       mockBasesRepository = MockBasesRepository();
       mockProfileRepository = MockProfileRepository();
+      mockAuthRepository = MockAuthRepository();
       
       testBases = [
         Base(
@@ -55,6 +62,9 @@ void main() {
       // Setup default mock behaviors
       when(() => mockProfileRepository.read()).thenAnswer((_) async => testProfile);
       when(() => mockBasesRepository.listMyBases(any())).thenAnswer((_) async => testBases);
+      when(() => mockAuthRepository.getCurrentUser()).thenAnswer(
+        (_) async => Right(User(id: 'user1'.uid, nickname: 'testuser')),
+      );
     });
 
     Widget createTestWidget({
@@ -72,6 +82,8 @@ void main() {
           profileRepositoryProvider.overrideWith(
             (ref) => mockProfileRepository,
           ),
+          // Auth DI token required when the bases list watches currentUserProvider
+          authRepositoryProvider.overrideWithValue(mockAuthRepository),
         ],
         child: MaterialApp(
           home: Scaffold(

@@ -117,7 +117,7 @@ void main() {
         authorUserId: 'user-2',
         media: videoMedia,
         ttl: const Duration(hours: 24),
-        createdAt: DateTime(2025, 12, 31, 12, 0, 0), // Future date, definitely not expired
+        createdAt: DateTime.now().subtract(const Duration(hours: 1)), // Still within TTL
       );
 
       // Create chat messages
@@ -166,7 +166,7 @@ void main() {
         code: 'ABC123',
         createdByUserId: 'user-1',
         createdAt: DateTime(2024, 1, 1, 17, 0, 0),
-        expiresAt: DateTime(2025, 12, 31, 17, 0, 0), // Future date, not expired
+        expiresAt: DateTime.now().add(const Duration(days: 30)), // Not expired
         maxUses: 10,
         usedCount: 0,
       );
@@ -270,7 +270,7 @@ void main() {
         authorUserId: 'user-1',
         media: media,
         ttl: const Duration(hours: 24),
-        createdAt: DateTime(2025, 12, 31, 12, 0, 0), // Future date, definitely not expired
+        createdAt: DateTime.now().subtract(const Duration(hours: 1)), // Still within TTL
       );
 
       final message = ChatMessage(
@@ -296,7 +296,7 @@ void main() {
         code: 'ABC123',
         createdByUserId: 'user-1',
         createdAt: DateTime(2024, 1, 1),
-        expiresAt: DateTime(2025, 12, 31, 17, 0, 0), // Future date
+        expiresAt: DateTime.now().add(const Duration(days: 30)), // Not expired
         maxUses: 10,
         usedCount: 0,
       );
