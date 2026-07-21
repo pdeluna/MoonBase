@@ -137,7 +137,11 @@ class Stories {
       other.createdAt == createdAt;
     }
 
-    //creates a hash for all present values/objects
+    /*creates a hash for all present values/objects 
+    requires previous override boolean function s.t. in cases of collisions 
+    values of the entity can be checked to ensure the values of the arguement/class are the same.
+    The function below then hashes the object. Both function work in tandem to reduce chances of collision.
+    */
     @override
     int get hashCode => Object.hash(
       id,
