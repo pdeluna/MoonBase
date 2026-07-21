@@ -69,20 +69,22 @@ class BaseSettings {
         updatedByUserId,
       );
 }
+//Start of Junior implementation
 @immutable
 class Stories {
   const Stories ({
-    this.id,
-    this.baseId,
-    this.authorUserId,
-    this.media,
+    //"required" keyword prevents dart from setting a default value of "null" if caller function does not give a value
+    required this.id,
+    required this.baseId,
+    required this.authorUserId,
+    required this.media,
     this.caption,
-    this.storyTtl,
-    this.createdAt,
+    required this.storyTtl,
+    required this.createdAt,
     this.archived = true,
     this.syncStatus = SyncStatus.synced,
   });
-
+  //Variable type values are initialized during runtime using "final" keyword
   final StoryId id;
   final BaseId baseId;
   final UserId authorUserId;
@@ -92,5 +94,58 @@ class Stories {
   final DateTime createdAt;
   final bool archived;
   final SyncStatus syncStatus;
+  
+  //"copyWith" allows the values to be changed without having to manually set new values
+  Stories copyWith({
+    StoryId? id,
+    BaseId? baseId,
+    UserId? authorUserId,
+    MediaRef? media,
+    String? caption,
+    Duration? storyTtl,
+    DateTime? createdAt,
+    bool? archived,
+    SyncStatus? syncStatus,
+  })
 
+  //Values that are sent to caller
+  {
+    return Stories(
+    /* structure of return values for future reference:
+    contains 4 tokens: Variable, current Variable value, ??, Right hand value if null
+    */
+    id: id ?? this.id, 
+    baseId: baseId ?? this.baseId,
+    authorUserId: authorUserId ?? this.authorUserId,
+    media: media ?? this.media,
+    caption: caption ?? this.caption,
+    storyTtl: storyTtl ?? this.storyTtl,
+    createdAt: createdAt ?? this.createdAt);
+    }
+
+    //checks if values are identical asychronously  
+    @override 
+    bool operator ==(Object other){
+      if (identical (this,other)) return true;
+      return other is Stories &&
+      other.id == id &&
+      other.baseId == baseId &&
+      other.authorUserId == authorUserId &&
+      other.media == media &&
+      other.caption == caption &&
+      other.storyTtl == storyTtl &&
+      other.createdAt == createdAt;
+    }
+
+    //creates a hash for all present values/objects
+    @override
+    int get hashCode => Object.hash(
+      id,
+      baseId,
+      authorUserId,
+      media,
+      caption,
+      storyTtl,
+      createdAt, 
+    );
 }
