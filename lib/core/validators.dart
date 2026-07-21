@@ -43,3 +43,15 @@ bool isValidNickname(String s) {
   if (t.isEmpty || t.length > 24) return false;
   return RegExp(r'^[A-Za-z0-9 _.\-]+$').hasMatch(t);
 }
+
+/// Non-empty trimmed email containing `@` with text on both sides.
+bool isValidEmail(String s) {
+  final t = s.trim();
+  if (t.isEmpty) return false;
+  final at = t.indexOf('@');
+  if (at <= 0 || at == t.length - 1) return false;
+  return !t.contains(' ');
+}
+
+/// Firebase Email/Password minimum is 6 characters.
+bool isValidPassword(String s) => s.length >= 6;
