@@ -1,62 +1,83 @@
 # MoonBase Skeleton
 
-A Flutter skeleton for MoonBase (closed-circle streaming/chat). Includes a Firebase (Core/Auth/Firestore/Storage) foundation wired for Phase 4.
+A Flutter app for closed-circle chat and content sharing. Built on a **3-layer Clean Architecture** (`lib/features/`) with Firebase Auth live for accounts, while bases/chat/profiles remain local until Week 3+ cloud persistence.
 
 ## Table of Contents
 
-- [Current Status](#-current-status-phase-2-complete)
-- [Features](#-features)
-- [Architecture](#-architecture)
-- [Getting Started](#-getting-started)
-- [Testing](#-testing)
-- [Project Structure](#-project-structure)
-- [Documentation](#-documentation)
-- [Roadmap](#-roadmap)
+- [Current Status](#current-status)
+- [Features](#features)
+- [Firebase](#firebase)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Testing](#testing)
+- [Data storage](#data-storage)
+- [Project Structure](#project-structure)
+- [Documentation](#documentation)
+- [Roadmap](#roadmap)
 
-## Current Status: Phase 2 Complete
+## Current Status
 
-Phase 2 MVP is complete. The app runs on a **3-layer Clean Architecture** (domain / data / presentation) with feature-based modules. Data persistence, UI wiring, and session management are in place. Unit test validation is approximately **80% complete**. Legacy code under `lib/providers/`, `lib/services/`, `lib/screens/`, and `lib/models/` is **deprecated** and retained only for reference; the active implementation lives under `lib/features/` and `lib/core/`.
+| Layer | Status |
+|-------|--------|
+| Phase 2 — 3-layer architecture | **Complete** |
+| Phase 3 — media / chat attachments | **In progress** (Foundation + Slice A device-verified on Android) |
+| Phase 4 — Firebase | **Auth live**; Firestore/Storage SDKs initialized; product collections **not** cloud-backed yet |
+
+Active code lives under `lib/features/` and `lib/core/`. Pre-refactor code is quarantined under `lib/legacy/` (and `test/legacy/`) for reference until screens are fully rebuilt.
 
 ## Features
 
-### Current (Phase 2 — 3-layer architecture)
+### Auth (Firebase)
 
-- **Auth**: Profile-based sign-in/sign-out, current user and session
-- **Bases**: Full CRUD, create/join via invites, sidebar rename/delete, last-accessed base per user, clear selection on logout
-- **Invites**: Create, list, and redeem invite codes from home
-- **Chat**: Single source of truth (`ChatController`); load on base change and initial load; list from `AsyncValue<List<Message>>`; dumb `MessageBubble` and `MessageComposer` (no provider reads); nicknames and colored names via `memberPresentationProvider` at list level; scroll-to-latest; unified loading/empty/error and retry at screen level
-- **Profile**: View and update profile
+- Email/password **sign-up / sign-in / sign-out** via Firebase Auth
+- **Nickname** collected on sign-up (stored as Firebase `displayName` + local profile); used for chat labels
+- Session mirrored locally (`AuthRepositoryImpl` + SharedPreferences); Firebase Auth is source of truth for identity
+- Sign-up / login UI under `lib/legacy/screens/` wired to `AuthController`
+
+### Bases, invites, chat, profile (local persistence)
+
+- **Bases**: create/join via invites, sidebar rename/delete, last-accessed base, clear selection on logout
+- **Invites**: create, list, redeem (device-local; not yet synced across devices)
+- **Chat**: `ChatController` single source of truth; text + media attachments; nicknames/colors via `memberPresentationProvider`
+- **Profile**: view current user, dark mode; theme persisted locally
 - **Cross-platform**: Android, iOS, Web, Windows, macOS, Linux
 
-### Legacy (deprecated)
+### Media (Phase 3)
 
-- Old provider layer: `basesProvider`, `sessionProvider`, `invitesProvider`, `chatMessagesProvider`, `chatStreamProvider`, `chatActionsProvider`
-- Old repositories: `SpBasesRepository`, `SpProfileRepository`, `SpInvitesRepository`, `SpChatRepository`
-- Legacy screens under `lib/screens/` (replaced by feature presentation layers)
+- Shared `media` feature: pick/capture, local file storage, tiles/preview/picker sheet
+- Chat composer attach flow (images + short video)
 
 ### Planned
 
-- Live streaming, media system, reactions, analytics (see Roadmap)
+- Profiles / bases / members / chat → **Firestore**
+- Membership **security rules** and true multi-device sync
+- Stories, posts, reactions (Phase 3 slices B/C)
+- Live streaming, push, analytics, anonymous/child accounts (post-MVP backlog)
 
-## Chat Functionality
+## Firebase
 
-The chat system uses the Phase 2 architecture:
+### What is wired today
 
-### Core behavior
+| Product | Status |
+|---------|--------|
+| **Firebase Core** | Initialized at startup in `lib/main.dart` (`Firebase.initializeApp` + `DefaultFirebaseOptions`) |
+| **Firebase Auth** | Live — email/password owners/members; nickname via `updateDisplayName` |
+| **Cloud Firestore** | SDK ready; **debug smoke probe only** (`_smoke_tests` from Profile in debug builds). No product `bases` / `messages` / `profiles` collections yet |
+| **Firebase Storage** | SDK ready; media still uses `LocalFileMediaStorage` |
 
-- **Single source of truth**: `ChatController` holds `AsyncValue<List<Message>>`; `load(baseId)` and stream ticks update state; `send()` persists and the stream drives UI refresh
-- **Real-time list**: Messages rendered from controller state only; no per-message providers in the list
-- **Dumb UI**: `MessageBubble` and `MessageComposer` receive data via props; no provider reads inside tiles or composer
-- **Presentation**: Nicknames and colors from `memberPresentationProvider` at list level, passed into each bubble
-- **States**: One place for loading, empty, error, and retry via `AsyncValue.when` at chat screen level
-- **Scroll-to-latest**: List uses `reverse: true` and a scroll controller to jump to bottom when new messages appear
-- **Persistence**: SharedPreferences via `ChatRepositoryImpl` / `ChatSharedPrefsDataSource`; base-isolated chats
+Config (FlutterFire-generated, checked in):
 
-### Technical
+- `lib/firebase_options.dart`
+- `android/app/google-services.json`
+- `firebase.json`
 
-- **Repository**: `ChatRepository` (domain) implemented by `ChatRepositoryImpl` (data)
-- **Use cases**: `ListMessages`, `SendMessage`, `StreamMessages`
-- **State**: Riverpod `chatControllerProvider`, `chatScreenVmProvider`; sidebar/base selection via `effectiveSelectedBaseProvider`
+Android `minSdk` is **23+** (required by `firebase_auth`).
+
+Regenerate against your own project with `flutterfire configure`. These files hold client config, not server secrets—harden with Security Rules and API-key restrictions.
+
+### What is still local
+
+Bases, invites, membership lists, chat messages, and profile documents use **SharedPreferences** (and local files for media). Two devices do **not** share the same base/chat until Firestore persistence lands. See [docs/CLOUD_FIRESTORE_TEST_EXPANSION.md](docs/CLOUD_FIRESTORE_TEST_EXPANSION.md).
 
 ## Architecture
 
@@ -64,216 +85,159 @@ The chat system uses the Phase 2 architecture:
 
 ```
 lib/
-├── core/                     # Shared utilities and abstractions
-│   ├── either.dart           # Result type for error handling
-│   ├── failure.dart          # Failure types (Network, Cache, Validation, Unknown)
-│   ├── ids.dart              # Type-safe ID wrappers (UserId, BaseId, MessageId, etc.)
-│   ├── usecase.dart          # Base use case interface
-│   ├── validators.dart       # Input validation
-│   └── error_mapper.dart     # Error handling utilities
-│
-├── features/                 # Feature modules (domain / data / presentation)
-│   ├── auth/                 # Authentication
-│   ├── bases/                # Base CRUD, invites, sidebar
-│   ├── chat/                 # Chat controller, screen, list, composer
-│   ├── profile/              # Profile management
-│   └── theme/                # Theme providers
-│
-├── providers/                # Legacy (deprecated)
-├── services/                 # Legacy (deprecated)
-├── screens/                  # Legacy (deprecated)
-├── models/                   # Legacy (deprecated)
+├── core/                     # either, failure, ids, validators, Firebase smoke probe, …
+├── features/
+│   ├── auth/                 # Firebase Auth remote + local session mirror
+│   ├── bases/                # bases, invites (local data sources)
+│   ├── chat/                 # controller, screen, composer, bubbles
+│   ├── media/                # picker + local storage ports
+│   ├── profile/
+│   └── theme/
+├── legacy/                   # quarantined pre-3-layer screens/services/providers
+├── firebase_options.dart
 ├── router.dart
-└── main.dart
+└── main.dart                 # Firebase.initializeApp + ProviderScope wiring
 ```
 
-Each feature follows:
+Each feature: **domain** (entities, repos, use cases) → **data** (impls, models, data sources) → **presentation** (controllers, providers, UI).
 
-- **Domain**: entities, repository interfaces, use cases
-- **Data**: repository implementations, data sources, models
-- **Presentation**: controllers, providers, screens, widgets
+Repositories that will gain cloud later already accept an optional `remote` (e.g. `ChatRepositoryImpl`, `BaseRepositoryImpl`); today `remote` is null / unused for product writes.
 
-### Legacy (deprecated — reference only)
-
-```
-Repository Layer: SpBasesRepository, SpProfileRepository, SpInvitesRepository, SpChatRepository
-Provider Layer:   basesProvider, sessionProvider, invitesProvider, chatMessagesProvider, etc.
-UI Layer:         LoginScreen, HomeScreen, ChatScreen (legacy paths under lib/screens/)
-```
-
-See [docs/REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) for the current architecture.
+See [docs/phase2/REFACTOR_ARCHITECTURE.md](docs/phase2/REFACTOR_ARCHITECTURE.md).
 
 ## Getting Started
 
 ### Prerequisites
 
-- Flutter SDK (>=3.27.0)
-- Dart SDK (>=3.6.0)
-- Android `minSdk` 23+ (required by `firebase_auth`; set in `android/app/build.gradle.kts`)
+- Flutter SDK (≥3.27.0) — prefer **FVM** per [docs/DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md)
+- Dart SDK (≥3.6.0)
+- Android `minSdk` 23+
 
 ### Installation
 
-1. Clone the repository
-2. Navigate to the project directory (`moonbase_skeleton`)
-3. Run `flutter pub get`
-4. Run `flutter run`
+```bash
+cd MoonBase   # or your clone path
+fvm flutter pub get   # or: flutter pub get
+fvm flutter run -d windows   # or an authorized Android device
+```
 
-### Firebase configuration
+### Quick start
 
-The Firebase foundation is wired in `lib/main.dart` via `Firebase.initializeApp`. Platform config is generated by the FlutterFire CLI and checked in:
+1. **Create account** — nickname (chat label) → email → password
+2. **Create a base** from home / sidebar
+3. **Chat** — select a base; send text or attach media
+4. **Invites** — create a code; on the **same device**, sign in as a second email account and join
+5. (Debug) Profile → **Firestore smoke test** to verify Firestore connectivity
 
-- `lib/firebase_options.dart` — generated `DefaultFirebaseOptions`
-- `android/app/google-services.json` — Android app config
-
-To regenerate against your own Firebase project, run `flutterfire configure`. These files hold client config (API keys), not server secrets; harden access with Firebase Security Rules and API-key restrictions rather than relying on secrecy.
-
-### Quick Start
-
-1. **Sign in**: Enter a nickname to create a profile
-2. **Create a base**: Use base creation from home
-3. **Chat**: Select a base and open the Chat tab; send messages
-4. **Invites**: Create invite codes and share; join bases via code
+Cross-device join/chat requires Week 3+ cloud persistence.
 
 ## Testing
 
-### Running tests
-
 ```bash
-# Full test suite
-flutter test
+# Recommended merge gate (current build)
+flutter test test/features test/core
 
-# Chat feature only
-flutter test test/features/chat/
-
-# Other feature tests
+# Auth / nickname coverage
 flutter test test/features/auth/
-flutter test test/features/bases/
-flutter test test/features/profile/
+
+# Full suite (includes legacy; some legacy failures expected)
+flutter test
 ```
 
-### Coverage
+| Suite | Expectation |
+|-------|-------------|
+| `test/features/**`, `test/core/**` | Should stay green for PRs |
+| `test/legacy/**` | Quarantined; known failures (e.g. sidebar missing `authRepositoryProvider` override) |
 
-- **Feature tests**: Under `test/features/` (auth, bases, chat, profile) — repositories, controllers, use cases
-- **Unit test validation**: ~80% complete for Phase 2 scope
-- **Legacy tests**: `test/providers/`, `test/services/`, `test/screens/`, `test/widgets/` (legacy; may be retired)
+Cloud/Firestore expansion checklist: [docs/CLOUD_FIRESTORE_TEST_EXPANSION.md](docs/CLOUD_FIRESTORE_TEST_EXPANSION.md).
 
-### Manual smoke (Phase 2 sign-off)
+### Manual smoke (Auth + local data)
 
-- Bases: create, join via invite, sidebar rename/delete
-- Invites: create, list, redeem
-- Chat: send message, switch base, see loading/empty/error and retry
-- Profile: view and update
-- Error/empty states and no regressions
+- Sign up with nickname; confirm chat labels use nickname (not raw email)
+- Second email account joins base via invite (same device); chat authors correct across logout
+- Dark mode persists per session/profile expectations
+- Media attach + permission denial snackbar (Android device notes in Phase 3 docs)
 
 ## Data storage
 
-- **SharedPreferences**: Local storage for messages, profiles, bases, invites
-- **Stream-based updates**: Chat list updates from message stream
-- **Base isolation**: Each base has its own chat history
+| Data | Backend today |
+|------|----------------|
+| Auth identity (`uid`, email, `displayName`) | **Firebase Auth** |
+| Session / profile cache, bases, invites, members, chat | **SharedPreferences** |
+| Media bytes | **Local files** (`LocalFileMediaStorage`) |
+| Firestore | Smoke collection `_smoke_tests` only |
+
+Base isolation still applies locally: each base has its own chat history on device.
 
 ## Development
 
-### Adding new features (3-layer)
+### Adding features (3-layer)
 
-1. Add or extend entities and repository interfaces in `lib/features/<feature>/domain/`
-2. Implement use cases in `lib/features/<feature>/domain/usecases/`
-3. Implement repositories and data sources in `lib/features/<feature>/data/`
-4. Add controllers and providers in `lib/features/<feature>/presentation/`
-5. Add tests under `test/features/<feature>/`
+1. Domain entities / repository interfaces / use cases under `lib/features/<feature>/domain/`
+2. Data sources + repository impls under `data/`
+3. Controllers / providers / UI under `presentation/`
+4. Tests under `test/features/<feature>/`
 
 ### Code quality
 
 ```bash
 flutter analyze
-flutter format lib/
-flutter test
+dart format lib/
+flutter test test/features test/core
 ```
 
-### Dependencies
+### Key dependencies
 
-- `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage`: Firebase foundation (Phase 4)
-- `flutter_riverpod`: State management
-- `shared_preferences`: Local storage
-- `uuid`: Unique ID generation
-- `go_router`: Navigation
+- `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage` — Firebase
+- `flutter_riverpod` — state
+- `shared_preferences` — local product data
+- `go_router` — navigation
+- `image_picker`, `video_player`, `path_provider`, … — Phase 3 media
 
 ## Project structure
 
-### Current (feature-based)
-
 ```
 lib/
-├── core/                           # Shared utilities and abstractions
-├── features/
-│   ├── auth/                        # domain, data, presentation
-│   ├── bases/                       # domain, data, presentation (incl. invites, sidebar)
-│   ├── chat/                        # domain, data, presentation (controller, screen, widgets)
-│   ├── profile/
-│   └── theme/
-├── providers/                       # Legacy (deprecated)
-├── services/                        # Legacy (deprecated)
-├── screens/                         # Legacy (deprecated)
-├── models/                          # Legacy (deprecated)
-├── router.dart
-└── main.dart
+├── core/
+├── features/          # auth, bases, chat, media, profile, theme
+├── legacy/            # deprecated flat layout (screens still used by router)
+├── firebase_options.dart
+├── main.dart
+└── router.dart
 
 test/
-├── features/                        # auth, bases, chat, profile
-├── providers/                       # Legacy
-├── screens/                         # Legacy
-├── services/                        # Legacy
-└── widgets/                         # Legacy
+├── features/          # first-class tests
+├── core/
+└── legacy/            # quarantined
 ```
-
-See [docs/REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) for detailed structure.
 
 ## Documentation
 
-- **[docs/README.md](docs/README.md)** — Index of all documentation (current vs deprecated)
-- [REFACTOR_ARCHITECTURE.md](docs/REFACTOR_ARCHITECTURE.md) — 3-layer architecture (current)
-- [PHASE2_DOD_ACTION_LIST.md](docs/PHASE2_DOD_ACTION_LIST.md) — Phase 2 DoD (completed; archive)
-- [DEV_GUIDE.md](docs/DEV_GUIDE.md) — Git, FVM, Flutter workflow
-- [DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md) — VS Code workspace, FVM, dart format/analyze, env strategy, conventional commits + rebase
-- [MODEL_ARCHITECTURE.md](docs/MODEL_ARCHITECTURE.md) — Data/domain model reference
-- [PROFILE_PERSISTENCE.md](docs/PROFILE_PERSISTENCE.md) — Profile storage and auth flow
-- [git_alias_cheat_sheet.md](docs/git_alias_cheat_sheet.md) — Optional git shortcuts
-
-### Phase 3 (in progress)
-
-- [PHASE3_DOD_ACTION_LIST.md](docs/PHASE3_DOD_ACTION_LIST.md) — Phase 3 DoD checklist (Foundation + Slice A device-verified on Android 2026-06-22; Slice B in progress)
-- [PHASE3_MEDIA_POLISH_TICKET.md](assignments/PHASE3_MEDIA_POLISH_TICKET.md) — Post-sign-off media/chat UX polish (permission snackbar, Settings link, multi-pick, video posters)
-- [PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md](docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) — Architectural blueprint: state flow, layer boundaries, Phase 4-ready API contract
-- [assignments/STORIES_FEATURE_REQUEST.md](assignments/STORIES_FEATURE_REQUEST.md) — Junior-facing Stories ticket (Slice B)
-- [assignments/STORIES_FIRST_STEPS.md](assignments/STORIES_FIRST_STEPS.md) — Solo onboarding guide for the Stories slice
-- [assignments/CHAT_ARCHITECTURE_DEMO_GUIDE.md](assignments/CHAT_ARCHITECTURE_DEMO_GUIDE.md) — Mentor playbook for demoing the chat slice as the Stories tracer bullet
+- **[docs/README.md](docs/README.md)** — doc index
+- [DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md) — FVM, IDE, commits, Firebase foundation notes
+- [CLOUD_FIRESTORE_TEST_EXPANSION.md](docs/CLOUD_FIRESTORE_TEST_EXPANSION.md) — tests to add when cloud persistence lands
+- [REFACTOR_ARCHITECTURE.md](docs/phase2/REFACTOR_ARCHITECTURE.md) — 3-layer architecture (Phase 2 archive)
+- [DEV_GUIDE.md](docs/DEV_GUIDE.md) — Git / Flutter workflow
+- [PHASE3_DOD_ACTION_LIST.md](docs/PHASE3_DOD_ACTION_LIST.md) — Phase 3 checklist
+- [PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md](docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) — Phase 3/4 blueprint
 
 ## Roadmap
 
-### Phase 1: Legacy proof of concept — Complete
+### Phase 1–2 — Complete
 
-- User authentication, base management, invites, real-time chat, message persistence
+Legacy PoC → 3-layer refactor, feature modules, local persistence, chat architecture.
 
-### Phase 2: Architecture refactor — Complete
+### Phase 3 — In progress
 
-- 3-layer Clean Architecture, use cases, repository pattern, type-safe IDs
-- Feature-based layout, data persistence, UI/widget wiring, session management
-- Chat single source of truth, AsyncValue.when, dumb tiles, scroll-to-latest, nicknames/colors
-- Unit test validation ~80%
+- Media foundation + chat media (Slice A) — complete / Android-verified
+- Stories (Slice B), posts + reactions (Slice C) — planned / in progress on feature branches
 
-### Phase 3: Content features — In progress
+### Phase 4 / Week 3+ — Firebase product data
 
-- Media foundation: shared `media` feature module (`MediaStorage` + `MediaPicker` ports, `LocalFileMediaStorage` + `ImagePickerMediaPicker` impls, `MediaTile`/`MediaPreview`/`MediaPickerSheet` widgets, base-scoped content-addressable storage keys) — **complete on `phase3-foundation`**
-- Slice A — chat media (image + short video attachments) — **complete on `main`** (Android device-verified 2026-06-22)
-- Media polish — permission snackbar layering, Open Settings, multi-pick, video posters — **tracked** ([`PHASE3_MEDIA_POLISH_TICKET.md`](assignments/PHASE3_MEDIA_POLISH_TICKET.md))
-- Slice B — Stories (24h ephemeral feed + per-base Highlights archive) — scaffolded on `phase3-stories`, junior-owned
-- Slice C — Posts (text + up to 10 media) and Reactions (👍 ❤️ 😂 😮 😢 🔥) — planned
-
-See [PHASE3_DOD_ACTION_LIST.md](docs/PHASE3_DOD_ACTION_LIST.md) for the full Phase 3 checklist and [PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md](docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) for the architectural blueprint.
-
-### Phase 4: Advanced features — In progress
-
-- **Foundation landed**: Firebase Core/Auth/Firestore/Storage initialized at app startup (`Firebase.initializeApp` in `lib/main.dart`); config generated via FlutterFire (`lib/firebase_options.dart`, `android/app/google-services.json`)
-- Planned: Cloud sync (swap `LocalFileMediaStorage` for `CloudMediaStorage`; non-null `remote` on every `*RepositoryImpl`), live streaming, voice messages, custom in-app camera surface, push notifications, analytics
+- **Done:** Core init; **Auth** email/password + nickname; Firestore/Storage plugins; smoke probe
+- **Next:** Profiles → Firestore, then bases/members/invites/chat; checked-in `firestore.rules`; two-device shared base + chat
+- Later: Storage-backed media, live streaming, push, analytics
+- Post-MVP backlog: anonymous/child accounts (owner-tied verification)
 
 ## License
 
@@ -281,4 +245,4 @@ This project is licensed under the MIT License.
 
 ---
 
-**MoonBase Skeleton** — A minimal Flutter app for closed-circle communication and content sharing.
+**MoonBase** — Closed-circle communication with real Auth now, cloud sync next.

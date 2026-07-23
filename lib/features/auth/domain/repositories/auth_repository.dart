@@ -6,6 +6,7 @@ abstract class AuthRepository {
   Future<Either<Failure, User>> signUp({
     required String email,
     required String password,
+    required String nickname,
   });
 
   Future<Either<Failure, User>> signIn({

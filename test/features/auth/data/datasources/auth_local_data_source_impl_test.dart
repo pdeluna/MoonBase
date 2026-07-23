@@ -73,14 +73,14 @@ void main() {
       );
       expect(updateResult.isRight, isTrue);
 
-      // Act: Write current user through AuthLocalDataSource
+      // Act: Write current user through AuthLocalDataSource (sync nickname)
       final userModel = UserModel(
         id: originalProfile.userId.value,
-        nickname: originalProfile.nickname,
+        nickname: 'alice-updated',
       );
       await authDataSource.writeCurrentUser(userModel);
 
-      // Assert: Profile should retain its avatar (not overwritten)
+      // Assert: Profile should retain its avatar and pick up nickname sync
       final getResult = await profileRepository.getProfile(originalProfile.userId);
       expect(getResult.isRight, isTrue);
       getResult.match(
@@ -88,7 +88,7 @@ void main() {
         (profile) {
           expect(profile, isNotNull);
           expect(profile!.avatarUrl, equals('https://example.com/avatar.jpg'));
-          expect(profile.nickname, equals(originalProfile.nickname));
+          expect(profile.nickname, equals('alice-updated'));
         },
       );
     });

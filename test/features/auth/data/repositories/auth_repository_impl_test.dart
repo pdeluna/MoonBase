@@ -26,6 +26,28 @@ void main() {
     repo = AuthRepositoryImpl(local: local, remote: remote);
   });
 
+  test('signUp writes remote user into local cache', () async {
+    when(() => remote.signUp(
+          email: 'owner@example.com',
+          password: 'secret1',
+          nickname: 'MoonOwner',
+        )).thenAnswer((_) async => const UserModel(
+          id: 'firebase-uid-2',
+          nickname: 'MoonOwner',
+        ));
+
+    final result = await repo.signUp(
+      email: 'owner@example.com',
+      password: 'secret1',
+      nickname: 'MoonOwner',
+    );
+
+    expect(result, isA<Right<Failure, dynamic>>());
+    final cached = await local.readCurrentUser();
+    expect(cached?.id, 'firebase-uid-2');
+    expect(cached?.nickname, 'MoonOwner');
+  });
+
   test('signIn writes remote user into local cache', () async {
     when(() => remote.signIn(
           email: 'owner@example.com',

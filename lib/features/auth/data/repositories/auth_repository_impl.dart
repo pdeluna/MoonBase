@@ -17,9 +17,14 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, User>> signUp({
     required String email,
     required String password,
+    required String nickname,
   }) =>
       guard(() async {
-        final model = await remote.signUp(email: email, password: password);
+        final model = await remote.signUp(
+          email: email,
+          password: password,
+          nickname: nickname,
+        );
         await local.writeCurrentUser(model);
         return model.toEntity();
       });

@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/validators.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:moonbase_skeleton/legacy/widgets/primary_button.dart';
 
@@ -14,6 +15,7 @@ class SignUpScreen extends ConsumerStatefulWidget {
 
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _nickname = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   String? _error;
@@ -21,6 +23,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   void dispose() {
+    _nickname.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -46,6 +49,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       await ref.read(authControllerProvider.notifier).signUp(
             _email.text.trim(),
             _password.text,
+            nickname: _nickname.text.trim(),
           );
       if (!mounted) return;
       final user = ref.read(authControllerProvider).current.valueOrNull;
@@ -80,10 +84,27 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Base leaders sign up with email and password. '
+                'Pick a nickname for chat, then sign up with email and password. '
                 'This account anchors your bases.',
               ),
               const SizedBox(height: 16),
+              TextFormField(
+                controller: _nickname,
+                textCapitalization: TextCapitalization.words,
+                autofillHints: const [AutofillHints.nickname],
+                decoration: const InputDecoration(
+                  labelText: 'Nickname',
+                  helperText: 'Shown in chat (1–24 characters)',
+                ),
+                onChanged: (_) => setState(() => _error = null),
+                validator: (v) {
+                  if (v == null || !isValidNickname(v)) {
+                    return '1–24 chars: letters, numbers, space, _ . -';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,

@@ -19,36 +19,61 @@ void main() {
   group('SignUp', () {
     const testEmail = 'owner@example.com';
     const testPassword = 'secret1';
+    const testNickname = 'MoonOwner';
     const testUserId = 'user123';
 
     final testUser = User(
       id: testUserId.uid,
-      nickname: 'owner',
+      nickname: testNickname,
     );
 
     test('should return Right(User) when sign-up is successful', () async {
       when(() => mockRepository.signUp(
             email: testEmail,
             password: testPassword,
+            nickname: testNickname,
           )).thenAnswer((_) async => Right(testUser));
 
       final result = await useCase(const SignUpParams(
         email: testEmail,
         password: testPassword,
+        nickname: testNickname,
       ));
 
       expect(result, isA<Right<Failure, User>>());
       verify(() => mockRepository.signUp(
             email: testEmail,
             password: testPassword,
+            nickname: testNickname,
           )).called(1);
       verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should return ValidationFailure for invalid email', () async {
-      final result = await useCase(const SignUpParams(
-        email: 'bad',
+    test('should trim nickname before calling repository', () async {
+      when(() => mockRepository.signUp(
+            email: testEmail,
+            password: testPassword,
+            nickname: testNickname,
+          )).thenAnswer((_) async => Right(testUser));
+
+      await useCase(const SignUpParams(
+        email: testEmail,
         password: testPassword,
+        nickname: '  MoonOwner  ',
+      ));
+
+      verify(() => mockRepository.signUp(
+            email: testEmail,
+            password: testPassword,
+            nickname: testNickname,
+          )).called(1);
+    });
+
+    test('should return ValidationFailure for invalid nickname', () async {
+      final result = await useCase(const SignUpParams(
+        email: testEmail,
+        password: testPassword,
+        nickname: 'bad@name',
       ));
 
       expect(result, isA<Left<Failure, User>>());
@@ -59,6 +84,26 @@ void main() {
       verifyNever(() => mockRepository.signUp(
             email: any(named: 'email'),
             password: any(named: 'password'),
+            nickname: any(named: 'nickname'),
+          ));
+    });
+
+    test('should return ValidationFailure for invalid email', () async {
+      final result = await useCase(const SignUpParams(
+        email: 'bad',
+        password: testPassword,
+        nickname: testNickname,
+      ));
+
+      expect(result, isA<Left<Failure, User>>());
+      result.match(
+        (failure) => expect(failure, isA<ValidationFailure>()),
+        (_) => fail('Should not return success'),
+      );
+      verifyNever(() => mockRepository.signUp(
+            email: any(named: 'email'),
+            password: any(named: 'password'),
+            nickname: any(named: 'nickname'),
           ));
     });
 
@@ -66,6 +111,7 @@ void main() {
       final result = await useCase(const SignUpParams(
         email: testEmail,
         password: '123',
+        nickname: testNickname,
       ));
 
       expect(result, isA<Left<Failure, User>>());
@@ -76,6 +122,7 @@ void main() {
       verifyNever(() => mockRepository.signUp(
             email: any(named: 'email'),
             password: any(named: 'password'),
+            nickname: any(named: 'nickname'),
           ));
     });
   });

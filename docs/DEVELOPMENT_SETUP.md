@@ -698,7 +698,7 @@ If a problem is not in this table, search closed issues on the repository, then 
 
 - [`README.md`](../README.md) — project overview, current phase status, and feature roadmap.
 - [`DEV_GUIDE.md`](DEV_GUIDE.md) — original Flutter / Git workflow notes; this document supersedes its setup sections but the testing-strategy and JSON-encoding sections remain authoritative.
-- [`REFACTOR_ARCHITECTURE.md`](REFACTOR_ARCHITECTURE.md) — 3-layer Clean Architecture overview.
+- [`REFACTOR_ARCHITECTURE.md`](phase2/REFACTOR_ARCHITECTURE.md) — 3-layer Clean Architecture overview.
 - [`PHASE3_DOD_ACTION_LIST.md`](PHASE3_DOD_ACTION_LIST.md) — slice-by-slice checklist for the Phase 3 content features.
 - [`PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md`](PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) — locked architectural blueprint for Posts, Stories, and Reactions; cite section numbers in your PRs.
 - [`MODEL_ARCHITECTURE.md`](MODEL_ARCHITECTURE.md) — entity and model conventions.

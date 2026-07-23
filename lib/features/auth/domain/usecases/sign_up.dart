@@ -6,10 +6,15 @@ import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/domain/repositories/auth_repository.dart';
 
 class SignUpParams {
-  const SignUpParams({required this.email, required this.password});
+  const SignUpParams({
+    required this.email,
+    required this.password,
+    required this.nickname,
+  });
 
   final String email;
   final String password;
+  final String nickname;
 }
 
 class SignUp implements UseCase<User, SignUpParams> {
@@ -19,6 +24,16 @@ class SignUp implements UseCase<User, SignUpParams> {
 
   @override
   Future<Either<Failure, User>> call(SignUpParams p) {
+    final nickname = p.nickname.trim();
+    if (!isValidNickname(nickname)) {
+      return Future.value(
+        const Left(
+          ValidationFailure(
+            'Nickname must be 1–24 characters (letters, numbers, space, _ . -).',
+          ),
+        ),
+      );
+    }
     final email = p.email.trim();
     if (!isValidEmail(email)) {
       return Future.value(
@@ -30,6 +45,10 @@ class SignUp implements UseCase<User, SignUpParams> {
         const Left(ValidationFailure('Password must be at least 6 characters.')),
       );
     }
-    return repo.signUp(email: email, password: p.password);
+    return repo.signUp(
+      email: email,
+      password: p.password,
+      nickname: nickname,
+    );
   }
 }

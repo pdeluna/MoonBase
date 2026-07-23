@@ -2,7 +2,11 @@ import 'package:moonbase_skeleton/features/auth/data/models/user_model.dart';
 
 /// Remote auth port (Firebase Auth for owners).
 abstract class AuthRemoteDataSource {
-  Future<UserModel> signUp({required String email, required String password});
+  Future<UserModel> signUp({
+    required String email,
+    required String password,
+    required String nickname,
+  });
 
   Future<UserModel> signIn({required String email, required String password});
 

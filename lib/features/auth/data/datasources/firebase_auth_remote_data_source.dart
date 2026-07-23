@@ -18,6 +18,10 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
   }
 
   UserModel _toModel(fb.User user) {
+    final displayName = user.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) {
+      return UserModel(id: user.uid, nickname: displayName);
+    }
     final email = user.email ?? '';
     return UserModel(
       id: user.uid,
@@ -49,6 +53,7 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
   Future<UserModel> signUp({
     required String email,
     required String password,
+    required String nickname,
   }) async {
     try {
       final cred = await _auth.createUserWithEmailAndPassword(
@@ -59,7 +64,11 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       if (user == null) {
         throw const UnknownFailure('Sign-up succeeded but no user was returned.');
       }
-      return _toModel(user);
+      final trimmed = nickname.trim();
+      await user.updateDisplayName(trimmed);
+      await user.reload();
+      final refreshed = _auth.currentUser ?? user;
+      return UserModel(id: refreshed.uid, nickname: trimmed);
     } on fb.FirebaseAuthException catch (e) {
       _mapFirebaseException(e);
     }
