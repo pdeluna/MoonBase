@@ -78,7 +78,7 @@ Written in the `As a … I want … So that …` form. Each story is testable; e
 
 ## 2. Architectural Guardrails
 
-These are **non-negotiable**. They re-state the rules established in [`PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md`](../docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) Sections 2–3 and [`REFACTOR_ARCHITECTURE.md`](../docs/REFACTOR_ARCHITECTURE.md). A PR that violates any of them will be rejected with a code-change request.
+These are **non-negotiable**. They re-state the rules established in [`PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md`](../docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) Sections 2–3 and [`REFACTOR_ARCHITECTURE.md`](../docs/phase2/REFACTOR_ARCHITECTURE.md). A PR that violates any of them will be rejected with a code-change request.
 
 ### 2.1 Unidirectional data flow (UDF)
 
@@ -561,7 +561,7 @@ Tick off as you go. The order is dependency-first.
 
 - [`docs/PHASE3_DOD_ACTION_LIST.md`](../docs/PHASE3_DOD_ACTION_LIST.md) — slice-level checklist; Section 2 (Slice B) is the parent of this ticket.
 - [`docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md`](../docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) — architectural blueprint; cite section numbers in your PR.
-- [`docs/REFACTOR_ARCHITECTURE.md`](../docs/REFACTOR_ARCHITECTURE.md) — 3-layer architecture overview.
+- [`docs/phase2/REFACTOR_ARCHITECTURE.md`](../docs/phase2/REFACTOR_ARCHITECTURE.md) — 3-layer architecture overview.
 - [`docs/DEVELOPMENT_SETUP.md`](../docs/DEVELOPMENT_SETUP.md) — toolchain, lint config, git workflow.
 - [`docs/DEV_GUIDE.md`](../docs/DEV_GUIDE.md) — testing strategy and JSON-encoding gotchas.
 - Canonical exemplar feature: [`lib/features/chat/`](../lib/features/chat/) — when in doubt, mirror its shape.

@@ -1,4 +1,4 @@
-package com.example.moonbase_skeleton
+package com.deluna.moonbase
 
 import io.flutter.embedding.android.FlutterActivity
 

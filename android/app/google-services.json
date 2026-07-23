@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "137107376205",
+    "project_id": "moonbase-aaff7",
+    "storage_bucket": "moonbase-aaff7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:137107376205:android:f74e18c46e57a45b9bf404",
+        "android_client_info": {
+          "package_name": "com.deluna.moonbase"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAididoK_KvnH0a9Oukiyu2dte4-f4pzVA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

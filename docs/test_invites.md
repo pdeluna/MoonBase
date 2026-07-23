@@ -1,6 +1,6 @@
 # Invitation UI Test Guide
 
-> **Deprecated.** This guide describes legacy invite flows. For the current 3-layer architecture, see [REFACTOR_ARCHITECTURE.md](REFACTOR_ARCHITECTURE.md) and the bases/invites feature under `lib/features/bases/`.
+> **Deprecated.** This guide describes legacy invite flows. For the current 3-layer architecture, see [REFACTOR_ARCHITECTURE.md](phase2/REFACTOR_ARCHITECTURE.md) and the bases/invites feature under `lib/features/bases/`.
 
 ## Quick Test Steps
 

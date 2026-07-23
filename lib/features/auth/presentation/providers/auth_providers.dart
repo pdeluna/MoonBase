@@ -5,6 +5,7 @@ import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/domain/usecases/get_current_user.dart';
 import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_in.dart';
 import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_out.dart';
+import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_up.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 
 /// Repository token. Wire this in your app DI (e.g., main.dart) by overriding it:
@@ -13,9 +14,14 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   throw UnimplementedError('Provide AuthRepository in app wiring');
 });
 
-final signInUseCaseProvider  = Provider((ref) => SignIn(ref.read(authRepositoryProvider)));
-final signOutUseCaseProvider = Provider((ref) => SignOut(ref.read(authRepositoryProvider)));
-final getCurrentUserProvider = Provider((ref) => GetCurrentUser(ref.read(authRepositoryProvider)));
+final signUpUseCaseProvider =
+    Provider((ref) => SignUp(ref.read(authRepositoryProvider)));
+final signInUseCaseProvider =
+    Provider((ref) => SignIn(ref.read(authRepositoryProvider)));
+final signOutUseCaseProvider =
+    Provider((ref) => SignOut(ref.read(authRepositoryProvider)));
+final getCurrentUserProvider =
+    Provider((ref) => GetCurrentUser(ref.read(authRepositoryProvider)));
 
 /// Convenience provider for accessing the current user
 final currentUserProvider = Provider<User?>((ref) {

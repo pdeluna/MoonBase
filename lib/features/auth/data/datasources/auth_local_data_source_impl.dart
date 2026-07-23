@@ -85,21 +85,27 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> writeCurrentUser(UserModel user) async {
-    // If a profile already exists, just point current; else create a bare one.
+    // If a profile already exists, sync nickname from auth and keep other fields
+    // (e.g. avatarUrl). Else create a bare profile entry.
     final profiles = _profiles();
-    
-    // Check if profile already exists
+
     if (!profiles.containsKey(user.id)) {
-      // Create a minimal profile entry
       profiles[user.id] = {
         'userId': user.id,
         'nickname': user.nickname,
         'avatarUrl': null,
         'updatedAt': DateTime.now().toUtc().toIso8601String(),
       };
-      await _saveProfiles(profiles);
+    } else {
+      final existing = Map<String, dynamic>.from(
+        profiles[user.id] as Map<String, dynamic>,
+      );
+      existing['nickname'] = user.nickname;
+      existing['updatedAt'] = DateTime.now().toUtc().toIso8601String();
+      profiles[user.id] = existing;
     }
-    
+    await _saveProfiles(profiles);
+
     // Set as current user
     await prefs.setString(_kCurrent, user.id);
 
