@@ -135,6 +135,10 @@ class Stories {
       other.caption == caption &&
       other.storyTtl == storyTtl &&
       other.createdAt == createdAt;
+      /*other.archived == archived &&
+      other.syncStatus == syncStatus;
+      is this required for Boolean check?*/
+
     }
 
     /*creates a hash for all present values/objects 
@@ -150,6 +154,8 @@ class Stories {
       media,
       caption,
       storyTtl,
-      createdAt, 
+      createdAt,
+      //archived,
+      //syncStatus, 
     );
 }

@@ -2,14 +2,14 @@
 // and call body. Listed here for visibility and to keep the scaffold stub
 // lint-clean.
 //
-// import 'package:moonbase_skeleton/core/either.dart';
-// import 'package:moonbase_skeleton/core/failure.dart';
-// import 'package:moonbase_skeleton/core/ids.dart';
-// import 'package:moonbase_skeleton/core/usecase.dart';
-// import 'package:moonbase_skeleton/features/bases/domain/entities/base_settings.dart';
-// import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
-// import 'package:moonbase_skeleton/features/stories/domain/entities/story.dart';
-// import 'package:moonbase_skeleton/features/stories/domain/repositories/story_repository.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/core/usecase.dart';
+import 'package:moonbase_skeleton/features/bases/domain/entities/base_settings.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
+import 'package:moonbase_skeleton/features/stories/domain/entities/story.dart';
+import 'package:moonbase_skeleton/features/stories/domain/repositories/story_repository.dart';
 
 /// Per-call parameters for `PublishStory`.
 ///
@@ -29,12 +29,13 @@
 ///   `BaseSettingsController` and passes them in; use cases never reach
 ///   across repositories.)**
 class PublishStoryParams {
-  // TODO(stories Step 5): replace this placeholder constructor with the
-  // real `const PublishStoryParams({required ..., required ..., ...})`.
-  // Use named parameters, all `final`, all initialised via `this.x`.
-  const PublishStoryParams();
+  const PublishStoryParams({required this.baseId, required this.authorUserId, required this.media, required this.storyTtl, this.caption});
+  final BaseId baseId;
+  final UserId authorUserId;
+  final MediaRef media;
+  final Duration storyTtl;
+  final String? caption;
 
-  // TODO(stories Step 5): declare the five fields above, all `final`.
 }
 
 /// Use case: validate then publish a single story.
