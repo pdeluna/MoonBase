@@ -59,8 +59,8 @@ final effectiveSelectedBaseProvider = Provider<Base?>((ref) {
   developer.log('effectiveSelectedBaseProvider: selectedBase = ${selectedBase?.name} (${selectedBase?.id})');
   developer.log('effectiveSelectedBaseProvider: mostRecentBase = ${mostRecentBase?.name} (${mostRecentBase?.id})');
   
-  // Get the list of available bases
-  final availableBases = bases.value ?? [];
+  // Get the list of available bases (asData avoids rethrowing on AsyncError/loading)
+  final availableBases = bases.asData?.value ?? [];
   final availableBaseIds = availableBases.map((b) => b.id).toSet();
   
   developer.log('effectiveSelectedBaseProvider: available base IDs = $availableBaseIds');
