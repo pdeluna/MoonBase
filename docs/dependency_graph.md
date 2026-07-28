@@ -1,6 +1,6 @@
 # Dependency Graph (Legacy)
 
-> **Deprecated.** This graph describes the legacy provider layer. For the current 3-layer architecture, see [REFACTOR_ARCHITECTURE.md](REFACTOR_ARCHITECTURE.md) and `lib/features/`.
+> **Deprecated.** This graph describes the legacy provider layer. For the current 3-layer architecture, see [REFACTOR_ARCHITECTURE.md](phase2/REFACTOR_ARCHITECTURE.md) and `lib/features/`.
 
 ```mermaid
 graph TD

@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Firebase (Auth/Firestore/Storage) needs network access in all build types,
+         not just debug/profile where Flutter's tooling already adds it. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Phase 3 (content features) permissions. See docs/PHASE3_DOD_ACTION_LIST.md §0.1.3. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />

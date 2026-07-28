@@ -1,6 +1,6 @@
 # Phase 3 — Posts, Stories & Reactions: Architectural Blueprint
 
-**Status:** Locked 2026-06-12. Teaching artifact and implementation contract for the Phase 3 content slices (Posts, Stories, Reactions). Pairs with the slice-level checklist in [`PHASE3_DOD_ACTION_LIST.md`](PHASE3_DOD_ACTION_LIST.md) and the layered-architecture overview in [`REFACTOR_ARCHITECTURE.md`](REFACTOR_ARCHITECTURE.md).
+**Status:** Locked 2026-06-12. Teaching artifact and implementation contract for the Phase 3 content slices (Posts, Stories, Reactions). Pairs with the slice-level checklist in [`PHASE3_DOD_ACTION_LIST.md`](PHASE3_DOD_ACTION_LIST.md) and the layered-architecture overview in [`REFACTOR_ARCHITECTURE.md`](phase2/REFACTOR_ARCHITECTURE.md).
 
 **Audience:** Junior contributor focused on learning state management and architecture. Every rule below is load-bearing — deviation should be deliberate and documented in the PR.
 
@@ -145,7 +145,7 @@ Phase 3 is local-only, so "cache" and "persistent store" are the same surface (`
 
 ## 3. Front-end layering — ViewModel layer vs Data / Repository layer
 
-The codebase already enforces a 3-layer Clean Architecture pattern (see [`REFACTOR_ARCHITECTURE.md`](REFACTOR_ARCHITECTURE.md)). This blueprint extends that pattern to the new features.
+The codebase already enforces a 3-layer Clean Architecture pattern (see [`REFACTOR_ARCHITECTURE.md`](phase2/REFACTOR_ARCHITECTURE.md)). This blueprint extends that pattern to the new features.
 
 ### 3.1 Import-direction diagram
 

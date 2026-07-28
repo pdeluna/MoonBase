@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -10,27 +11,57 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _c = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
   String? _error;
   bool _submitting = false;
 
   bool get _valid {
-    final t = _c.text.trim();
-    final re = RegExp(r'^[\w\- ]{2,24}$'); // letters/numbers/_-/space
-    return re.hasMatch(t);
+    final email = _email.text.trim();
+    return email.contains('@') && _password.text.length >= 6;
+  }
+
+  String _messageFromAuthState() {
+    final current = ref.read(authControllerProvider).current;
+    return current.when(
+      data: (_) => 'Could not sign in. Try again.',
+      loading: () => 'Could not sign in. Try again.',
+      error: (e, _) => e is Failure ? e.message : 'Could not sign in. Try again.',
+    );
   }
 
   Future<void> _submit() async {
     if (!_valid || _submitting) return;
-    setState(() => _submitting = true);
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
     try {
-      await ref.read(authControllerProvider.notifier).signIn(_c.text.trim());
-      if (mounted) context.go('/home');
+      await ref.read(authControllerProvider.notifier).signIn(
+            _email.text.trim(),
+            _password.text,
+          );
+      if (!mounted) return;
+      final user = ref.read(authControllerProvider).current.valueOrNull;
+      if (user != null) {
+        context.go('/home');
+      } else {
+        setState(() => _error = _messageFromAuthState());
+      }
     } catch (_) {
-      setState(() => _error = 'Could not create profile. Try again.');
+      if (mounted) {
+        setState(() => _error = 'Could not sign in. Try again.');
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
   }
 
   @override
@@ -42,15 +73,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Pick a nickname (no email/phone needed)'),
-            const SizedBox(height: 8),
+            Text(
+              'Owner sign-in',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            const Text('Use the email and password for your MoonBase account.'),
+            const SizedBox(height: 16),
             TextField(
-              controller: _c,
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
               decoration: InputDecoration(
-                labelText: 'Nickname',
+                labelText: 'Email',
                 errorText: _error,
-                helperText: '2–24 chars. Letters, numbers, _ or -',
+              ),
+              onChanged: (_) => setState(() => _error = null),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _password,
+              obscureText: true,
+              autofillHints: const [AutofillHints.password],
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                helperText: 'At least 6 characters',
               ),
               onChanged: (_) => setState(() => _error = null),
               onSubmitted: (_) => _submit(),
@@ -60,10 +109,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               onPressed: disabled ? null : _submit,
               child: _submitting
                   ? const SizedBox(
-                      height: 18, width: 18,
+                      height: 18,
+                      width: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Continue'),
+                  : const Text('Sign in'),
+            ),
+            TextButton(
+              onPressed: () => context.go('/signup'),
+              child: const Text('Create an account'),
             ),
           ],
         ),

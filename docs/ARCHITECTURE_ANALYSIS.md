@@ -1,6 +1,6 @@
 # MoonBase Skeleton Architecture Analysis & Streamlining Recommendations
 
-> **Deprecated.** This document describes the legacy implementation and pre-refactor analysis. For the current 3-layer architecture, see [REFACTOR_ARCHITECTURE.md](REFACTOR_ARCHITECTURE.md) and the code under `lib/features/`.
+> **Deprecated.** This document describes the legacy implementation and pre-refactor analysis. For the current 3-layer architecture, see [REFACTOR_ARCHITECTURE.md](phase2/REFACTOR_ARCHITECTURE.md) and the code under `lib/features/`.
 
 ## Executive Summary
 
