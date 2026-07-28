@@ -1,0 +1,293 @@
+rules_version = '2';
+
+// MoonBase Firestore rules — draft for Week 3 review.
+// Shape: docs/FIRESTORE_SCHEMA.md (schemaVersion: 1).
+// Stories are intentionally omitted (deferred).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function hasSchemaV1() {
+      return request.resource.data.schemaVersion == 1;
+    }
+
+    function existingSchemaV1() {
+      return resource.data.schemaVersion == 1;
+    }
+
+    function basePath(baseId) {
+      return /databases/$(database)/documents/bases/$(baseId);
+    }
+
+    function baseData(baseId) {
+      return get(basePath(baseId)).data;
+    }
+
+    function baseExists(baseId) {
+      return exists(basePath(baseId));
+    }
+
+    // Membership via get(base): each nested allow-read that calls isMember
+    // bills an extra base-doc read (per matched document, not once per query).
+    // Accepted MVP cost — see docs/FIRESTORE_SCHEMA.md Decisions & deferred
+    // and docs/FIRESTORE_UPDATE_TRIGGERS.md §1.
+    function isMember(baseId) {
+      return isSignedIn()
+        && baseExists(baseId)
+        && request.auth.uid in baseData(baseId).memberUids;
+    }
+
+    function isOwner(baseId) {
+      return isSignedIn()
+        && baseExists(baseId)
+        && baseData(baseId).ownerUid == request.auth.uid;
+    }
+
+    function isValidThemeMode(mode) {
+      return mode in ['light', 'dark'];
+    }
+
+    function isValidMemberRole(role) {
+      return role in ['owner', 'member'];
+    }
+
+    // -------------------------------------------------------------------------
+    // users/{uid} — profile
+    // -------------------------------------------------------------------------
+    match /users/{uid} {
+      allow read: if isSignedIn();
+
+      allow create: if isSelf(uid)
+        && hasSchemaV1()
+        && request.resource.data.keys().hasOnly([
+          'nickname', 'themeMode', 'createdAt', 'schemaVersion'
+        ])
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 2
+        && request.resource.data.nickname.size() <= 24
+        && isValidThemeMode(request.resource.data.themeMode)
+        && request.resource.data.createdAt is timestamp;
+
+      allow update: if isSelf(uid)
+        && existingSchemaV1()
+        && hasSchemaV1()
+        && request.resource.data.keys().hasOnly([
+          'nickname', 'themeMode', 'createdAt', 'schemaVersion'
+        ])
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 2
+        && request.resource.data.nickname.size() <= 24
+        && isValidThemeMode(request.resource.data.themeMode)
+        // createdAt is immutable after create
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      allow delete: if isSelf(uid);
+    }
+
+    // -------------------------------------------------------------------------
+    // bases/{baseId}
+    // -------------------------------------------------------------------------
+    match /bases/{baseId} {
+      allow read: if isMember(baseId);
+
+      allow create: if isSignedIn()
+        && hasSchemaV1()
+        && request.resource.data.keys().hasOnly([
+          'name', 'ownerUid', 'memberUids', 'createdAt', 'schemaVersion'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.auth.uid in request.resource.data.memberUids
+        && request.resource.data.createdAt is timestamp;
+
+      // Owner may rename / manage membership list.
+      // Non-members may add only themselves (invite redeem / join).
+      // Members may remove only themselves (leave).
+      allow update: if existingSchemaV1()
+        && hasSchemaV1()
+        && request.resource.data.schemaVersion == resource.data.schemaVersion
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (
+          isOwner(baseId)
+          || (
+            // Join: add only self to memberUids.
+            isSignedIn()
+            && request.resource.data.name == resource.data.name
+            && resource.data.memberUids.hasOnly(request.resource.data.memberUids)
+            && request.resource.data.memberUids.size()
+              == resource.data.memberUids.size() + 1
+            && request.auth.uid in request.resource.data.memberUids
+            && !(request.auth.uid in resource.data.memberUids)
+          )
+          || (
+            // Leave: remove only self from memberUids.
+            isMember(baseId)
+            && request.resource.data.name == resource.data.name
+            && request.resource.data.memberUids.hasOnly(resource.data.memberUids)
+            && request.resource.data.memberUids.size()
+              == resource.data.memberUids.size() - 1
+            && !(request.auth.uid in request.resource.data.memberUids)
+            && request.auth.uid in resource.data.memberUids
+          )
+        );
+
+      allow delete: if isOwner(baseId);
+
+      // -----------------------------------------------------------------------
+      // bases/{baseId}/members/{uid}
+      // -----------------------------------------------------------------------
+      match /members/{uid} {
+        allow read: if isMember(baseId);
+
+        // Owner bootstraps owner row + adds members; joiner may create own row
+        // when already present on base.memberUids (transaction with base update).
+        allow create: if hasSchemaV1()
+          && request.resource.data.keys().hasOnly([
+            'role', 'nickname', 'joinedAt', 'schemaVersion'
+          ])
+          && isValidMemberRole(request.resource.data.role)
+          && request.resource.data.nickname is string
+          && request.resource.data.joinedAt is timestamp
+          && (
+            isOwner(baseId)
+            || (
+              isSelf(uid)
+              && isMember(baseId)
+              && request.resource.data.role == 'member'
+            )
+          )
+          && (
+            request.resource.data.role != 'owner'
+            || (isSelf(uid) && baseData(baseId).ownerUid == uid)
+          );
+
+        // Owner may manage any member row; member may refresh own nickname copy.
+        allow update: if existingSchemaV1()
+          && hasSchemaV1()
+          && request.resource.data.keys().hasOnly([
+            'role', 'nickname', 'joinedAt', 'schemaVersion'
+          ])
+          && request.resource.data.joinedAt == resource.data.joinedAt
+          && isValidMemberRole(request.resource.data.role)
+          && (
+            isOwner(baseId)
+            || (
+              isSelf(uid)
+              && request.resource.data.role == resource.data.role
+            )
+          );
+
+        allow delete: if isOwner(baseId)
+          || (isSelf(uid) && isMember(baseId) && resource.data.role != 'owner');
+      }
+
+      // -----------------------------------------------------------------------
+      // bases/{baseId}/invites/{code}
+      // -----------------------------------------------------------------------
+      match /invites/{code} {
+        // Signed-in read so redeem can load the invite before the user is a member.
+        // Tighten later if codes should stay owner/member-only and redeem moves
+        // behind a callable / known baseId.
+        allow read: if isSignedIn();
+
+        allow create: if isOwner(baseId)
+          && hasSchemaV1()
+          && request.resource.data.keys().hasOnly([
+            'createdBy', 'createdAt', 'maxUses', 'useCount', 'expiresAt', 'schemaVersion'
+          ])
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.useCount == 0
+          && (
+            !('maxUses' in request.resource.data)
+            || request.resource.data.maxUses == null
+            || (request.resource.data.maxUses is int && request.resource.data.maxUses > 0)
+          )
+          && (
+            !('expiresAt' in request.resource.data)
+            || request.resource.data.expiresAt == null
+            || request.resource.data.expiresAt is timestamp
+          );
+
+        // Owner full update; any signed-in user may bump useCount only (redeem).
+        allow update: if existingSchemaV1()
+          && hasSchemaV1()
+          && (
+            isOwner(baseId)
+            || (
+              isSignedIn()
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['useCount'])
+              && request.resource.data.useCount is int
+              && request.resource.data.useCount == resource.data.useCount + 1
+              && (
+                !('maxUses' in resource.data)
+                || resource.data.maxUses == null
+                || (resource.data.maxUses is int && resource.data.useCount < resource.data.maxUses)
+              )
+              && (
+                !('expiresAt' in resource.data)
+                || resource.data.expiresAt == null
+                || (resource.data.expiresAt is timestamp
+                  && request.time < resource.data.expiresAt)
+              )
+            )
+          );
+
+        allow delete: if isOwner(baseId);
+      }
+
+      // -----------------------------------------------------------------------
+      // bases/{baseId}/messages/{messageId}
+      // -----------------------------------------------------------------------
+      match /messages/{messageId} {
+        allow read: if isMember(baseId);
+
+        allow create: if isMember(baseId)
+          && hasSchemaV1()
+          && request.resource.data.keys().hasOnly([
+            'authorUid', 'text', 'createdAt', 'schemaVersion'
+          ])
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 4000
+          && request.resource.data.createdAt is timestamp;
+
+        allow update: if false;
+
+        allow delete: if isMember(baseId)
+          && (
+            resource.data.authorUid == request.auth.uid
+            || isOwner(baseId)
+          );
+      }
+
+      // DEFERRED — do not enable until stories ship.
+      // match /stories/{storyId} {
+      //   allow read: if isMember(baseId);
+      //   allow create: if isMember(baseId)
+      //     && hasSchemaV1()
+      //     && request.resource.data.authorUid == request.auth.uid;
+      //   allow delete: if isMember(baseId)
+      //     && (resource.data.authorUid == request.auth.uid || isOwner(baseId));
+      // }
+    }
+
+    // -------------------------------------------------------------------------
+    // Debug smoke probe only — not product data.
+    // -------------------------------------------------------------------------
+    match /_smoke_tests/{docId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

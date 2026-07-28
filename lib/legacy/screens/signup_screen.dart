@@ -71,76 +71,78 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Create account')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Create your owner account',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Pick a nickname for chat, then sign up with email and password. '
-                'This account anchors your bases.',
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _nickname,
-                textCapitalization: TextCapitalization.words,
-                autofillHints: const [AutofillHints.nickname],
-                decoration: const InputDecoration(
-                  labelText: 'Nickname',
-                  helperText: 'Shown in chat (1–24 characters)',
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Create your owner account',
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                onChanged: (_) => setState(() => _error = null),
-                validator: (v) {
-                  if (v == null || !isValidNickname(v)) {
-                    return '1–24 chars: letters, numbers, space, _ . -';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  errorText: _error,
+                const SizedBox(height: 8),
+                const Text(
+                  'Pick a nickname for chat, then sign up with email and password. '
+                  'This account anchors your bases.',
                 ),
-                onChanged: (_) => setState(() => _error = null),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty || !v.contains('@'))
-                        ? 'Enter email'
-                        : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _password,
-                obscureText: true,
-                autofillHints: const [AutofillHints.newPassword],
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  helperText: 'At least 6 characters',
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _nickname,
+                  textCapitalization: TextCapitalization.words,
+                  autofillHints: const [AutofillHints.nickname],
+                  decoration: const InputDecoration(
+                    labelText: 'Nickname',
+                    helperText: 'Shown in chat (1–24 characters)',
+                  ),
+                  onChanged: (_) => setState(() => _error = null),
+                  validator: (v) {
+                    if (v == null || !isValidNickname(v)) {
+                      return '1–24 chars: letters, numbers, space, _ . -';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (v) =>
-                    (v == null || v.length < 6) ? 'Min 6 chars' : null,
-              ),
-              const SizedBox(height: 20),
-              PrimaryButton(
-                label: _submitting ? 'Creating…' : 'Create account',
-                onPressed: _submit,
-              ),
-              TextButton(
-                onPressed: () => context.go('/login'),
-                child: const Text('Already have an account? Sign in'),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    errorText: _error,
+                  ),
+                  onChanged: (_) => setState(() => _error = null),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty || !v.contains('@'))
+                          ? 'Enter email'
+                          : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _password,
+                  obscureText: true,
+                  autofillHints: const [AutofillHints.newPassword],
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    helperText: 'At least 6 characters',
+                  ),
+                  validator: (v) =>
+                      (v == null || v.length < 6) ? 'Min 6 chars' : null,
+                ),
+                const SizedBox(height: 20),
+                PrimaryButton(
+                  label: _submitting ? 'Creating…' : 'Create account',
+                  onPressed: _submit,
+                ),
+                TextButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Already have an account? Sign in'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

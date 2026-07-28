@@ -70,56 +70,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Welcome')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Owner sign-in',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            const Text('Use the email and password for your MoonBase account.'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              decoration: InputDecoration(
-                labelText: 'Email',
-                errorText: _error,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Owner sign-in',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              onChanged: (_) => setState(() => _error = null),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _password,
-              obscureText: true,
-              autofillHints: const [AutofillHints.password],
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                helperText: 'At least 6 characters',
+              const SizedBox(height: 4),
+              const Text('Use the email and password for your MoonBase account.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  errorText: _error,
+                ),
+                onChanged: (_) => setState(() => _error = null),
               ),
-              onChanged: (_) => setState(() => _error = null),
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: disabled ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Sign in'),
-            ),
-            TextButton(
-              onPressed: () => context.go('/signup'),
-              child: const Text('Create an account'),
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: _password,
+                obscureText: true,
+                autofillHints: const [AutofillHints.password],
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  helperText: 'At least 6 characters',
+                ),
+                onChanged: (_) => setState(() => _error = null),
+                onSubmitted: (_) => _submit(),
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: disabled ? null : _submit,
+                child: _submitting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Sign in'),
+              ),
+              TextButton(
+                onPressed: () => context.go('/signup'),
+                child: const Text('Create an account'),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:moonbase_skeleton/app.dart';
 import 'package:moonbase_skeleton/firebase_options.dart';
 
+import 'package:moonbase_skeleton/features/profile/data/datasources/profile_firestore_data_source.dart';
 import 'package:moonbase_skeleton/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:moonbase_skeleton/features/profile/presentation/providers/profile_providers.dart' as profile_providers;
 
@@ -56,15 +57,20 @@ void main() async {
   final mediaStorage = LocalFileMediaStorage(docsDir);
   final mediaPicker = ImagePickerMediaPicker(storage: mediaStorage);
 
+  final profileFirestore = ProfileFirestoreDataSource();
+
   final overrides = <Override>[
     sharedPrefsProvider.overrideWithValue(prefs),
 
-    profile_providers.profileRepositoryProvider.overrideWithValue(ProfileRepositoryImpl(prefs)),
+    profile_providers.profileRepositoryProvider.overrideWithValue(
+      ProfileRepositoryImpl(local: profileFirestore, prefs: prefs),
+    ),
 
     authRepositoryProvider.overrideWithValue(
       AuthRepositoryImpl(
         local: AuthLocalDataSourceImpl(prefs),
         remote: FirebaseAuthRemoteDataSource(),
+        profiles: profileFirestore,
       ),
     ),
 

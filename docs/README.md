@@ -12,6 +12,8 @@ This folder contains architecture, process, and reference docs. Phase 2 archives
 | [PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md](PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) | Phase 3 architectural blueprint (cloud-ready contracts). |
 | [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) | Onboarding: FVM, IDE, Firebase foundation, commits. |
 | [DEV_GUIDE.md](DEV_GUIDE.md) | Git workflow, FVM, Flutter basics, testing strategy. |
+| [FIRESTORE_SCHEMA.md](FIRESTORE_SCHEMA.md) | Week 3 Firestore document shape (`schemaVersion: 1`), Decisions & deferred, and rules summary. Rules emulator suite: [`../firestore/tests/`](../firestore/tests/). |
+| [FIRESTORE_UPDATE_TRIGGERS.md](FIRESTORE_UPDATE_TRIGGERS.md) | Scale-time reference: what’s parked in rules/tests and the precise trigger that forces a change. |
 | [CLOUD_FIRESTORE_TEST_EXPANSION.md](CLOUD_FIRESTORE_TEST_EXPANSION.md) | Where tests must expand when profiles/bases/chat move to Firestore (Week 3+). |
 | [git_alias_cheat_sheet.md](git_alias_cheat_sheet.md) | Optional git shortcuts. |
 
@@ -54,4 +56,4 @@ These describe the **legacy** provider/repository/screen layer. For current beha
 
 ---
 
-*Last updated for Firebase Auth (email/password + nickname) with local product data; Firestore/Storage SDKs initialized; cloud persistence planned for Week 3+.*
+*Last updated for Week 3 schema design: see [FIRESTORE_SCHEMA.md](FIRESTORE_SCHEMA.md) and root `firestore.rules`. Auth live; product data still local until repository swaps.*
