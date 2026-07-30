@@ -78,7 +78,7 @@ class Story {
   final String? caption;
   final Duration ttl;
   final DateTime createdAt;
-  bool get isExpired; //in order to use the 'get' method, final must be removed
+  bool get isExpired => DateTime.now().isAfter(createdAt.add(ttl));
   final bool archived;
   final SyncStatus syncStatus;
 
@@ -90,7 +90,6 @@ class Story {
     String? caption,
     Duration? ttl,
     DateTime? createdAt,
-    bool? isExpired,
     bool? archived,
     SyncStatus? syncStatus,
   }) {
@@ -102,7 +101,6 @@ class Story {
       caption: caption ?? this.caption,
       ttl: ttl ?? this.ttl,
       createdAt: createdAt ?? this.createdAt,
-      isExpired: isExpired ?? this.isExpired,
       archived: archived ?? this.archived,
       syncStatus: syncStatus ?? this.syncStatus,
     );
@@ -118,8 +116,7 @@ class Story {
     other.media == media &&
     other.caption == caption &&
     other.ttl == ttl &&
-    other.createdAt == createdAt &&
-    other.isExpired == isExpired; //&&
+    other.createdAt == createdAt;//&&
     //other.archived == archived &&
     //other.syncStatus == syncStatus;
   }
@@ -133,15 +130,9 @@ class Story {
     caption,
     ttl,
     createdAt,
-    isExpired,
     //archived,
     //syncStatus,
   );
-
-  @override
-  bool get isExpired => DateTime.now().isAfter(createdAt.add(ttl));
-
-
 
   // TODO(stories Step 2): declare the nine fields below. Use typed IDs from
   // `package:moonbase_skeleton/core/ids.dart` and `SyncStatus` from
