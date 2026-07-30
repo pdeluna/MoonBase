@@ -3,11 +3,15 @@
 // dependency surface at a glance — and so this scaffold stub stays
 // lint-clean (no unused imports).
 //
-// import 'package:moonbase_skeleton/core/either.dart';
-// import 'package:moonbase_skeleton/core/failure.dart';
-// import 'package:moonbase_skeleton/core/ids.dart';
-// import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
-// import 'package:moonbase_skeleton/features/stories/domain/entities/story.dart';
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
+import 'package:moonbase_skeleton/features/bases/domain/entities/base_settings.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
+import 'package:moonbase_skeleton/features/stories/domain/entities/story.dart';
+import 'package:moonbase_skeleton/features/stories/domain/usecases/publish_story.dart';
+import 'package:video_player/video_player.dart';
 
 /// Abstract port for the Stories feature.
 ///
@@ -39,6 +43,21 @@
 /// 3. **`Unit` instead of `void`.** `Either<Failure, void>` makes pattern
 ///    matching awkward; `Either<Failure, Unit>` is type-safe.
 abstract class StoryRepository {
+  Future<Either<Failure, Story>> publishStory({
+    required BaseId baseId,
+    required UserId authorUserId,
+    required MediaRef media,
+    required BaseSettings settings,
+    required String? caption,
+  });
+
+  Stream<List<Story>> streamActive(BaseId baseId);
+  Future<Either<Failure, List<Story>>> listActive(BaseId baseId);
+  Future<Either<Failure, List<Story>>> listArchive(BaseId baseID);
+  Future<Either<Failure, Unit>> deleteStory(StoryId storyId); // -> should this be UserId? story ID currently not initialized in the class
+  Future<Either<Failure, Unit>> expiredAndArchive(BaseId baseId);
+
+  
   // TODO(stories Step 4): declare the six abstract methods listed above.
   // For each load-bearing method (`streamActive`, `expireAndArchive`), add
   // a `///` doc-comment that captures the rule. Mirror the doc-comment

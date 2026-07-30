@@ -29,11 +29,11 @@ import 'package:moonbase_skeleton/features/stories/domain/repositories/story_rep
 ///   `BaseSettingsController` and passes them in; use cases never reach
 ///   across repositories.)**
 class PublishStoryParams {
-  const PublishStoryParams({required this.baseId, required this.authorUserId, required this.media, required this.storyTtl, this.caption});
+  const PublishStoryParams({required this.baseId, required this.authorUserId, required this.media, required this.settings, this.caption});
   final BaseId baseId;
   final UserId authorUserId;
   final MediaRef media;
-  final Duration storyTtl;
+  final BaseSettings settings;
   final String? caption;
 
 }
