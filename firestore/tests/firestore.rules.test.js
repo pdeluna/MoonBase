@@ -12,9 +12,17 @@ const {
 const {
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
+  collection,
+  query,
+  where,
+  orderBy,
+  runTransaction,
   Timestamp,
+  arrayUnion,
 } = require('firebase/firestore');
 
 const PROJECT_ID = 'demo-moonbase';
@@ -175,6 +183,53 @@ describe('owner create', () => {
   });
 });
 
+describe('list bases query (memberUids arrayContains)', () => {
+  test('signed-in user can run list query when empty (returns [])', async () => {
+    const db = aliceDb();
+    const snap = await assertSucceeds(
+      getDocs(
+        query(
+          collection(db, 'bases'),
+          where('memberUids', 'array-contains', ALICE),
+          orderBy('createdAt', 'desc'),
+        ),
+      ),
+    );
+    expect(snap.empty).toBe(true);
+  });
+
+  test('member query returns owned bases', async () => {
+    await seedOwnerBaseWithMemberRow();
+    const db = aliceDb();
+    const snap = await assertSucceeds(
+      getDocs(
+        query(
+          collection(db, 'bases'),
+          where('memberUids', 'array-contains', ALICE),
+          orderBy('createdAt', 'desc'),
+        ),
+      ),
+    );
+    expect(snap.size).toBe(1);
+    expect(snap.docs[0].id).toBe(BASE);
+  });
+
+  test('non-member query does not return others bases', async () => {
+    await seedOwnerBaseWithMemberRow();
+    const db = bobDb();
+    const snap = await assertSucceeds(
+      getDocs(
+        query(
+          collection(db, 'bases'),
+          where('memberUids', 'array-contains', BOB),
+          orderBy('createdAt', 'desc'),
+        ),
+      ),
+    );
+    expect(snap.empty).toBe(true);
+  });
+});
+
 describe('join (+1 self only)', () => {
   test('non-member can add only self to memberUids then create members/{uid}', async () => {
     await seedOwnerBaseWithMemberRow();
@@ -226,6 +281,34 @@ describe('leave (−1 self only)', () => {
 
     const base = await getDoc(doc(aliceDb(), 'bases', BASE));
     expect(base.data().memberUids).toEqual([ALICE]);
+  });
+
+  test('member cannot remove a different uid via leave', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertSucceeds(
+      updateDoc(doc(bobDb(), 'bases', BASE), {
+        name: 'Family',
+        ownerUid: ALICE,
+        memberUids: [ALICE, BOB],
+        createdAt: Timestamp.fromMillis(1_700_000_000_000),
+        schemaVersion: 1,
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(bobDb(), 'bases', BASE, 'members', BOB), memberDoc('member', 'Bob')),
+    );
+
+    // −1 but not self: Bob drops Alice and keeps himself — leave branch requires
+    // auth uid absent from the new memberUids list.
+    await assertFails(
+      updateDoc(doc(bobDb(), 'bases', BASE), {
+        name: 'Family',
+        ownerUid: ALICE,
+        memberUids: [BOB],
+        createdAt: Timestamp.fromMillis(1_700_000_000_000),
+        schemaVersion: 1,
+      }),
+    );
   });
 });
 
@@ -400,6 +483,216 @@ describe('invite contention / non-transactional orphan (justifies runTransaction
 
     expect(base.data.memberUids).toContain(BOB);
     expect(member.exists).toBe(false);
+  });
+});
+
+describe('atomic redeem transaction (getAfter member create)', () => {
+  // Non-members cannot read bases/{baseId} (allow read: isMember). Redeem
+  // therefore reads only the invite (signed-in) and joins via arrayUnion —
+  // no tx.get(base). Rules still see committed resource.data on the update.
+
+  async function redeemTx(db, { useCountNext, memberUidsUpdate, memberUid }) {
+    const inviteRef = doc(db, 'bases', BASE, 'invites', INVITE);
+    const baseRef = doc(db, 'bases', BASE);
+    const memberRef = doc(db, 'bases', BASE, 'members', memberUid);
+
+    return runTransaction(db, async (tx) => {
+      const inviteSnap = await tx.get(inviteRef);
+      if (!inviteSnap.exists()) {
+        throw new Error('invite missing');
+      }
+      tx.update(inviteRef, { useCount: useCountNext });
+      tx.update(baseRef, memberUidsUpdate);
+      tx.set(memberRef, memberDoc('member', 'Nick'));
+    });
+  }
+
+  test('atomic redeem succeeds: useCount +1, append self, create members/{uid}', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await seedInvite({ maxUses: 5, useCount: 0 });
+
+    const db = bobDb();
+    await assertSucceeds(
+      redeemTx(db, {
+        useCountNext: 1,
+        memberUidsUpdate: { memberUids: arrayUnion(BOB) },
+        memberUid: BOB,
+      }),
+    );
+
+    const base = await adminGet(['bases', BASE]);
+    const invite = await adminGet(['bases', BASE, 'invites', INVITE]);
+    const member = await adminGet(['bases', BASE, 'members', BOB]);
+
+    expect(base.data.memberUids).toEqual([ALICE, BOB]);
+    expect(invite.data.useCount).toBe(1);
+    expect(member.exists).toBe(true);
+    expect(member.data.role).toBe('member');
+  });
+
+  test('atomic redeem fails when appending another uid (not self)', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await seedInvite({ maxUses: 5, useCount: 0 });
+
+    const db = bobDb();
+    await assertFails(
+      redeemTx(db, {
+        useCountNext: 1,
+        memberUidsUpdate: { memberUids: arrayUnion(CAROL) },
+        memberUid: CAROL,
+      }),
+    );
+  });
+
+  test('atomic redeem fails on +2 memberUids growth', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await seedInvite({ maxUses: 5, useCount: 0 });
+
+    const db = bobDb();
+    await assertFails(
+      redeemTx(db, {
+        useCountNext: 1,
+        memberUidsUpdate: { memberUids: arrayUnion(BOB, CAROL) },
+        memberUid: BOB,
+      }),
+    );
+  });
+
+  test('atomic redeem fails when mutating name (or other immutable fields)', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await seedInvite({ maxUses: 5, useCount: 0 });
+
+    const db = bobDb();
+    await assertFails(
+      redeemTx(db, {
+        useCountNext: 1,
+        memberUidsUpdate: {
+          name: 'Hijacked',
+          memberUids: arrayUnion(BOB),
+        },
+        memberUid: BOB,
+      }),
+    );
+  });
+
+  test('atomic redeem fails when member row uid ≠ appended self', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await seedInvite({ maxUses: 5, useCount: 0 });
+
+    const db = bobDb();
+    await assertFails(
+      redeemTx(db, {
+        useCountNext: 1,
+        memberUidsUpdate: { memberUids: arrayUnion(BOB) },
+        memberUid: CAROL,
+      }),
+    );
+  });
+
+  test('atomic redeem fails past maxUses', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await seedInvite({ maxUses: 2, useCount: 2 });
+
+    const db = bobDb();
+    await assertFails(
+      redeemTx(db, {
+        useCountNext: 3,
+        memberUidsUpdate: { memberUids: arrayUnion(BOB) },
+        memberUid: BOB,
+      }),
+    );
+  });
+
+  test('atomic redeem fails past expiresAt', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await seedInvite({
+      maxUses: 5,
+      useCount: 0,
+      expiresAt: Timestamp.fromMillis(1_000_000_000_000),
+    });
+
+    const db = bobDb();
+    await assertFails(
+      redeemTx(db, {
+        useCountNext: 1,
+        memberUidsUpdate: { memberUids: arrayUnion(BOB) },
+        memberUid: BOB,
+      }),
+    );
+  });
+
+  test('member create alone fails when uid not in memberUids', async () => {
+    await seedOwnerBaseWithMemberRow();
+
+    const payload = memberDoc('member', 'Bob');
+
+    await assertFails(
+      setDoc(doc(bobDb(), 'bases', BASE, 'members', BOB), payload),
+    );
+
+    await assertSucceeds(
+      updateDoc(doc(bobDb(), 'bases', BASE), {
+        name: 'Family',
+        ownerUid: ALICE,
+        memberUids: [ALICE, BOB],
+        createdAt: Timestamp.fromMillis(1_700_000_000_000),
+        schemaVersion: 1,
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(bobDb(), 'bases', BASE, 'members', BOB), payload),
+    );
+  });
+});
+
+describe('inviteCodes mapping (global code → baseId)', () => {
+  function mappingPayload(baseId = BASE) {
+    return { baseId, schemaVersion: 1 };
+  }
+
+  test('owner can create mapping; signed-in user can get it', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertSucceeds(
+      setDoc(doc(aliceDb(), 'inviteCodes', INVITE), mappingPayload()),
+    );
+    const snap = await assertSucceeds(
+      getDoc(doc(bobDb(), 'inviteCodes', INVITE)),
+    );
+    expect(snap.data().baseId).toBe(BASE);
+  });
+
+  test('non-owner cannot create mapping', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(doc(bobDb(), 'inviteCodes', INVITE), mappingPayload()),
+    );
+  });
+
+  test('list / collection query on inviteCodes is denied', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertSucceeds(
+      setDoc(doc(aliceDb(), 'inviteCodes', INVITE), mappingPayload()),
+    );
+    await assertFails(getDocs(collection(bobDb(), 'inviteCodes')));
+  });
+
+  test('owner can delete mapping; non-owner cannot', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertSucceeds(
+      setDoc(doc(aliceDb(), 'inviteCodes', INVITE), mappingPayload()),
+    );
+    await assertFails(deleteDoc(doc(bobDb(), 'inviteCodes', INVITE)));
+    await assertSucceeds(deleteDoc(doc(aliceDb(), 'inviteCodes', INVITE)));
+  });
+
+  test('mapping update is denied', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertSucceeds(
+      setDoc(doc(aliceDb(), 'inviteCodes', INVITE), mappingPayload()),
+    );
+    await assertFails(
+      updateDoc(doc(aliceDb(), 'inviteCodes', INVITE), { baseId: 'other' }),
+    );
   });
 });
 

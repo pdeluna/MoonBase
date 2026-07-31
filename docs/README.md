@@ -13,6 +13,7 @@ This folder contains architecture, process, and reference docs. Phase 2 archives
 | [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) | Onboarding: FVM, IDE, Firebase foundation, commits. |
 | [DEV_GUIDE.md](DEV_GUIDE.md) | Git workflow, FVM, Flutter basics, testing strategy. |
 | [FIRESTORE_SCHEMA.md](FIRESTORE_SCHEMA.md) | Week 3 Firestore document shape (`schemaVersion: 1`), Decisions & deferred, and rules summary. Rules emulator suite: [`../firestore/tests/`](../firestore/tests/). |
+| [WEEK3_PR_SUMMARY.md](WEEK3_PR_SUMMARY.md) | Week 3 PR summary: what shipped, critical locked notes, test plan. |
 | [FIRESTORE_UPDATE_TRIGGERS.md](FIRESTORE_UPDATE_TRIGGERS.md) | Scale-time reference: what’s parked in rules/tests and the precise trigger that forces a change. |
 | [CLOUD_FIRESTORE_TEST_EXPANSION.md](CLOUD_FIRESTORE_TEST_EXPANSION.md) | Where tests must expand when profiles/bases/chat move to Firestore (Week 3+). |
 | [git_alias_cheat_sheet.md](git_alias_cheat_sheet.md) | Optional git shortcuts. |

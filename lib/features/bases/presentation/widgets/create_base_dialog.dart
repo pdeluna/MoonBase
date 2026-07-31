@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/current_user_id_provider.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
 
 class CreateBaseDialog extends ConsumerStatefulWidget {
   const CreateBaseDialog({super.key});
@@ -57,7 +60,6 @@ class _CreateBaseDialogState extends ConsumerState<CreateBaseDialog> {
         ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              Navigator.of(context).pop();
               await _createBase();
             }
           },
@@ -69,16 +71,28 @@ class _CreateBaseDialogState extends ConsumerState<CreateBaseDialog> {
 
   Future<void> _createBase() async {
     try {
-      final base = await ref.read(createBaseProvider(_nameController.text.trim()).future);
+      final base =
+          await ref.read(createBaseProvider(_nameController.text.trim()).future);
+      if (!mounted) return;
+
       ref.invalidate(basesListProvider);
       if (base != null) {
         ref.read(selectedBaseProvider.notifier).state = base;
+        final currentUserId = ref.read(currentUserIdProvider);
+        if (currentUserId != null) {
+          await ref.read(baseRepositoryProvider).setLastAccessedBase(
+                userId: UserId(currentUserId),
+                baseId: base.id,
+              );
+          ref.invalidate(lastAccessedBaseProvider);
+        }
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Base created successfully!')),
-        );
-      }
+      if (!mounted) return;
+
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Base created successfully!')),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -34,6 +34,23 @@ service cloud.firestore {
       return exists(basePath(baseId));
     }
 
+    function baseDataAfter(baseId) {
+      return getAfter(basePath(baseId)).data;
+    }
+
+    function existsAfterBase(baseId) {
+      return existsAfter(basePath(baseId));
+    }
+
+    // Joiner member-create only: membership against projected base so a
+    // runTransaction that +1s memberUids and creates members/{uid} can see
+    // the projected list. Does not change base update authorization.
+    function isMemberAfter(baseId) {
+      return isSignedIn()
+        && existsAfterBase(baseId)
+        && request.auth.uid in baseDataAfter(baseId).memberUids;
+    }
+
     // Membership via get(base): each nested allow-read that calls isMember
     // bills an extra base-doc read (per matched document, not once per query).
     // Accepted MVP cost — see docs/FIRESTORE_SCHEMA.md Decisions & deferred
@@ -95,7 +112,11 @@ service cloud.firestore {
     // bases/{baseId}
     // -------------------------------------------------------------------------
     match /bases/{baseId} {
-      allow read: if isMember(baseId);
+      // Use resource.data (not get/isMember) so the client query
+      // where('memberUids', arrayContains: uid) is rules-compatible.
+      // Nested paths still use isMember(baseId) via get(base).
+      allow read: if isSignedIn()
+        && request.auth.uid in resource.data.memberUids;
 
       allow create: if isSignedIn()
         && hasSchemaV1()
@@ -150,7 +171,8 @@ service cloud.firestore {
         allow read: if isMember(baseId);
 
         // Owner bootstraps owner row + adds members; joiner may create own row
-        // when already present on base.memberUids (transaction with base update).
+        // when present on base.memberUids — committed (isMember) or projected in
+        // the same transaction/batch (isMemberAfter / getAfter).
         allow create: if hasSchemaV1()
           && request.resource.data.keys().hasOnly([
             'role', 'nickname', 'joinedAt', 'schemaVersion'
@@ -162,7 +184,7 @@ service cloud.firestore {
             isOwner(baseId)
             || (
               isSelf(uid)
-              && isMember(baseId)
+              && isMemberAfter(baseId)
               && request.resource.data.role == 'member'
             )
           )
@@ -281,6 +303,30 @@ service cloud.firestore {
       //   allow delete: if isMember(baseId)
       //     && (resource.data.authorUid == request.auth.uid || isOwner(baseId));
       // }
+    }
+
+    // -------------------------------------------------------------------------
+    // inviteCodes/{code} — global code → baseId map for bare-code redeem.
+    // get allowed (redeem); list denied (no enumeration).
+    // Create requires isOwner(baseId) on an already-committed base (same
+    // committed-state family as owner-row-on-create — see FIRESTORE_SCHEMA.md).
+    // -------------------------------------------------------------------------
+    match /inviteCodes/{code} {
+      allow get: if isSignedIn();
+      allow list: if false;
+
+      allow create: if isSignedIn()
+        && hasSchemaV1()
+        && request.resource.data.keys().hasOnly(['baseId', 'schemaVersion'])
+        && request.resource.data.baseId is string
+        && request.resource.data.baseId.size() > 0
+        && isOwner(request.resource.data.baseId);
+
+      allow update: if false;
+
+      allow delete: if isSignedIn()
+        && resource.data.keys().hasAll(['baseId', 'schemaVersion'])
+        && isOwner(resource.data.baseId);
     }
 
     // -------------------------------------------------------------------------

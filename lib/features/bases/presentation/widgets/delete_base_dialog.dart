@@ -33,7 +33,6 @@ class DeleteBaseDialog extends ConsumerWidget {
         ),
         ElevatedButton(
           onPressed: () async {
-            Navigator.of(context).pop();
             await _deleteBase(context, ref);
           },
           style: ElevatedButton.styleFrom(
@@ -57,6 +56,7 @@ class DeleteBaseDialog extends ConsumerWidget {
       }
 
       if (context.mounted) {
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Base deleted successfully')),
         );

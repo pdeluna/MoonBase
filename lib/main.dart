@@ -20,7 +20,7 @@ import 'package:moonbase_skeleton/features/chat/data/datasources/chat_shared_pre
 import 'package:moonbase_skeleton/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
 
-import 'package:moonbase_skeleton/features/bases/data/datasources/base_shared_prefs_data_source.dart';
+import 'package:moonbase_skeleton/features/bases/data/datasources/base_firestore_data_source.dart';
 import 'package:moonbase_skeleton/features/bases/data/repositories/base_repository_impl.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
 
@@ -79,7 +79,12 @@ void main() async {
     ),
 
     baseRepositoryProvider.overrideWithValue(
-      BaseRepositoryImpl(local: BaseSharedPrefsDataSource(prefs)),
+      BaseRepositoryImpl(
+        local: BaseFirestoreDataSource(
+          profiles: profileFirestore,
+          prefs: prefs,
+        ),
+      ),
     ),
 
     // Phase 3 media foundation. The only file that has to change when Phase 4

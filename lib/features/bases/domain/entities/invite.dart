@@ -14,7 +14,7 @@ class Invite {
 
   final InviteId id;
   final BaseId baseId;
-  final String code; // human-shareable short code
+  final String code; // 6-char global invite code (doc id under the base)
   final UserId createdByUserId;
   final DateTime createdAt;
   final DateTime? expiresAt; // null => no expiry

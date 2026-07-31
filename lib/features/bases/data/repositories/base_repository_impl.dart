@@ -2,6 +2,7 @@ import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
+import 'package:moonbase_skeleton/features/bases/domain/entities/base_member.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/invite.dart';
 import 'package:moonbase_skeleton/features/bases/domain/repositories/base_repository.dart';
 import 'package:moonbase_skeleton/features/bases/data/datasources/base_local_data_source.dart';
@@ -32,6 +33,15 @@ Future<Either<Failure, Base>> joinBase({required String inviteCode, required Use
 Future<Either<Failure, List<Base>>> listBases({required UserId userId}) =>
   guard(() async {
     final ms = await local.listBasesForUser(userId.value);
+    return ms.map((m) => m.toEntity()).toList();
+  });
+
+@override
+Future<Either<Failure, List<BaseMember>>> listMembersForBase({
+  required BaseId baseId,
+}) =>
+  guard(() async {
+    final ms = await local.listMembersForBase(baseId.value);
     return ms.map((m) => m.toEntity()).toList();
   });
 

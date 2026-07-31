@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/current_user_id_provider.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
+import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
 
 class JoinBaseDialog extends ConsumerStatefulWidget {
   const JoinBaseDialog({super.key});
@@ -33,13 +36,13 @@ class _JoinBaseDialogState extends ConsumerState<JoinBaseDialog> {
               controller: _inviteCodeController,
               decoration: const InputDecoration(
                 labelText: 'Invite Code',
-                hintText: 'Enter invite code',
+                hintText: 'Enter 6-character code',
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Please enter an invite code';
                 }
-                final normalizedCode = normalizeInviteCode(value.trim());
+                final normalizedCode = normalizeInviteCode(value);
                 if (!isValidInviteCode(normalizedCode)) {
                   return 'Invalid invite code (6 chars, A–Z & 2–9)';
                 }
@@ -59,7 +62,6 @@ class _JoinBaseDialogState extends ConsumerState<JoinBaseDialog> {
         ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              Navigator.of(context).pop();
               await _joinBase();
             }
           },
@@ -71,13 +73,29 @@ class _JoinBaseDialogState extends ConsumerState<JoinBaseDialog> {
 
   Future<void> _joinBase() async {
     try {
-      await ref.read(joinBaseWithCodeProvider(_inviteCodeController.text.trim()).future);
+      final base = await ref.read(
+        joinBaseWithCodeProvider(_inviteCodeController.text.trim()).future,
+      );
+      if (!mounted) return;
+
       ref.invalidate(basesListProvider);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Successfully joined base!')),
-        );
+      if (base != null) {
+        ref.read(selectedBaseProvider.notifier).state = base;
+        final currentUserId = ref.read(currentUserIdProvider);
+        if (currentUserId != null) {
+          await ref.read(baseRepositoryProvider).setLastAccessedBase(
+                userId: UserId(currentUserId),
+                baseId: base.id,
+              );
+          ref.invalidate(lastAccessedBaseProvider);
+        }
       }
+      if (!mounted) return;
+
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Successfully joined base!')),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,6 +1,6 @@
 # Firestore Schema — Week 3
 
-**Status:** Profiles → Firestore wired (`ProfileFirestoreDataSource` + Auth ensure-read). Bases/members/invites still local.  
+**Status:** Profiles → Firestore wired. Bases/members/invites/leave on Firestore. Last-accessed is device-local SharedPreferences (keyed by uid), not a Firestore field.  
 **Source of truth for document shape:** this file + checked-in [`firestore.rules`](../firestore.rules).  
 **Current schema version:** `1` on every product document.
 
@@ -57,7 +57,7 @@ Write this shape down before any repository swap. Thursday’s membership rules 
 
 **Invariant:** owner is always in `memberUids`, and there is a matching `members/{ownerUid}` row with `role: "owner"`.
 
-**Create order:** write the base doc first, then the owner `members/{uid}` row. Rules use `get()` on the base, so a same-batch create of base + member will not see the pending base write.
+**Create order (sequential) / committed-state rule evaluation:** Firestore rules evaluate each write against committed DB state, not sibling writes in the same batch/transaction — confirmed on emulator (`firestore/tests/batch_owner_bootstrap.test.js`). Owner-row-on-create is therefore sequential (base, then member row) with a compensating delete; there is a small non-atomic window if the process dies between them. If the owner member write fails and the compensating delete also fails, the client must surface that to the caller (not swallow it); an orphan base with `ownerUid` set but no owner member row can remain until cleaned up. Owner can still delete via rules (`isOwner` reads `ownerUid`). Double-failure recovery is out of scope for Week 3. The same finding applies to `inviteCodes/{code}` create: `isOwner(baseId)` requires the base doc to already be committed (invite + mapping may share a batch with each other, but not with base create).
 
 **Example**
 
@@ -108,9 +108,11 @@ Doc id **must** equal the member’s Auth UID.
 | `expiresAt` | timestamp \| null | Optional; omit or `null` = no expiry |
 | `schemaVersion` | number | `1` |
 
-Doc id is the human-shareable **code** (not a random UUID).
+Doc id is the 6-char invite **code** (not a random UUID). Codes are a **global** namespace (see `inviteCodes/{code}` below); MVP accepts negligible 6-char collision risk and does **not** enforce create-if-absent uniqueness.
 
-**Redeem lookup:** path is nested under `baseId`. Prefer either (a) codes that encode/carry `baseId`, or (b) a collection-group query on `invites` with a composite index. Document the chosen approach when implementing Thursday’s invite swap.
+**Redeem lookup (MVP — locked):** family-facing string is the bare 6-char code. Client `get`s `inviteCodes/{code}` → `baseId`, then opens `bases/{baseId}/invites/{code}`. Collection-group lookup was rejected (wider list surface + index); see Decisions.
+
+**Redeem transaction:** joiner cannot `get` the base until they are a member. After resolving `baseId` from the mapping, client reads only the invite inside `runTransaction`, appends self via `memberUids` `arrayUnion`, and creates `members/{uid}`. Member-create uses `isMemberAfter` (`getAfter`); base join update invariants unchanged.
 
 **Example**
 
@@ -121,6 +123,32 @@ Doc id is the human-shareable **code** (not a random UUID).
   "maxUses": 5,
   "useCount": 1,
   "expiresAt": null,
+  "schemaVersion": 1
+}
+```
+
+---
+
+### `inviteCodes/{code}` — global code → base map
+
+| Field | Type | Notes |
+|-------|------|--------|
+| `baseId` | string | Target base for redeem |
+| `schemaVersion` | number | `1` |
+
+Doc id is the same 6-char **code** as `bases/{baseId}/invites/{code}`.
+
+**Create:** written in the **same WriteBatch** as the nested invite doc. `allow create` requires `isOwner(request.resource.data.baseId)` on an **already-committed** base — same committed-state family as owner-row-on-create (rules use `get()` / `isOwner`, not sibling batch writes). See Create order above.
+
+**Read:** signed-in may `get` a single mapping (redeem); **list is denied** (no enumeration).
+
+**Delete:** owner of mapped base; `deleteBase` sweeps invite docs + mappings (missing mapping = success).
+
+**Example**
+
+```json
+{
+  "baseId": "base_abc",
   "schemaVersion": 1
 }
 ```
@@ -165,6 +193,7 @@ Keep this collection in the schema now so rules and indexes land with bases; rep
 
 ```
 users/{uid}
+inviteCodes/{code}
 bases/{baseId}
 bases/{baseId}/members/{uid}
 bases/{baseId}/invites/{code}
@@ -197,14 +226,15 @@ Full rules: [`firestore.rules`](../firestore.rules) (draft for review).
 | Path | Read | Write (high level) |
 |------|------|--------------------|
 | `users/{uid}` | signed-in | only `request.auth.uid == uid` |
-| `bases/{baseId}` | `uid in memberUids` | create: owner + self in `memberUids`; owner full update; non-member may add only self; member may remove only self; delete: owner |
+| `bases/{baseId}` | `uid in resource.memberUids` (query-safe; not `get()`/`isMember`) | create: owner + self in `memberUids`; owner full update; non-member may add only self; member may remove only self; delete: owner |
 | `members/{uid}` | base member | owner manage; self-create on join; self may update own nickname copy |
 | `invites/{code}` | signed-in (redeem) | create/delete: owner; `useCount` bump: signed-in under constraints |
+| `inviteCodes/{code}` | signed-in **get** only; **list denied** | create/delete: owner of mapped `baseId`; update denied |
 | `messages/{messageId}` | base member | create as self (`text` length 1–4000); author or owner may delete |
 | stories | — | not ruled / not shipped |
 | `_smoke_tests/**` | signed-in | signed-in (debug probe only) |
 
-**Join / leave / redeem:** Firestore rules do not see other writes in the same batch and do not serialize multi-doc redeem. Client **must** use a single `runTransaction` (see Decisions). Sequential non-transactional writes can orphan.
+**Join / leave / redeem:** Same committed-state rule evaluation as Create order above for `get()` — sibling writes are invisible unless rules use `getAfter`. Joiner member-create uses `isMemberAfter` (`getAfter`) so atomic redeem can project the +1 `memberUids` update. Client **must** use a single `runTransaction` (see Decisions). Leave is also one `runTransaction` (`arrayRemove` self + delete `members/{uid}`); owner leave is refused client-side (ownership transfer deferred). Sequential non-transactional writes can orphan.
 
 **Rules tests:** [`firestore/tests/`](../firestore/tests/) — `@firebase/rules-unit-testing` against the emulator (`npm test` from that folder).
 
@@ -226,15 +256,19 @@ Locked Week 3 choices — do not re-open without a new ADR.
 
 No rule change from `allow read: if isSignedIn()` on `users/{uid}`.
 
+### Invite redeem lookup — top-level `inviteCodes` (reverses Ba)
+
+**Supersedes** the earlier Ba choice (`baseId:code` share token). Family-facing string is the bare 6-char code; redeem resolves `baseId` via `inviteCodes/{code}`. Chosen over collection-group lookup (option 1) because a single-doc `get` + denied `list` is a tighter surface and needs no index. Codes are a global namespace; MVP accepts collision risk without create-if-absent uniqueness.
+
 ### Invite redeem race + client transaction
 
 Rules authorize a **+1 `useCount` bump**; they do **not** guarantee global `maxUses` under contention — the **client transaction** does.
 
-Required repository redeem shape (when wired — not in this rules pass):
+Required repository redeem shape:
 
-`runTransaction`: read invite + base → check expiry/`maxUses` → increment `useCount` → append `memberUids` → create `members/{uid}` — **all in one transaction**.
+`get(inviteCodes/{code})` → `runTransaction`: read invite → check expiry/`maxUses` → increment `useCount` → `arrayUnion` self on `memberUids` → create `members/{uid}` — invite writes atomic in one transaction.
 
-Non-transactional partial writes can orphan (e.g. `memberUids` updated without `members/{uid}`, or invite burned without membership). Emulator suite includes a contention/orphan demonstration. No Cloud Function redeem for MVP.
+Non-transactional partial writes can orphan. Emulator suite includes a contention/orphan demonstration. No Cloud Function redeem for MVP.
 
 ### Message text cap
 
@@ -258,11 +292,11 @@ No ownership transfer; no last-owner-leave. Owner cannot use the self-remove bra
 
 | Query | Index |
 |-------|--------|
-| List my bases | `bases` where `memberUids` **array-contains** `uid` (single-field; usually auto) |
+| List my bases | Composite: `memberUids` **CONTAINS** + `createdAt` **DESC** — checked in [`firestore.indexes.json`](../firestore.indexes.json) |
 | Redeem by code (if collection-group) | Collection group `invites` — confirm fields once redeem path is chosen |
 | Messages by time | `messages` orderBy `createdAt` under a base (single-field; usually auto) |
 
-Add `firestore.indexes.json` entries when the first repository that needs a composite index lands.
+Deploy indexes with: `firebase deploy --only firestore:indexes --project moonbase-aaff7`
 
 ---
 

@@ -63,7 +63,6 @@ class _CreateInviteDialogState extends ConsumerState<CreateInviteDialog> {
         ElevatedButton(
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              Navigator.of(context).pop();
               await _createInvite();
             }
           },
@@ -95,13 +94,19 @@ class _CreateInviteDialogState extends ConsumerState<CreateInviteDialog> {
         maxUses: maxUses,
       );
 
-      final inviteAsync = ref.read(createInviteProvider(params).future);
-      final invite = await inviteAsync;
+      final invite = await ref.read(createInviteProvider(params).future);
 
-      if (mounted && invite != null) {
-        ref.invalidate(baseInvitesProvider(widget.baseId));
-        _showInviteCodeDialog(invite.code);
+      if (!mounted) return;
+      if (invite == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to create invite')),
+        );
+        return;
       }
+
+      ref.invalidate(baseInvitesProvider(widget.baseId));
+      Navigator.of(context).pop(); // close create form only after success
+      _showInviteCodeDialog(invite.code);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -2,6 +2,7 @@ import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
+import 'package:moonbase_skeleton/features/bases/domain/entities/base_member.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/invite.dart';
 
 abstract class BaseRepository {
@@ -16,6 +17,10 @@ abstract class BaseRepository {
   });
 
   Future<Either<Failure, List<Base>>> listBases({required UserId userId});
+
+  Future<Either<Failure, List<BaseMember>>> listMembersForBase({
+    required BaseId baseId,
+  });
 
   // Optional for later (UI already hints at these)
   Future<Either<Failure, void>> leaveBase({required BaseId baseId, required UserId userId});
