@@ -1,146 +1,94 @@
-import 'package:moonbase_skeleton/core/either.dart';
-import 'package:moonbase_skeleton/core/failure.dart';
-import 'package:moonbase_skeleton/core/ids.dart';
-import 'package:moonbase_skeleton/features/profile/domain/entities/profile.dart';
-import 'package:moonbase_skeleton/features/profile/domain/repositories/profile_repository.dart';
-import 'package:moonbase_skeleton/core/error_mapper.dart';
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'dart:convert';
-import 'dart:async';
+
+import 'package:moonbase_skeleton/core/either.dart';
+import 'package:moonbase_skeleton/core/error_mapper.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/profile/data/datasources/profile_firestore_data_source.dart';
+import 'package:moonbase_skeleton/features/profile/data/datasources/profile_local_data_source.dart';
+import 'package:moonbase_skeleton/features/profile/data/datasources/profile_shared_prefs_data_source.dart';
+import 'package:moonbase_skeleton/features/profile/data/models/profile_model.dart';
+import 'package:moonbase_skeleton/features/profile/domain/entities/profile.dart';
+import 'package:moonbase_skeleton/features/profile/domain/repositories/profile_repository.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
-  ProfileRepositoryImpl(this.prefs);
+  ProfileRepositoryImpl({
+    required this.local,
+    required this.prefs,
+    fb.FirebaseAuth? auth,
+  }) : _authOverride = auth;
 
+  /// Convenience for unit tests that still use SharedPreferences only.
+  factory ProfileRepositoryImpl.sharedPrefs(SharedPreferences prefs) {
+    return ProfileRepositoryImpl(
+      local: ProfileSharedPrefsDataSource(prefs),
+      prefs: prefs,
+    );
+  }
+
+  final ProfileLocalDataSource local;
   final SharedPreferences prefs;
-  static const _kProfiles = 'profiles';
+  final fb.FirebaseAuth? _authOverride;
+
   static const _kCurrent = 'currentUserId';
   static const _kHandles = 'handlesIndex';
 
-  /// Tail of the serial write chain. Every write-locked operation chains on
-  /// the previous operation's completion, forming a FIFO queue.
-  ///
-  /// Why a Future (not a Completer + `await mutex.future`)?
-  /// `await` always yields a microtask, which opens a TOCTOU window between
-  /// reading the current mutex and assigning the new one. Concurrent callers
-  /// could all see the same already-complete mutex, all pass the await, and
-  /// all enter the critical section in parallel.
-  ///
-  /// [_withWriteLock] captures `_writeMutex` and reassigns it synchronously
-  /// in the same microtask, so there is no observable interleaving point.
   Future<void> _writeMutex = Future<void>.value();
 
-  /// Handle normalization and uniqueness rules:
-  /// 
-  /// 1. HANDLE NORMALIZATION: All handles are normalized using trim().toLowerCase()
-  ///    - "Alice" and "alice" and " ALICE " all become "alice"
-  ///    - This enables case-insensitive login
-  /// 
-  /// 2. HANDLE UNIQUENESS: Handles are NOT unique across users
-  ///    - Multiple users can have the same handle (e.g., "alice")
-  ///    - This is common in closed-circle apps where handles are more like display names
-  ///    - User uniqueness is enforced by UUID only
-  /// 
-  /// 3. HANDLES INDEX: Maps normalized handle -> most recent user with that handle
-  ///    - If multiple users have "alice", the index points to the last one who signed in
-  ///    - This provides a "default" user for that handle while allowing duplicates
-  /// 
-  /// 4. LOGIN BEHAVIOR: signInByHandleOrCreate() will:
-  ///    - Find existing user with that handle (if any) and sign them in
-  ///    - If no user exists with that handle, create a new user
-  ///    - Update the handles index to point to the signed-in user
-
-
-  Map<String, dynamic> _profilesJson() {
-    final raw = prefs.getString(_kProfiles);
-    if (raw == null) return <String, dynamic>{};
-    
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      }
-      // If decoded is not a Map, return empty map
-      return <String, dynamic>{};
-    } catch (e) {
-      // If JSON is malformed, return empty map
-      return <String, dynamic>{};
-    }
+  /// Prefer Auth UID when Firebase is initialized; else prefs `currentUserId`.
+  String? _sessionUid() {
+    final override = _authOverride;
+    if (override != null) return override.currentUser?.uid;
+    if (Firebase.apps.isEmpty) return null;
+    return fb.FirebaseAuth.instance.currentUser?.uid;
   }
-
-  Future<void> _saveProfiles(Map<String, dynamic> map) async {
-    // Ensure we're encoding a fresh Map, not already-encoded data
-    final freshMap = Map<String, dynamic>.from(map);
-    await prefs.setString(_kProfiles, jsonEncode(freshMap));
-  }
-
-  String? _currentUserId() => prefs.getString(_kCurrent);
-
   Map<String, dynamic> _handlesIndex() {
     final raw = prefs.getString(_kHandles);
     if (raw == null) return <String, dynamic>{};
-    
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      }
-      // If decoded is not a Map, return empty map
+      if (decoded is Map<String, dynamic>) return decoded;
       return <String, dynamic>{};
-    } catch (e) {
-      // If JSON is malformed, return empty map
+    } catch (_) {
       return <String, dynamic>{};
     }
   }
 
   Future<void> _saveHandlesIndex(Map<String, dynamic> map) async {
-    // Ensure we're encoding a fresh Map, not already-encoded data
-    final freshMap = Map<String, dynamic>.from(map);
-    await prefs.setString(_kHandles, jsonEncode(freshMap));
+    await prefs.setString(_kHandles, jsonEncode(Map<String, dynamic>.from(map)));
   }
 
-  /// Normalizes a handle for consistent storage and lookup
   String _normalizeHandle(String handle) => handle.trim().toLowerCase();
 
-  /// Gets the most recent user ID associated with a normalized handle
   String? _getMostRecentUserForHandle(String normalizedHandle) {
-    final handles = _handlesIndex();
-    return handles[normalizedHandle] as String?;
+    return _handlesIndex()[normalizedHandle] as String?;
   }
 
-  /// Updates the handles index to point to the given user for the given handle
   Future<void> _updateHandleMapping(String normalizedHandle, String userId) async {
     final handles = _handlesIndex();
     handles[normalizedHandle] = userId;
     await _saveHandlesIndex(handles);
   }
 
-  /// Runs [critical] under the write lock. Calls are serialized FIFO.
-  ///
-  /// IMPORTANT: this method is intentionally not `async`. The body up to the
-  /// `return` runs synchronously so the read of `_writeMutex` and the
-  /// reassignment to the new completer's future happen in the same microtask
-  /// — closing the TOCTOU window described on [_writeMutex].
-  ///
-  /// The completer is released via `whenComplete`, which fires whether
-  /// [critical] succeeds or throws, so a failing critical section never
-  /// poisons the chain for subsequent callers.
   Future<T> _withWriteLock<T>(Future<T> Function() critical) {
     final previous = _writeMutex;
     final completer = Completer<void>();
     _writeMutex = completer.future;
-    return previous
-        .then((_) => critical())
-        .whenComplete(completer.complete);
+    return previous.then((_) => critical()).whenComplete(completer.complete);
   }
 
   @override
   Future<Either<Failure, Profile?>> getProfile(UserId userId) =>
-    guard(() async {
-      final profiles = _profilesJson();
-      final profileJson = profiles[userId.value] as Map<String, dynamic>?;
-      return profileJson == null ? null : Profile.fromJson(profileJson);
-    });
+      guard(() async {
+        final model = await local.readProfile(userId.value);
+        return model?.toEntity();
+      });
 
   @override
   Future<Either<Failure, Profile>> updateProfile({
@@ -148,119 +96,110 @@ class ProfileRepositoryImpl implements ProfileRepository {
     String? nickname,
     String? avatarUrl,
   }) =>
-    guard(() => _withWriteLock(() async {
-      final profiles = _profilesJson();
-      final existingJson = profiles[userId.value] as Map<String, dynamic>?;
+      guard(() => _withWriteLock(() async {
+        final existing = await local.readProfile(userId.value);
+        if (existing == null) {
+          throw const CacheFailure('Profile not found');
+        }
 
-      final nowUtc = DateTime.now().toUtc();
-      final trimmedNick = nickname?.trim();
-      final trimmedAvatar = avatarUrl?.trim();
-
-      final updatedProfile = Profile(
-        userId: userId,
-        nickname: trimmedNick ?? (existingJson?['nickname'] as String?) ?? '',
-        avatarUrl: trimmedAvatar ?? (existingJson?['avatarUrl'] as String?),
-        updatedAt: nowUtc,
-      );
-
-      profiles[userId.value] = updatedProfile.toJson();
-      await _saveProfiles(profiles);
-      return updatedProfile;
-    }));
-
-  @override
-  Future<Either<Failure, Profile?>> readCurrent() =>
-    guard(() async {
-      final id = _currentUserId();
-      if (id == null) return null;
-      final map = _profilesJson();
-      final p = map[id] as Map<String, dynamic>?;
-      return p == null ? null : Profile.fromJson(p);
-    });
-
-  @override
-  Future<Either<Failure, Profile>> signInByHandleOrCreate(String handle) =>
-    guard(() => _withWriteLock(() async {
-      final normalizedHandle = _normalizeHandle(handle);
-      final profiles = _profilesJson();
-
-      // Try to find existing user with this handle
-      String? userId = _getMostRecentUserForHandle(normalizedHandle);
-
-      // Check if the user still exists in profiles
-      if (userId != null && profiles[userId] == null) {
-        // User was deleted but handle mapping still exists, clear it
-        userId = null;
-      }
-
-      if (userId == null) {
-        // No existing user with this handle, create a new one
-        userId = const Uuid().v4();
         final nowUtc = DateTime.now().toUtc();
-        final profile = Profile(
-          userId: UserId(userId),
-          nickname: handle.trim(), // Store original handle (not normalized)
-          avatarUrl: null,
+        final trimmedNick = nickname?.trim();
+        final trimmedAvatar = avatarUrl?.trim();
+
+        final updated = ProfileModel(
+          userId: userId.value,
+          nickname: trimmedNick ?? existing.nickname,
+          avatarUrl: trimmedAvatar ?? existing.avatarUrl,
+          themeMode: existing.themeMode,
+          createdAt: existing.createdAt,
           updatedAt: nowUtc,
         );
 
-        // Save the new profile
-        profiles[userId] = profile.toJson();
-        await _saveProfiles(profiles);
-      }
+        final written = await local.writeProfile(updated);
+        return written.toEntity();
+      }));
 
-      // Update handle mapping to point to this user (most recent user with this handle)
-      await _updateHandleMapping(normalizedHandle, userId);
+  @override
+  Future<Either<Failure, Profile?>> readCurrent() =>
+      guard(() async {
+        final id = _sessionUid() ?? prefs.getString(_kCurrent);
+        if (id == null) return null;
+        final model = await local.readProfile(id);
+        return model?.toEntity();
+      });
 
-      // Set as current user
-      await prefs.setString(_kCurrent, userId);
+  @override
+  Future<Either<Failure, Profile>> signInByHandleOrCreate(String handle) =>
+      guard(() => _withWriteLock(() async {
+        // Legacy prefs/handle session path (unit tests). Production Auth uses
+        // Firebase + [ProfileFirestoreDataSource.readProfile] create-or-return.
+        final normalizedHandle = _normalizeHandle(handle);
+        String? userId = _getMostRecentUserForHandle(normalizedHandle);
 
-      // Return the profile
-      final json = profiles[userId] as Map<String, dynamic>;
-      return Profile.fromJson(json);
-    }));
+        if (userId != null) {
+          final existing = await local.readProfile(userId);
+          if (existing == null) userId = null;
+        }
+
+        if (userId == null) {
+          userId = const Uuid().v4();
+          final nowUtc = DateTime.now().toUtc();
+          await local.writeProfile(
+            ProfileModel(
+              userId: userId,
+              nickname: handle.trim(),
+              avatarUrl: null,
+              themeMode: 'light',
+              createdAt: nowUtc,
+              updatedAt: nowUtc,
+            ),
+          );
+        }
+
+        await _updateHandleMapping(normalizedHandle, userId);
+        await prefs.setString(_kCurrent, userId);
+
+        final model = await local.readProfile(userId);
+        if (model == null) {
+          throw const CacheFailure('Profile missing after sign-in');
+        }
+        return model.toEntity();
+      }));
 
   @override
   Future<Either<Failure, Unit>> deleteProfile(UserId userId) =>
-    guard(() => _withWriteLock(() async {
-      final profiles = _profilesJson();
-      final profileJson = profiles[userId.value] as Map<String, dynamic>?;
+      guard(() => _withWriteLock(() async {
+        final existing = await local.readProfile(userId.value);
+        if (existing == null) return Unit.instance;
 
-      if (profileJson == null) {
-        // Profile doesn't exist, nothing to delete
+        final normalizedHandle = _normalizeHandle(existing.nickname);
+
+        final ds = local;
+        if (ds is ProfileFirestoreDataSource) {
+          await ds.deleteProfile(userId.value);
+        } else if (ds is ProfileSharedPrefsDataSource) {
+          await ds.deleteProfile(userId.value);
+        }
+
+        final currentUserIdForHandle = _getMostRecentUserForHandle(normalizedHandle);
+        if (currentUserIdForHandle == userId.value) {
+          final handles = _handlesIndex();
+          handles.remove(normalizedHandle);
+          await _saveHandlesIndex(handles);
+        }
+
+        final currentUserId = prefs.getString(_kCurrent);
+        if (currentUserId == userId.value) {
+          await prefs.remove(_kCurrent);
+        }
+
         return Unit.instance;
-      }
-
-      // Get the profile to find its handle for cleanup
-      final profile = Profile.fromJson(profileJson);
-      final normalizedHandle = _normalizeHandle(profile.nickname);
-
-      // Remove from profiles
-      profiles.remove(userId.value);
-      await _saveProfiles(profiles);
-
-      // Clean up handle mapping if this was the most recent user with this handle
-      final currentUserIdForHandle = _getMostRecentUserForHandle(normalizedHandle);
-      if (currentUserIdForHandle == userId.value) {
-        // This was the most recent user with this handle, remove the mapping
-        final handles = _handlesIndex();
-        handles.remove(normalizedHandle);
-        await _saveHandlesIndex(handles);
-      }
-
-      // If this was the current user, clear the current user
-      final currentUserId = _currentUserId();
-      if (currentUserId == userId.value) {
-        await prefs.remove(_kCurrent);
-      }
-
-      return Unit.instance;
-    }));
+      }));
 
   @override
   Future<Either<Failure, Unit>> clear() =>
-    guard(() => _withWriteLock(() async {
-      await prefs.remove(_kCurrent);
-      return Unit.instance;
-    }));
+      guard(() => _withWriteLock(() async {
+        await prefs.remove(_kCurrent);
+        return Unit.instance;
+      }));
 }

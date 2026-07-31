@@ -19,7 +19,9 @@ void main() {
     when(() => repo.joinBase(inviteCode: any(named: 'inviteCode'), userId: any(named: 'userId')))
       .thenAnswer((_) async => Right(Base(id: 'b2'.bid, name: 'Friends', ownerUserId: 'u9'.uid, createdAt: DateTime(2025, 1, 2))));
 
-    final res = await usecase(JoinBaseParams(inviteCode: 'ABCD23', userId: 'u1'.uid));
+    final res = await usecase(
+      JoinBaseParams(inviteCode: 'ABCD23', userId: 'u1'.uid),
+    );
 
     expect(res, isA<Right<Failure, Base>>());
     res.match((_) => fail('expected Right'), (b) {
@@ -27,7 +29,8 @@ void main() {
       expect(b.name, 'Friends');
     });
 
-    verify(() => repo.joinBase(inviteCode: 'ABCD23', userId: 'u1'.uid)).called(1);
+    verify(() => repo.joinBase(inviteCode: 'ABCD23', userId: 'u1'.uid))
+        .called(1);
     verifyNoMoreInteractions(repo);
   });
 

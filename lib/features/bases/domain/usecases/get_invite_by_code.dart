@@ -20,7 +20,9 @@ class GetInviteByCode implements UseCase<Invite?, GetInviteByCodeParams> {
   Future<Either<Failure, Invite?>> call(GetInviteByCodeParams p) async {
     final code = normalizeInviteCode(p.code);
     if (!isValidInviteCode(code)) {
-      return const Left<Failure, Invite?>(ValidationFailure('Invalid invite code (6 chars, A–Z & 2–9).'));
+      return const Left<Failure, Invite?>(
+        ValidationFailure('Invalid invite code (6 chars, A–Z & 2–9).'),
+      );
     }
     return repo.getInviteByCode(code: code);
   }

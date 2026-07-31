@@ -98,6 +98,7 @@ class BaseTile extends ConsumerWidget {
                 userId: UserId(currentUserId),
                 baseId: base.id,
               );
+              ref.invalidate(lastAccessedBaseProvider);
             }
 
             onTap?.call();

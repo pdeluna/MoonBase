@@ -32,23 +32,23 @@ final basesListProvider = FutureProvider<List<Base>>((ref) async {
 final selectedBaseProvider = StateProvider<Base?>((ref) => null);
 
 /// Provider that manages base selection with auto-selection of last accessed base.
-/// Only uses last-accessed base if it belongs to the current user's bases (no cross-user leak).
+/// Selection and last-accessed are only used when the base is in the current
+/// user's list (no cross-user leak when switching accounts in-session).
 final effectiveSelectedBaseProvider = Provider<Base?>((ref) {
   final selectedBase = ref.watch(selectedBaseProvider);
   final lastAccessedBase = ref.watch(lastAccessedBaseProvider);
   final basesAsync = ref.watch(basesListProvider);
+  final userBases = basesAsync.valueOrNull ?? [];
 
-  if (selectedBase != null) {
+  bool belongsToCurrentUser(Base? base) =>
+      base != null && userBases.any((b) => b.id == base.id);
+
+  if (belongsToCurrentUser(selectedBase)) {
     return selectedBase;
   }
 
   final last = lastAccessedBase.value;
-  if (last == null) return null;
-
-  // Only use last-accessed base if it is in the current user's list
-  final userBases = basesAsync.valueOrNull ?? [];
-  final belongsToCurrentUser = userBases.any((b) => b.id == last.id);
-  return belongsToCurrentUser ? last : null;
+  return belongsToCurrentUser(last) ? last : null;
 });
 
 /// Provider for last accessed base (scoped to current user)
@@ -66,7 +66,7 @@ final lastAccessedBaseProvider = FutureProvider<Base?>((ref) async {
 /// Provider for sidebar view model
 final sidebarVmProvider = Provider<SidebarVM>((ref) {
   final basesAsync = ref.watch(basesListProvider);
-  final selectedBase = ref.watch(selectedBaseProvider);
+  final selectedBase = ref.watch(effectiveSelectedBaseProvider);
 
   return basesAsync.when(
     data: (bases) => SidebarVM(
@@ -137,26 +137,24 @@ final createBaseProvider = FutureProvider.family<Base?, String>((ref, baseName) 
   );
 });
 
-/// Provider for joining bases with invite code
-final joinBaseWithCodeProvider = FutureProvider.family<void, String>((ref, inviteCode) async {
+/// Provider for joining bases with invite code. Returns the joined [Base].
+final joinBaseWithCodeProvider =
+    FutureProvider.family<Base?, String>((ref, inviteCode) async {
   final joinBase = ref.read(joinBaseUseCaseProvider);
   final currentUserId = ref.read(currentUserIdProvider);
-  
+
   if (currentUserId == null) {
     throw Exception('User not authenticated');
   }
-  
+
   final result = await joinBase(JoinBaseParams(
     inviteCode: inviteCode,
     userId: currentUserId.uid,
   ));
-  
-  result.fold(
+
+  return result.fold<Base?>(
     (failure) => throw Exception(failure.message),
-    (_) {
-      // Refresh the bases list after successful join
-      ref.invalidate(basesListProvider);
-    },
+    (base) => base,
   );
 });
 

@@ -15,7 +15,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
     authDataSource = AuthLocalDataSourceImpl(prefs);
-    profileRepository = ProfileRepositoryImpl(prefs);
+    profileRepository = ProfileRepositoryImpl.sharedPrefs(prefs);
   });
 
   group('AuthLocalDataSourceImpl - Consistency with ProfileRepository', () {

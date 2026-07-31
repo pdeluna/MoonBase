@@ -11,7 +11,7 @@ void main() {
     // Clear SharedPreferences before each test
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
-    repository = ProfileRepositoryImpl(prefs);
+    repository = ProfileRepositoryImpl.sharedPrefs(prefs);
   });
 
   group('ProfileRepositoryImpl - Deletion with Duplicate Handles', () {

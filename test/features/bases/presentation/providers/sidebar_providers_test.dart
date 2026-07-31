@@ -64,6 +64,16 @@ void main() {
       expect(container.read(effectiveSelectedBaseProvider), base2);
     });
 
+    test('ignores selected base that is not in the user list', () async {
+      final container = await containerWith(
+        selected: foreignBase,
+        lastAccessed: base2,
+        userBases: [base1, base2],
+      );
+
+      expect(container.read(effectiveSelectedBaseProvider), base2);
+    });
+
     test('returns null when last-accessed is not in the user base list',
         () async {
       final container = await containerWith(

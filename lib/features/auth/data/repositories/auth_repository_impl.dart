@@ -5,13 +5,23 @@ import 'package:moonbase_skeleton/features/auth/data/datasources/auth_local_data
 import 'package:moonbase_skeleton/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/domain/repositories/auth_repository.dart';
+import 'package:moonbase_skeleton/features/profile/data/datasources/profile_local_data_source.dart';
 
 /// Owner auth: Firebase remote is source of truth; local cache mirrors session.
+///
+/// After a successful auth write, invokes [profiles].readProfile(uid) so
+/// [ProfileFirestoreDataSource] can create-or-return the cloud profile doc.
+/// This repository does not construct or write profile field maps itself.
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl({required this.local, required this.remote});
+  AuthRepositoryImpl({
+    required this.local,
+    required this.remote,
+    required this.profiles,
+  });
 
   final AuthLocalDataSource local;
   final AuthRemoteDataSource remote;
+  final ProfileLocalDataSource profiles;
 
   @override
   Future<Either<Failure, User>> signUp({
@@ -26,6 +36,7 @@ class AuthRepositoryImpl implements AuthRepository {
           nickname: nickname,
         );
         await local.writeCurrentUser(model);
+        await profiles.readProfile(model.id);
         return model.toEntity();
       });
 
@@ -37,6 +48,7 @@ class AuthRepositoryImpl implements AuthRepository {
       guard(() async {
         final model = await remote.signIn(email: email, password: password);
         await local.writeCurrentUser(model);
+        await profiles.readProfile(model.id);
         return model.toEntity();
       });
 
@@ -56,6 +68,7 @@ class AuthRepositoryImpl implements AuthRepository {
           return null;
         }
         await local.writeCurrentUser(model);
+        await profiles.readProfile(model.id);
         return model.toEntity();
       });
 }

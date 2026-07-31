@@ -1,7 +1,9 @@
 import 'dart:math';
+
+import 'package:moonbase_skeleton/features/bases/data/datasources/base_local_data_source.dart';
 import 'package:moonbase_skeleton/features/bases/data/models/base_model.dart';
 import 'package:moonbase_skeleton/features/bases/data/models/invite_model.dart';
-import 'package:moonbase_skeleton/features/bases/data/datasources/base_local_data_source.dart';
+import 'package:moonbase_skeleton/features/bases/data/models/member_model.dart';
 
 /// DEV-ONLY: In-memory store (no persistence). Resets on hot restart.
 class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
@@ -63,6 +65,23 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
     _basesByUser[ownerUserId]!.add(id);
 
     return model;
+  }
+
+  @override
+  Future<List<MemberModel>> listMembersForBase(String baseId) async {
+    final ids = _membersByBase[baseId];
+    if (ids == null) return [];
+    final joinedAt = DateTime.now().toUtc();
+    return ids
+        .map(
+          (uid) => MemberModel(
+            userId: uid,
+            role: _bases[baseId]?.ownerUserId == uid ? 'owner' : 'member',
+            nickname: uid,
+            joinedAt: joinedAt,
+          ),
+        )
+        .toList();
   }
 
   @override
@@ -190,11 +209,9 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
 
   @override
   Future<InviteModel?> getInviteByCode(String code) async {
+    final lookup = code.toUpperCase().trim();
     try {
-      final invite = _invites.values.firstWhere(
-        (invite) => invite.code == code,
-      );
-      return invite;
+      return _invites.values.firstWhere((invite) => invite.code == lookup);
     } catch (e) {
       return null; // Invite not found
     }

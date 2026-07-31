@@ -1,8 +1,11 @@
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:moonbase_skeleton/features/bases/data/datasources/base_local_data_source.dart';
 import 'package:moonbase_skeleton/features/bases/data/models/base_model.dart';
 import 'package:moonbase_skeleton/features/bases/data/models/invite_model.dart';
-import 'package:moonbase_skeleton/features/bases/data/datasources/base_local_data_source.dart';
+import 'package:moonbase_skeleton/features/bases/data/models/member_model.dart';
 
 /// SharedPreferences-backed base data source for persistence
 /// Uses the same storage format as the legacy base system
@@ -179,6 +182,30 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
   }
 
   @override
+  Future<List<MemberModel>> listMembersForBase(String baseId) async {
+    final membersByBase = _readMembersByBase();
+    final bases = _readBases();
+    final raw = bases[baseId];
+    final ownerUserId = raw is Map<String, dynamic>
+        ? raw['ownerUserId'] as String?
+        : null;
+    final uids = List<String>.from(
+      (membersByBase[baseId] as List<dynamic>?) ?? const <dynamic>[],
+    );
+    final joinedAt = DateTime.now().toUtc();
+    return uids
+        .map(
+          (uid) => MemberModel(
+            userId: uid,
+            role: uid == ownerUserId ? 'owner' : 'member',
+            nickname: uid,
+            joinedAt: joinedAt,
+          ),
+        )
+        .toList();
+  }
+
+  @override
   Future<BaseModel> createBase({
     required String name,
     required String ownerUserId,
@@ -220,7 +247,7 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
     final code = inviteCode.toUpperCase().trim();
     final inviteToBase = _readInviteToBase();
     final baseId = inviteToBase[code] as String?;
-    
+
     if (baseId == null) throw StateError('Invalid invite code');
 
     final bases = _readBases();
@@ -440,20 +467,22 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
 
   @override
   Future<InviteModel?> getInviteByCode(String code) async {
+    final lookup = code.toUpperCase().trim();
     final inviteToBase = _readInviteToBase();
-    final baseId = inviteToBase[code] as String?;
+    final baseId = inviteToBase[lookup] as String?;
     if (baseId == null) return null;
 
     final invitesByBase = _readInvitesByBase();
     final invites = _readInvites();
-    
-    final baseInviteIds = List<String>.from((invitesByBase[baseId] as List<dynamic>?) ?? []);
+
+    final baseInviteIds =
+        List<String>.from((invitesByBase[baseId] as List<dynamic>?) ?? []);
     for (final inviteId in baseInviteIds) {
       final inviteData = invites[inviteId];
       if (inviteData != null) {
         try {
           final invite = InviteModel.fromMap(inviteData as Map<String, dynamic>);
-          if (invite.code == code) {
+          if (invite.code == lookup) {
             return invite;
           }
         } catch (_) {
