@@ -72,7 +72,7 @@ Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisio
 
 ## 4 — Message cap 4000 + non-empty
 
-**Parked as:** rules enforce `text.size() > 0 && text.size() <= 4000`; empty text denied until media-in-messages; `SendMessage` must mirror **4000** when chat swaps (not wired yet).
+**Parked as:** rules enforce `text.size() > 0 && text.size() <= 4000`; empty text denied until media-in-messages. Dart `kMessageMaxLen` / `SendMessage` now mirror **4000**.
 
 **Rules (today):** messages create (~260–262).
 

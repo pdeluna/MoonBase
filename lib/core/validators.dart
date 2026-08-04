@@ -1,5 +1,5 @@
 const int kBaseNameMaxLen = 32;
-const int kMessageMaxLen  = 1000;
+const int kMessageMaxLen  = 4000;
 
 /// 6 chars, exclude easily-confused O/0/I/1
 final RegExp kInviteCode = RegExp(r'^[A-HJ-NP-Z2-9]{6}$');

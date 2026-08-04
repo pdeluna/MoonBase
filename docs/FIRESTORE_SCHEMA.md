@@ -160,7 +160,7 @@ Doc id is the same 6-char **code** as `bases/{baseId}/invites/{code}`.
 | Field | Type | Notes |
 |-------|------|--------|
 | `authorUid` | string | Auth UID of sender |
-| `text` | string | Message body; **non-empty**, max **4000** chars (enforced in rules; Dart `kMessageMaxLen` is still 1000 until use-case mirror) |
+| `text` | string | Message body; **non-empty**, max **4000** chars (rules + Dart `kMessageMaxLen`) |
 | `createdAt` | timestamp | Write via `serverTimestamp()`; pending local null maps to newest-end `DateTime.now()` in the client DS |
 | `schemaVersion` | number | `1` |
 
@@ -272,7 +272,7 @@ Non-transactional partial writes can orphan. Emulator suite includes a contentio
 
 ### Message text cap
 
-Rules: `text.size() > 0 && text.size() <= 4000`. Empty text denied (media-only messages come later). When `SendMessage` gains Firestore validation, mirror **4000** there — do not diverge.
+Rules: `text.size() > 0 && text.size() <= 4000`. Empty text denied (media-only messages come later). Dart `kMessageMaxLen` / `SendMessage` mirror **4000** — do not diverge.
 
 ### Nickname copy — advisory
 
