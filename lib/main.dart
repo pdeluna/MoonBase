@@ -16,7 +16,7 @@ import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_prov
 import 'package:moonbase_skeleton/features/auth/data/datasources/auth_local_data_source_impl.dart';
 import 'package:moonbase_skeleton/features/auth/data/datasources/firebase_auth_remote_data_source.dart';
 
-import 'package:moonbase_skeleton/features/chat/data/datasources/chat_shared_prefs_data_source.dart';
+import 'package:moonbase_skeleton/features/chat/data/datasources/chat_firestore_data_source.dart';
 import 'package:moonbase_skeleton/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
 
@@ -75,7 +75,7 @@ void main() async {
     ),
 
     chatRepositoryProvider.overrideWithValue(
-      ChatRepositoryImpl(local: ChatSharedPrefsDataSource(prefs)),
+      ChatRepositoryImpl(local: ChatFirestoreDataSource()),
     ),
 
     baseRepositoryProvider.overrideWithValue(

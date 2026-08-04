@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:moonbase_skeleton/core/ids.dart';
@@ -126,6 +127,67 @@ void main() {
       expect(entity.userId, const UserId('u1'));
       expect(entity.media, equals(media));
       expect(entity.syncStatus, SyncStatus.localOnly);
+    });
+
+    test('toFirestore writes only the four hasOnly fields with serverTimestamp',
+        () {
+      final model = MessageModel(
+        id: 'm1',
+        baseId: 'b1',
+        userId: 'uid_alice',
+        content: 'hello',
+        createdAt: DateTime.utc(2026, 8, 4, 12, 0),
+        media: [_image()],
+      );
+
+      final payload = model.toFirestore();
+
+      expect(payload.keys.toSet(), {
+        'authorUid',
+        'text',
+        'createdAt',
+        'schemaVersion',
+      });
+      expect(payload['authorUid'], 'uid_alice');
+      expect(payload['text'], 'hello');
+      expect(payload['schemaVersion'], MessageModel.firestoreSchemaVersion);
+      expect(payload['createdAt'], isA<FieldValue>());
+    });
+
+    test('fromFirestore maps authorUid/text and Timestamp createdAt', () {
+      final restored = MessageModel.fromFirestore('mid1', 'base1', {
+        'authorUid': 'uid_bob',
+        'text': 'hi base',
+        'createdAt': Timestamp.fromDate(DateTime.utc(2026, 8, 4, 15, 0)),
+        'schemaVersion': 1,
+      });
+
+      expect(restored.id, 'mid1');
+      expect(restored.baseId, 'base1');
+      expect(restored.userId, 'uid_bob');
+      expect(restored.content, 'hi base');
+      expect(restored.createdAt, DateTime.utc(2026, 8, 4, 15, 0));
+      expect(restored.media, isEmpty);
+      expect(restored.syncStatus, SyncStatus.synced);
+    });
+
+    test('fromFirestore uses newest-end now() when createdAt is null (pending)',
+        () {
+      final before = DateTime.now().toUtc();
+      final restored = MessageModel.fromFirestore('mid2', 'base1', {
+        'authorUid': 'uid_bob',
+        'text': 'pending',
+        'createdAt': null,
+        'schemaVersion': 1,
+      });
+      final after = DateTime.now().toUtc();
+
+      expect(restored.createdAt.isBefore(before.subtract(const Duration(seconds: 1))),
+          isFalse);
+      expect(
+        !restored.createdAt.isAfter(after.add(const Duration(seconds: 1))),
+        isTrue,
+      );
     });
   });
 }

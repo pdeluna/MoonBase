@@ -1,10 +1,10 @@
 # Firestore Schema — Week 3
 
-**Status:** Profiles → Firestore wired. Bases/members/invites/leave on Firestore. Last-accessed is device-local SharedPreferences (keyed by uid), not a Firestore field.  
+**Status:** Profiles, bases/members/invites/leave, and chat messages → Firestore. Last-accessed is device-local SharedPreferences (keyed by uid).  
 **Source of truth for document shape:** this file + checked-in [`firestore.rules`](../firestore.rules).  
 **Current schema version:** `1` on every product document.
 
-Write this shape down before any repository swap. Thursday’s membership rules and the bases/members/invites migration depend on it.
+**Week 4 Tuesday stopping point:** single-device send / persist / relaunch. **Thursday deliverable:** two-device live-sync verification.
 
 ---
 
@@ -155,16 +155,16 @@ Doc id is the same 6-char **code** as `bases/{baseId}/invites/{code}`.
 
 ---
 
-### `bases/{baseId}/messages/{messageId}` — chat (later this week / Thursday)
+### `bases/{baseId}/messages/{messageId}` — chat
 
 | Field | Type | Notes |
 |-------|------|--------|
 | `authorUid` | string | Auth UID of sender |
-| `text` | string | Message body; **non-empty**, max **4000** chars (enforced in rules; mirror in `SendMessage` when chat swaps) |
-| `createdAt` | timestamp | |
+| `text` | string | Message body; **non-empty**, max **4000** chars (enforced in rules; Dart `kMessageMaxLen` is still 1000 until use-case mirror) |
+| `createdAt` | timestamp | Write via `serverTimestamp()`; pending local null maps to newest-end `DateTime.now()` in the client DS |
 | `schemaVersion` | number | `1` |
 
-Keep this collection in the schema now so rules and indexes land with bases; repository swap can follow profiles.
+Doc id is **client-generated** (UUID). Stream: `orderBy('createdAt')` + post-map re-sort so pending nulls do not leap from oldest→newest.
 
 **Example**
 
@@ -294,7 +294,7 @@ No ownership transfer; no last-owner-leave. Owner cannot use the self-remove bra
 |-------|--------|
 | List my bases | Composite: `memberUids` **CONTAINS** + `createdAt` **DESC** — checked in [`firestore.indexes.json`](../firestore.indexes.json) |
 | Redeem by code (if collection-group) | Collection group `invites` — confirm fields once redeem path is chosen |
-| Messages by time | `messages` orderBy `createdAt` under a base (single-field; usually auto) |
+| Messages by time | `messages` orderBy `createdAt` under a base — **single-field auto index**; no composite entry required for Tuesday stream/list |
 
 Deploy indexes with: `firebase deploy --only firestore:indexes --project moonbase-aaff7`
 
@@ -302,7 +302,6 @@ Deploy indexes with: `firebase deploy --only firestore:indexes --project moonbas
 
 ## Non-goals for this doc
 
-- No repository / codec implementation (Tuesday step 3).
 - No stories collection or rules.
 - No Storage object paths (media remains Phase 3 / later cloud media).
 - No uniqueness enforcement on `nickname` at the Firestore layer (Auth UID is identity).
