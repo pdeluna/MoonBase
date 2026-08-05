@@ -1,10 +1,10 @@
 # Firestore Update Triggers
 
 **Keep next to:** [`FIRESTORE_SCHEMA.md`](FIRESTORE_SCHEMA.md)  
-**Rules:** [`../firestore.rules`](../firestore.rules)  
-**Emulator suite:** [`../firestore/tests/`](../firestore/tests/) (`.\run-tests.ps1`)
+**Rules:** [`../firestore.rules`](../firestore.rules), [`../storage.rules`](../storage.rules)  
+**Emulator suite:** [`../firestore/tests/`](../firestore/tests/), [`../storage/tests/`](../storage/tests/) (`.\run-tests.ps1`)
 
-Scale-time reference — when each parked Week 3 decision forces a **rule** and/or **test** change. Each row is *what’s parked, and the precise trigger that un-parks it.* Do not re-open these without hitting the trigger.
+Scale-time reference — when each parked Week 3 / Week 5 decision forces a **rule** and/or **test** change. Each row is *what’s parked, and the precise trigger that un-parks it.* Do not re-open these without hitting the trigger.
 
 Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisions & deferred](FIRESTORE_SCHEMA.md#decisions--deferred).
 
@@ -17,12 +17,14 @@ Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisio
 | 1 | Membership via `get(base)` | Hot read path multiplies base reads | Rules + claims CF + tests |
 | 2 | Invite over-admit allowed by rules | “Never exceed `maxUses`” is hard | Rules + CF redeem + invert test |
 | 3 | Open `users` read | Sensitive profiles / shared-base privacy | Rules + new deny test |
-| 4 | Message `text` 1–4000 | Week 4 chat and/or media-only messages | `SendMessage` and/or rules + tests |
+| 4 | Message `text` 1–4000 (empty text denied; media-only deferred) | Media-only messages become a product need | Rules allow empty text when `mediaPaths` non-empty; flip empty-text test |
 | 5 | Advisory nickname copy | Stale names hurt UX | Fan-out or stricter rules + test |
 | 6 | Owner leave / transfer | Handoff/abandon is a feature | Rules transfer branch + tests |
 | 7 | `schemaVersion == 1` only | First post-MVP reshape | Rules accept `[1,2]` + coexistence tests |
 | 8 | Stories rules commented out | Stories leave local storage | Uncomment + stories deny matrix |
 | 9 | Messages rules ahead of feature | Week 4 chat data source lands | Confirm codec + cap mirror |
+| 10 | Storage auth-only (no membership) | Media privacy across bases is hard | Claims CF + `storage.rules` + invert tests |
+| 11 | Storage delete denied | Author delete or Admin cleanup is a product need | `allow delete` (scoped) or CF + tests |
 
 ---
 
@@ -162,11 +164,45 @@ This is why the field is on every doc — you’re pre-positioned.
 
 ---
 
+## 10 — Storage auth-only (no membership)
+
+**Parked as:** MVP ADR — Storage gated by signed-in + path + size/type only; no base membership check (Storage rules cannot read Firestore).
+
+**Rules (today):** [`../storage.rules`](../storage.rules) — `bases/{baseId}/media/{fileName}` read/create/update require `request.auth != null` (+ size/type on write).
+
+**Test (today):** [`../storage/tests/storage.rules.test.js`](../storage/tests/storage.rules.test.js).
+
+**Trigger:** media privacy across bases becomes a hard requirement (cross-base signed-in users must not read/write another base’s media).
+
+**Rule change:** custom claims (e.g. `baseIds`) minted by a Cloud Function on join/leave; Storage rules check `request.auth.token` membership for `baseId`.
+
+**Test change:** authenticated contexts gain claims; add “signed-in non-member denied” cases (none today — intentionally allowed).
+
+---
+
+## 11 — Storage delete denied
+
+**Parked as:** MVP ADR — no client `allow delete`; default-deny. Orphans are cleanup, not data loss.
+
+**Rules (today):** [`../storage.rules`](../storage.rules) — no delete allow under media path.
+
+**Test (today):** `"8 signed-in delete under media path denied (MVP)"`.
+
+**Trigger:** author-scoped media delete or Admin/CF orphan cleanup becomes a product need.
+
+**Rule change:** `allow delete` with uploader/owner check (metadata / claims), **or** leave client deny and delete only via Admin SDK / Cloud Function.
+
+**Test change:** invert or add scoped allow + cross-user deny cases.
+
+---
+
 ## Related
 
 | Doc / path | Role |
 |------------|------|
 | [FIRESTORE_SCHEMA.md](FIRESTORE_SCHEMA.md) | Shape + Decisions & deferred |
-| [`../firestore.rules`](../firestore.rules) | Checked-in rules |
-| [`../firestore/tests/`](../firestore/tests/) | Emulator deny/allow matrix |
+| [`../firestore.rules`](../firestore.rules) | Checked-in Firestore rules |
+| [`../storage.rules`](../storage.rules) | Checked-in Storage rules |
+| [`../firestore/tests/`](../firestore/tests/) | Firestore emulator deny/allow matrix |
+| [`../storage/tests/`](../storage/tests/) | Storage emulator deny/allow matrix |
 | [CLOUD_FIRESTORE_TEST_EXPANSION.md](CLOUD_FIRESTORE_TEST_EXPANSION.md) | Broader cloud test expansion plan |

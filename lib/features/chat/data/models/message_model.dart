@@ -3,8 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/sync_status.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
+import 'package:moonbase_skeleton/features/media/data/firebase_storage_path.dart';
 import 'package:moonbase_skeleton/features/media/data/models/media_ref_codec.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
 
 /// Persistence DTO for `Message`.
 ///
@@ -19,8 +21,10 @@ import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart'
 ///
 /// Firestore codecs ([toFirestore] / [fromFirestore]) are separate from
 /// [toMap] / [fromMap]: cloud docs use `authorUid`/`text`, `createdAt` as a
-/// Timestamp (write via [FieldValue.serverTimestamp]), and never store
-/// id/baseId/media/syncStatus on the document.
+/// Timestamp (write via [FieldValue.serverTimestamp]), and store media as
+/// `mediaPaths: string[]` (Storage paths only — never download URLs).
+/// Local-only MediaRef fields are not persisted on the cloud doc (lossy
+/// round-trip by design).
 class MessageModel {
   const MessageModel({
     required this.id,
@@ -48,6 +52,12 @@ class MessageModel {
   /// resolves. We map that to [DateTime.now] (UTC) as a **newest-end**
   /// stand-in so model time and post-map list sort stay coherent (see
   /// [ChatFirestoreDataSource.streamMessages]).
+  ///
+  /// `mediaPaths` → [MediaRef]s with cloud [MediaRef.storageKey]s. Lost on
+  /// this path (by design): width/height/sizeBytes/mimeType/thumbnailKey/
+  /// duration; [SyncStatus] is always [SyncStatus.synced]. Task 3 must teach
+  /// `MediaStorage.resolveUri` to resolve `bases/...` keys — not a regression
+  /// of this groundwork.
   factory MessageModel.fromFirestore(
     String id,
     String baseId,
@@ -65,7 +75,7 @@ class MessageModel {
       userId: data['authorUid'] as String? ?? '',
       content: data['text'] as String? ?? '',
       createdAt: createdAt,
-      media: const [],
+      media: _mediaFromFirestorePaths(data['mediaPaths'], baseId.bid),
       syncStatus: SyncStatus.synced,
     );
   }
@@ -100,14 +110,47 @@ class MessageModel {
         'syncStatus': syncStatus.name,
       };
 
-  /// Write payload for `bases/{baseId}/messages/{id}` — exactly the four
-  /// fields allowed by rules `hasOnly`.
+  /// Write payload for `bases/{baseId}/messages/{id}`.
+  ///
+  /// Always includes `mediaPaths` (possibly `[]`) so rules can validate the
+  /// list unconditionally. Only Firebase Storage paths for [baseId] are
+  /// emitted — local Phase 3 keys are omitted until task 3 uploads and sets
+  /// cloud [MediaRef.storageKey]s via [storagePathFor].
   Map<String, dynamic> toFirestore() => <String, dynamic>{
         'authorUid': userId,
         'text': content,
         'createdAt': FieldValue.serverTimestamp(),
         'schemaVersion': firestoreSchemaVersion,
+        'mediaPaths': _cloudMediaPathsForWrite(),
       };
+
+  List<String> _cloudMediaPathsForWrite() {
+    final bid = baseId.bid;
+    return media
+        .map((m) => m.storageKey)
+        .where((p) => isFirebaseStoragePathForBase(p, bid))
+        .toList(growable: false);
+  }
+}
+
+/// Lossy rebuild: path → [MediaRef] with defaults for non-persisted fields.
+List<MediaRef> _mediaFromFirestorePaths(Object? raw, BaseId baseId) {
+  if (raw is! Iterable) return const [];
+  final out = <MediaRef>[];
+  for (final entry in raw) {
+    if (entry is! String) continue;
+    if (!isFirebaseStoragePathForBase(entry, baseId)) continue;
+    final uuid = mediaUuidFromStoragePath(entry) ?? entry.split('/').last;
+    out.add(
+      MediaRef(
+        id: MediaId(uuid),
+        type: MediaType.image,
+        storageKey: entry,
+        syncStatus: SyncStatus.synced,
+      ),
+    );
+  }
+  return List<MediaRef>.unmodifiable(out);
 }
 
 SyncStatus _syncStatusOr(Object? raw, SyncStatus fallback) {

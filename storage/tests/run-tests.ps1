@@ -1,4 +1,4 @@
-# Runs the Firestore rules suite with a Java runtime on PATH.
+# Runs the Storage rules suite with a Java runtime on PATH.
 # Prefers JDK 23+, then Android Studio JBR, then whatever is on PATH.
 
 $ErrorActionPreference = "Stop"
@@ -39,6 +39,7 @@ foreach ($jdkHome in $candidates) {
 }
 
 if (-not $resolved) {
+  # Fall back to whatever `java` resolves to on PATH.
   $javaCmd = Get-Command java -ErrorAction SilentlyContinue
   if ($javaCmd -and (Test-JavaExe $javaCmd.Source)) {
     Write-Host "Using java on PATH: $($javaCmd.Source)"

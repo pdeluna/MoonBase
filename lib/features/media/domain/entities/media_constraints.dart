@@ -21,7 +21,7 @@ class MediaConstraints {
   final int maxMediaPerMessage;
   final int maxMediaPerPost;
 
-  static const int imageMaxBytesDefault = 30 * 1024 * 1024; // 20 MB per image
+  static const int imageMaxBytesDefault = 10 * 1024 * 1024; // 10 MB per image (matches storage.rules)
   static const int videoMaxBytesDefault = 50 * 1024 * 1024; // 50 MB
   static const Duration videoMaxDurationDefault = Duration(seconds: 30);
   static const int maxMediaPerMessageDefault = 4;

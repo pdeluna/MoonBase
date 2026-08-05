@@ -142,15 +142,20 @@ async function adminGet(pathSegments) {
   return { exists, data };
 }
 
-async function seedMessage(messageId, authorUid, text) {
+function messageDoc(authorUid, text, mediaPaths = []) {
+  return {
+    authorUid,
+    text,
+    createdAt: Timestamp.fromMillis(1_700_000_000_200),
+    schemaVersion: 1,
+    mediaPaths,
+  };
+}
+
+async function seedMessage(messageId, authorUid, text, mediaPaths = []) {
   const db = authorUid === ALICE ? aliceDb() : bobDb();
   await assertSucceeds(
-    setDoc(doc(db, 'bases', BASE, 'messages', messageId), {
-      authorUid,
-      text,
-      createdAt: Timestamp.fromMillis(1_700_000_000_200),
-      schemaVersion: 1,
-    }),
+    setDoc(doc(db, 'bases', BASE, 'messages', messageId), messageDoc(authorUid, text, mediaPaths)),
   );
 }
 
@@ -701,30 +706,207 @@ describe('messages text cap', () => {
     await seedOwnerBaseWithMemberRow();
 
     await assertFails(
-      setDoc(doc(aliceDb(), 'bases', BASE, 'messages', 'empty'), {
-        authorUid: ALICE,
-        text: '',
-        createdAt: Timestamp.fromMillis(1_700_000_000_200),
-        schemaVersion: 1,
-      }),
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'empty'),
+        messageDoc(ALICE, ''),
+      ),
     );
 
     await assertFails(
-      setDoc(doc(aliceDb(), 'bases', BASE, 'messages', 'huge'), {
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'huge'),
+        messageDoc(ALICE, 'x'.repeat(4001)),
+      ),
+    );
+
+    await assertSucceeds(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'ok'),
+        messageDoc(ALICE, 'x'.repeat(4000)),
+      ),
+    );
+  });
+
+  test('empty text with mediaPaths is still rejected (media-only deferred)', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'mediaOnly'),
+        messageDoc(ALICE, '', [`bases/${BASE}/media/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg`]),
+      ),
+    );
+  });
+});
+
+describe('messages mediaPaths', () => {
+  const pathA = `bases/${BASE}/media/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg`;
+  const pathB = `bases/${BASE}/media/ffffffff-1111-2222-3333-444444444444.jpg`;
+  const crossBase = 'bases/otherBase/media/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg';
+
+  test('text-only with mediaPaths [] succeeds', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertSucceeds(
+      setDoc(doc(aliceDb(), 'bases', BASE, 'messages', 'textOnly'), messageDoc(ALICE, 'hi')),
+    );
+  });
+
+  test('valid mediaPaths (1–4, this-base prefix) succeed', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertSucceeds(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'one'),
+        messageDoc(ALICE, 'one', [pathA]),
+      ),
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'two'),
+        messageDoc(ALICE, 'two', [pathA, pathB]),
+      ),
+    );
+  });
+
+  test('missing mediaPaths key is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(doc(aliceDb(), 'bases', BASE, 'messages', 'noPaths'), {
         authorUid: ALICE,
-        text: 'x'.repeat(4001),
+        text: 'hi',
         createdAt: Timestamp.fromMillis(1_700_000_000_200),
         schemaVersion: 1,
       }),
     );
+  });
 
-    await assertSucceeds(
-      setDoc(doc(aliceDb(), 'bases', BASE, 'messages', 'ok'), {
-        authorUid: ALICE,
-        text: 'x'.repeat(4000),
-        createdAt: Timestamp.fromMillis(1_700_000_000_200),
-        schemaVersion: 1,
-      }),
+  test('more than 4 mediaPaths is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    const five = [0, 1, 2, 3, 4].map(
+      (i) => `bases/${BASE}/media/00000000-0000-0000-0000-00000000000${i}.jpg`,
+    );
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'five'),
+        messageDoc(ALICE, 'too many', five),
+      ),
+    );
+  });
+
+  test('cross-base mediaPaths prefix is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'cross'),
+        messageDoc(ALICE, 'cross', [crossBase]),
+      ),
+    );
+  });
+
+  test('non-string mediaPaths entry is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'badType'),
+        messageDoc(ALICE, 'bad', [123]),
+      ),
+    );
+  });
+
+  test('empty-string mediaPaths entry is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'emptyPath'),
+        messageDoc(ALICE, 'bad', ['']),
+      ),
+    );
+  });
+
+  test('non-bases/ path (local-style key) is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'localKey'),
+        messageDoc(ALICE, 'bad', [`${BASE}/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg`]),
+      ),
+    );
+  });
+
+  test('path that only contains the prefix (junk before bases/) is rejected', async () => {
+    // Proves matches() is whole-string: containing the prefix is not enough.
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'junkPrefix'),
+        messageDoc(ALICE, 'bad', [`x/bases/${BASE}/media/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg`]),
+      ),
+    );
+  });
+
+  test('baseId in wrong path segment (not after bases/) is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'wrongSeg'),
+        messageDoc(ALICE, 'bad', [
+          `media/${BASE}/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg`,
+        ]),
+      ),
+    );
+  });
+
+  test('wrong folder under base (not-media) is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'wrongFolder'),
+        messageDoc(ALICE, 'bad', [
+          `bases/${BASE}/not-media/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg`,
+        ]),
+      ),
+    );
+  });
+
+  test('empty leaf under media/ is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'emptyLeaf'),
+        messageDoc(ALICE, 'bad', [`bases/${BASE}/media/`]),
+      ),
+    );
+  });
+
+  test('nested path under media/ is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'nested'),
+        messageDoc(ALICE, 'bad', [
+          `bases/${BASE}/media/foo/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg`,
+        ]),
+      ),
+    );
+  });
+
+  test('non-jpg leaf is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'png'),
+        messageDoc(ALICE, 'bad', [
+          `bases/${BASE}/media/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.png`,
+        ]),
+      ),
+    );
+  });
+
+  test('non-uuid leaf (even with .jpg) is rejected', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await assertFails(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'messages', 'notUuid'),
+        messageDoc(ALICE, 'bad', [`bases/${BASE}/media/not-a-uuid.jpg`]),
+      ),
     );
   });
 });

@@ -163,17 +163,33 @@ Doc id is the same 6-char **code** as `bases/{baseId}/invites/{code}`.
 | `text` | string | Message body; **non-empty**, max **4000** chars (rules + Dart `kMessageMaxLen`) |
 | `createdAt` | timestamp | Write via `serverTimestamp()`; pending local null maps to newest-end `DateTime.now()` in the client DS |
 | `schemaVersion` | number | `1` |
+| `mediaPaths` | string[] | Always present (use `[]` for text-only). 0–4 Storage paths for **this** base: `bases/{baseId}/media/{uuid}.jpg`. Paths only — never download URLs. |
 
 Doc id is **client-generated** (UUID). Stream: `orderBy('createdAt')` + post-map re-sort so pending nulls do not leap from oldest→newest.
 
-**Example**
+**Example (text-only)**
 
 ```json
 {
   "authorUid": "uid_bob",
   "text": "Hello base",
   "createdAt": "<timestamp>",
-  "schemaVersion": 1
+  "schemaVersion": 1,
+  "mediaPaths": []
+}
+```
+
+**Example (with media)**
+
+```json
+{
+  "authorUid": "uid_bob",
+  "text": "Look",
+  "createdAt": "<timestamp>",
+  "schemaVersion": 1,
+  "mediaPaths": [
+    "bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg"
+  ]
 }
 ```
 
@@ -272,7 +288,13 @@ Non-transactional partial writes can orphan. Emulator suite includes a contentio
 
 ### Message text cap
 
-Rules: `text.size() > 0 && text.size() <= 4000`. Empty text denied (media-only messages come later). Dart `kMessageMaxLen` / `SendMessage` mirror **4000** — do not diverge.
+Rules: `text.size() > 0 && text.size() <= 4000`. Empty text denied (media-only messages come later — separate feature decision). Dart `kMessageMaxLen` / `SendMessage` mirror **4000** — do not diverge. Empty-text-with-media stays denied.
+
+### Message `mediaPaths` (Storage path refs)
+
+**ADR:** Message docs store **Storage object paths** in `mediaPaths: string[]`, not download URLs. Client derives a download reference via the SDK (`ref(storage, path)`) at render time so access still flows through Storage rules. Always write `mediaPaths` (use `[]` for text-only). Rules: list, size ≤ 4, each entry a whole-string match of `bases/{baseId}/media/{uuid}.jpg` (UUID v4 leaf + `.jpg` — Option B + tight leaf). Path builder: Dart `storagePathFor` in `lib/features/media/data/firebase_storage_path.dart` — sole constructor for cloud paths. Picker stays format-open; task 3 compresses diverse image picks to JPEG before upload.
+
+Domain `Message.media` / `MediaRef` round-trip is **lossy** on Firestore: only the path is persisted; width/height/mimeType/sizeBytes/thumbnailKey/duration are not. `fromFirestore` rebuilds image `MediaRef`s with those fields null and `syncStatus: synced`.
 
 ### Nickname copy — advisory
 
@@ -285,6 +307,45 @@ Rules: `text.size() > 0 && text.size() <= 4000`. Empty text denied (media-only m
 ### Owner leave / transfer — deferred
 
 No ownership transfer; no last-owner-leave. Owner cannot use the self-remove branch to abandon a base without orphaning. Out of scope for MVP — do not build.
+
+### Storage access (MVP openness)
+
+**ADR:** Storage reads/writes are gated by `request.auth != null` + object path + size/type only — **not** by base membership. Storage security rules cannot read Firestore documents, so `isMember(baseId)` is impossible here (unlike [`firestore.rules`](../firestore.rules)).
+
+Checked-in rules: [`storage.rules`](../storage.rules). Emulator suite: [`storage/tests/`](../storage/tests/).
+
+**Revisit trigger:** move to custom-claims-based membership gating if media privacy across bases ever becomes a hard requirement. Mirrors the open `users` read ADR above.
+
+### Storage size / compression (10 MB per attachment)
+
+**ADR:** Per-attachment ceiling is **10 MB** against **post-compression** bytes. `storage.rules` uses `request.resource.size < 10 * 1024 * 1024`; Dart `MediaConstraints.imageMaxBytesDefault` mirrors **10 MB** — do not diverge.
+
+Client-side compress/resize before upload is required in MediaRepository (Week 5 task 3); **not** implemented in the rules/path groundwork. The cap is **per attachment**: Storage rules evaluate one object per request and cannot see the message group.
+
+**Message envelope:** `maxMediaPerMessageDefault = 4`, enforced in Firestore rules (`mediaPaths.size() <= 4`) **and** client-side (`SendMessage` / picker) — theoretical put volume ≈ **4 × 10 MB = 40 MB** per message.
+### Storage delete denied at MVP
+
+**ADR:** No client `allow delete` on Storage objects. Default-deny. Orphaned media after message delete is a **cleanup** problem (Admin SDK / Cloud Function later), not data loss. Any-auth delete would let any signed-in user wipe media in any base — unscoped and unacceptable for a children's app.
+
+**Revisit:** author-scoped delete (uploader identity in metadata) or Admin/CF cleanup when product needs it.
+
+### Storage Content-Type trust
+
+**ADR:** `request.resource.contentType.matches('image/.*')` trusts the **client-supplied** `Content-Type` header; it is not magic-byte / real content validation. Acceptable for MVP.
+
+---
+
+## Storage media path
+
+**Locked shape:** `bases/{baseId}/media/{uuid}.jpg` via Dart `storagePathFor(baseId, uuid)`. Matches [`storage.rules`](../storage.rules) (`bases/{baseId}/media/{fileName}`). Fresh v4 UUID per attachment; leaf always `.jpg`.
+
+Firestorestore message docs store those paths in `mediaPaths` (never bytes, never `https://` download URLs).
+
+### Images-only MVP; video deferred
+
+**ADR:** MVP is images-only (`image/.*`, `.jpg` leaf, 10 MB). Video deferred — would require an extension-aware path builder, `video/.*` Storage rules with a separate cap, and a transcode/thumbnail pipeline; domain model retains video fields (`MediaType.video`, `duration`, `thumbnailKey`) as headroom. Video is also a child-safety decision that deserves its own consideration, not a ride-along on path-format work.
+
+**Task 3 note:** `MediaStorage.resolveUri` must learn to resolve `bases/...` cloud keys (today only local relative keys work). That gap is task-3 work, not a regression of this groundwork.
 
 ---
 
@@ -303,5 +364,6 @@ Deploy indexes with: `firebase deploy --only firestore:indexes --project moonbas
 ## Non-goals for this doc
 
 - No stories collection or rules.
-- No Storage object paths (media remains Phase 3 / later cloud media).
 - No uniqueness enforcement on `nickname` at the Firestore layer (Auth UID is identity).
+- No membership verification inside Storage rules (requires custom claims + Cloud Function — deferred).
+- No signed-URL / Function-mediated Storage access; no per-file uploader tracking yet.

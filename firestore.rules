@@ -42,6 +42,28 @@ service cloud.firestore {
       return existsAfter(basePath(baseId));
     }
 
+    // Message mediaPaths: list of Storage object paths for this base only.
+    // Unrolled for size 0–4 (rules have no list foreach). Whole-string match
+    // binds to bases/{baseId}/media/{uuid}.jpg (post-compression leaf — task 3
+    // normalizes diverse image picks to JPEG; picker stays format-open).
+    function isValidMediaPath(path, baseId) {
+      return path is string
+        && path.matches(
+          'bases/' + baseId
+            + '/media/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.jpg'
+        );
+    }
+
+    function mediaPathsValidForBase(baseId) {
+      let p = request.resource.data.mediaPaths;
+      return p is list
+        && p.size() <= 4
+        && (p.size() < 1 || isValidMediaPath(p[0], baseId))
+        && (p.size() < 2 || isValidMediaPath(p[1], baseId))
+        && (p.size() < 3 || isValidMediaPath(p[2], baseId))
+        && (p.size() < 4 || isValidMediaPath(p[3], baseId));
+    }
+
     // Joiner member-create only: membership against projected base so a
     // runTransaction that +1s memberUids and creates members/{uid} can see
     // the projected list. Does not change base update authorization.
@@ -277,13 +299,14 @@ service cloud.firestore {
         allow create: if isMember(baseId)
           && hasSchemaV1()
           && request.resource.data.keys().hasOnly([
-            'authorUid', 'text', 'createdAt', 'schemaVersion'
+            'authorUid', 'text', 'createdAt', 'schemaVersion', 'mediaPaths'
           ])
           && request.resource.data.authorUid == request.auth.uid
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 4000
-          && request.resource.data.createdAt is timestamp;
+          && request.resource.data.createdAt is timestamp
+          && mediaPathsValidForBase(baseId);
 
         allow update: if false;
 
