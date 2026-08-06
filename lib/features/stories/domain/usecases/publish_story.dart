@@ -72,7 +72,7 @@ class PublishStoryParams {
 /// Once this class compiles, write
 /// `test/features/stories/domain/usecases/publish_story_test.dart`
 /// (see scaffolded test file).
-class PublishStory {
+class PublishStory implements UseCase<Story, PublishStoryParams> {
   // TODO(stories Step 5): change the class signature to
   //   class PublishStory implements UseCase<Story, PublishStoryParams> {
   // once `Story` has the real fields and you have imports uncommented.
@@ -80,9 +80,27 @@ class PublishStory {
   // TODO(stories Step 5): replace this placeholder constructor with
   //   const PublishStory(this.repo);
   // and declare `final StoryRepository repo;` immediately below.
-  const PublishStory();
+  const PublishStory(this.repo);
+  final StoryRepository repo;
 
-  // TODO(stories Step 5): implement `Future<Either<Failure, Story>> call(
-  //   PublishStoryParams p)` per the four-step rule in the doc-comment
-  // above. The whole method should fit in roughly 10 lines.
-}
+  @override
+  Future<Either<Failure, Story>> call(PublishStoryParams p) async {
+    if(!p.settings.storiesEnabled){
+      return const Left(ValidationFailure('Stories are disabled for this base'));
+    }
+    const int maxCaptionSize = 280;
+    final String? cap = p.caption?.trim();
+    if(cap != null && cap.length > maxCaptionSize) { 
+      return const Left(ValidationFailure('Caption must be 280 or fewer characters'));
+    }
+    
+    
+    return repo.publishStory(
+      baseId: p.baseId,
+      authorUserId: p.authorUserId, 
+      media: p.media, 
+      settings: p.settings, 
+      ttl: p.settings.storyTtl,
+      caption: (cap == null || cap.isEmpty) ? null : cap);
+  }
+

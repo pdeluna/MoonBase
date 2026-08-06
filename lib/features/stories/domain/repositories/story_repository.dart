@@ -54,7 +54,7 @@ abstract class StoryRepository {
   Stream<List<Story>> streamActive(BaseId baseId);
   Future<Either<Failure, List<Story>>> listActive(BaseId baseId);
   Future<Either<Failure, List<Story>>> listArchive(BaseId baseID);
-  Future<Either<Failure, Unit>> deleteStory(StoryId storyId); // -> should this be UserId? story ID currently not initialized in the class
+  Future<Either<Failure, Unit>> deleteStory(StoryId storyId);
   Future<Either<Failure, Unit>> expiredAndArchive(BaseId baseId);
 
   

@@ -78,7 +78,7 @@ class Story {
   final String? caption;
   final Duration ttl;
   final DateTime createdAt;
-  bool get isExpired => DateTime.now().isAfter(createdAt.add(ttl));
+  bool get isExpired => DateTime.now().isAfter(createdAt.add(ttl)); // -> checks if story is expired 
   final bool archived;
   final SyncStatus syncStatus;
 
