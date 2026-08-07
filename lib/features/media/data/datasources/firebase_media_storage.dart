@@ -25,6 +25,9 @@ typedef StoragePutFn = Future<void> Function({
   required String contentType,
 });
 
+/// Resolves a Storage object [path] to a short-lived HTTPS download URL.
+typedef StorageGetDownloadUrlFn = Future<String> Function(String path);
+
 /// Cloud [MediaStorage]: compress to JPEG ≤ 10 MB, then upload to Firebase Storage.
 ///
 /// ## Pass-2 obligation (interface seam)
@@ -35,25 +38,41 @@ typedef StoragePutFn = Future<void> Function({
 /// equivalent try → `Left(Failure)`). An unguarded call will throw raw and
 /// crash the send flow.
 ///
-/// ## Scope (Week 5 task 3 pass 1)
+/// ## Pass 3 — [resolveUri]
 ///
-/// - Implements compress + upload only.
-/// - [resolveUri] is pass 3 (download/render).
+/// Returns `https://...` via [Reference.getDownloadURL]. Throws on invalid
+/// keys / Firebase errors (same Future-throws convention as [putBytes]; the
+/// port is not `Either`). Widgets map failures to a broken-image fallback.
+///
+/// Download URLs carry rotating auth tokens — render caches **must** key on
+/// the stable Storage path (`bases/{baseId}/media/{uuid}.jpg`), not the URL.
+///
+/// ## Scope
+///
+/// - [putBytes]: compress + upload.
+/// - [resolveUri]: download URL for render.
 /// - [delete] stays [UnimplementedError] permanently — Storage ADR denies
 ///   client deletes; not deferred to a later pass.
+///
+/// **HEIC / iOS:** upload + render unverified until iOS build day.
 class FirebaseMediaStorage extends RemoteMediaStorage {
   FirebaseMediaStorage({
     FirebaseStorage? storage,
     JpegCompressFn? compressJpeg,
     StoragePutFn? putObject,
+    StorageGetDownloadUrlFn? getDownloadUrl,
     this.maxBytes = MediaConstraints.imageMaxBytesDefault,
     this.maxEdge = 1920,
     this.initialQuality = 80,
   })  : _compressJpeg = compressJpeg ?? _defaultCompressJpeg,
-        _putObject = putObject ?? _defaultPutObject(storage ?? FirebaseStorage.instance);
+        // Defaults close over [storage] and only touch FirebaseStorage.instance
+        // when invoked — so unit tests that stub put/get never need Firebase.
+        _putObject = putObject ?? _defaultPutObject(storage),
+        _getDownloadUrl = getDownloadUrl ?? _defaultGetDownloadUrl(storage);
 
   final JpegCompressFn _compressJpeg;
   final StoragePutFn _putObject;
+  final StorageGetDownloadUrlFn _getDownloadUrl;
 
   /// Post-compression ceiling (matches `storage.rules` + [MediaConstraints]).
   final int maxBytes;
@@ -85,11 +104,9 @@ class FirebaseMediaStorage extends RemoteMediaStorage {
   }
 
   @override
-  Future<String> resolveUri(String key) {
-    // Pass 3 — download / render. Not implemented in pass 1.
-    throw UnimplementedError(
-      'FirebaseMediaStorage.resolveUri is pass 3 (download/render).',
-    );
+  Future<String> resolveUri(String key) async {
+    final path = cloudStoragePathFromKey(key);
+    return _getDownloadUrl(path);
   }
 
   @override
@@ -149,16 +166,21 @@ Future<Uint8List?> _defaultCompressJpeg(
   return Uint8List.fromList(out);
 }
 
-StoragePutFn _defaultPutObject(FirebaseStorage storage) {
+StoragePutFn _defaultPutObject(FirebaseStorage? storage) {
   return ({
     required String path,
     required Uint8List bytes,
     required String contentType,
   }) async {
     // contentType is required: storage.rules match image/.* on metadata.
-    await storage.ref(path).putData(
+    await (storage ?? FirebaseStorage.instance).ref(path).putData(
           bytes,
           SettableMetadata(contentType: contentType),
         );
   };
+}
+
+StorageGetDownloadUrlFn _defaultGetDownloadUrl(FirebaseStorage? storage) {
+  return (path) =>
+      (storage ?? FirebaseStorage.instance).ref(path).getDownloadURL();
 }

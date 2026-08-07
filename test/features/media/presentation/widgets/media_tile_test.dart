@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,10 +13,11 @@ import 'package:moonbase_skeleton/features/media/presentation/widgets/video_thum
 
 /// Trivial `MediaStorage` stub for widget tests.
 class _StubMediaStorage implements MediaStorage {
-  _StubMediaStorage(this.uri, {this.keyedUris});
+  _StubMediaStorage(this.uri, {this.keyedUris, this.resolveError});
 
   final String uri;
   final Map<String, String>? keyedUris;
+  final Object? resolveError;
 
   @override
   Future<String> putBytes({
@@ -26,8 +28,11 @@ class _StubMediaStorage implements MediaStorage {
       key;
 
   @override
-  Future<String> resolveUri(String key) async =>
-      keyedUris?[key] ?? uri;
+  Future<String> resolveUri(String key) async {
+    final err = resolveError;
+    if (err != null) throw err;
+    return keyedUris?[key] ?? uri;
+  }
 
   @override
   Future<void> delete(String key) async {}
@@ -50,15 +55,21 @@ void main() {
       expect((provider as FileImage).file.path, endsWith('x.png'));
     });
 
-    test('https:// → NetworkImage preserving the URL', () {
-      final provider = imageProviderForUri('https://example.com/a.jpg');
-      expect(provider, isA<NetworkImage>());
-      expect((provider as NetworkImage).url, 'https://example.com/a.jpg');
+    test('https:// → CachedNetworkImageProvider with stable cacheKey', () {
+      const path = 'bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg';
+      final provider = imageProviderForUri(
+        'https://example.com/a.jpg?token=rotating',
+        cacheKey: path,
+      );
+      expect(provider, isA<CachedNetworkImageProvider>());
+      final cached = provider as CachedNetworkImageProvider;
+      expect(cached.url, 'https://example.com/a.jpg?token=rotating');
+      expect(cached.cacheKey, path);
     });
 
-    test('http:// → NetworkImage preserving the URL', () {
+    test('http:// → CachedNetworkImageProvider', () {
       final provider = imageProviderForUri('http://example.com/a.jpg');
-      expect(provider, isA<NetworkImage>());
+      expect(provider, isA<CachedNetworkImageProvider>());
     });
 
     test('schemeless paths fall back to FileImage on the raw string', () {
@@ -164,4 +175,35 @@ void main() {
     await tester.tap(find.byType(MediaTile));
     expect(taps, 1);
   });
+
+  testWidgets(
+    'resolveUri throw → broken-image fallback (not stuck on placeholder)',
+    (tester) async {
+      final storage = _StubMediaStorage(
+        'https://example.com/x.jpg',
+        resolveError: StateError('storage-denied'),
+      );
+      const media = MediaRef(
+        id: MediaId('m-fail'),
+        type: MediaType.image,
+        storageKey: 'bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg',
+      );
+
+      await tester.pumpWidget(ProviderScope(
+        overrides: [mediaStorageProvider.overrideWithValue(storage)],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: MediaTile(media: media, width: 120, height: 120),
+            ),
+          ),
+        ),
+      ));
+
+      await tester.pump();
+
+      expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    },
+  );
 }

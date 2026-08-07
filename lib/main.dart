@@ -27,6 +27,7 @@ import 'package:moonbase_skeleton/features/bases/presentation/providers/base_pro
 import 'package:moonbase_skeleton/features/media/data/datasources/firebase_media_storage.dart';
 import 'package:moonbase_skeleton/features/media/data/datasources/image_picker_media_picker.dart';
 import 'package:moonbase_skeleton/features/media/data/datasources/local_file_media_storage.dart';
+import 'package:moonbase_skeleton/features/media/data/datasources/resolving_media_storage.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 
 import 'package:moonbase_skeleton/core/di/providers.dart' show sharedPrefsProvider;
@@ -55,8 +56,15 @@ void main() async {
   // available to LocalFileMediaStorage. See docs/PHASE3_DOD_ACTION_LIST.md
   // §0.3.5.
   final docsDir = await getApplicationDocumentsDirectory();
-  final mediaStorage = LocalFileMediaStorage(docsDir);
-  final mediaPicker = ImagePickerMediaPicker(storage: mediaStorage);
+  final localMediaStorage = LocalFileMediaStorage(docsDir);
+  final cloudMediaStorage = FirebaseMediaStorage();
+  // Widgets resolve through the facade (local staging keys + cloud keys with
+  // sender local-first). Picker staging still writes through the local root.
+  final mediaStorage = ResolvingMediaStorage(
+    local: localMediaStorage,
+    cloud: cloudMediaStorage,
+  );
+  final mediaPicker = ImagePickerMediaPicker(storage: localMediaStorage);
 
   final profileFirestore = ProfileFirestoreDataSource();
 
@@ -88,11 +96,10 @@ void main() async {
       ),
     ),
 
-    // Phase 3 media foundation: staging storage (picker writes + previews)
-    // stays local. Week 5 task 3 adds the cloud storage alongside it —
-    // SendMessage uploads staged bytes through cloudMediaStorageProvider.
+    // mediaStorageProvider: ResolvingMediaStorage (local put/delete + routed
+    // resolveUri). cloudMediaStorageProvider: upload-only for SendMessage.
     mediaStorageProvider.overrideWithValue(mediaStorage),
-    cloudMediaStorageProvider.overrideWithValue(FirebaseMediaStorage()),
+    cloudMediaStorageProvider.overrideWithValue(cloudMediaStorage),
     mediaPickerProvider.overrideWithValue(mediaPicker),
   ];
 

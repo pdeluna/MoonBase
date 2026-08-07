@@ -176,8 +176,9 @@ void main() {
     });
   });
 
-  group('FirebaseMediaStorage stubs', () {
-    test('resolveUri is UnimplementedError (pass 3)', () {
+  group('FirebaseMediaStorage.resolveUri', () {
+    test('returns download URL for canonical cloud path', () async {
+      String? requestedPath;
       final storage = FirebaseMediaStorage(
         compressJpeg: (bytes, {required quality, required maxEdge}) async =>
             _tinyJpeg(),
@@ -186,13 +187,66 @@ void main() {
           required bytes,
           required contentType,
         }) async {},
+        getDownloadUrl: (path) async {
+          requestedPath = path;
+          return 'https://firebasestorage.googleapis.com/v0/b/x/o/'
+              '${Uri.encodeComponent(path)}?token=rotating';
+        },
       );
-      expect(
-        () => storage.resolveUri(cloudPath),
-        throwsA(isA<UnimplementedError>()),
-      );
+
+      final uri = await storage.resolveUri(cloudPath);
+
+      expect(requestedPath, cloudPath);
+      expect(uri, contains('token=rotating'));
+      expect(uri, startsWith('https://'));
     });
 
+    test('maps local staging key to cloud path before getDownloadURL', () async {
+      String? requestedPath;
+      final storage = FirebaseMediaStorage(
+        compressJpeg: (bytes, {required quality, required maxEdge}) async =>
+            _tinyJpeg(),
+        putObject: ({
+          required path,
+          required bytes,
+          required contentType,
+        }) async {},
+        getDownloadUrl: (path) async {
+          requestedPath = path;
+          return 'https://example.com/$path';
+        },
+      );
+
+      await storage.resolveUri(localKey);
+
+      expect(requestedPath, cloudPath);
+    });
+
+    test('throws ValidationFailure on unparseable key (no network)', () async {
+      var getCalled = false;
+      final storage = FirebaseMediaStorage(
+        compressJpeg: (bytes, {required quality, required maxEdge}) async =>
+            _tinyJpeg(),
+        putObject: ({
+          required path,
+          required bytes,
+          required contentType,
+        }) async {},
+        getDownloadUrl: (path) async {
+          getCalled = true;
+          return 'https://example.com';
+        },
+      );
+
+      expect(
+        () => storage.resolveUri('base1/not-a-uuid.jpg'),
+        throwsA(isA<ValidationFailure>()),
+      );
+      expect(getCalled, isFalse);
+    });
+  });
+
+  group('FirebaseMediaStorage stubs', () {
     test('delete is UnimplementedError permanently (Storage delete ADR)', () {
       final storage = FirebaseMediaStorage(
         compressJpeg: (bytes, {required quality, required maxEdge}) async =>

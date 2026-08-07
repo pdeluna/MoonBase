@@ -2,9 +2,10 @@ import 'package:moonbase_skeleton/features/media/domain/repositories/media_stora
 
 /// Base type for cloud-backed [MediaStorage] implementations.
 ///
-/// Concrete impl: [FirebaseMediaStorage] (Week 5 task 3) — compress + upload
-/// via Firebase Storage. Pass 1 does not swap [mediaStorageProvider]; wiring
-/// is pass 2+.
+/// Concrete impl: [FirebaseMediaStorage] — compress + upload + download URL
+/// resolve via Firebase Storage. Widgets resolve through
+/// `ResolvingMediaStorage` on [mediaStorageProvider]; `SendMessage` uploads
+/// via [cloudMediaStorageProvider].
 ///
 /// ## Pass-2 handoff (required)
 ///

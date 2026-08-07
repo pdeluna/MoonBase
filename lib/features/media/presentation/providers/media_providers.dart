@@ -15,8 +15,8 @@ final mediaConstraintsProvider = Provider<MediaConstraints>(
 );
 
 /// The single `MediaStorage` instance used by every feature that renders or
-/// persists media. **Must** be overridden in `main.dart` with a concrete
-/// implementation (Phase 3: `LocalFileMediaStorage`).
+/// unstages media. **Must** be overridden in `main.dart` with
+/// `ResolvingMediaStorage` (local put/delete + routed resolveUri).
 ///
 /// Widgets that need to turn a `MediaRef.storageKey` into a renderable URI
 /// (`MediaTile`, `MediaPreview`, `VideoThumbnail`) read this provider
@@ -24,15 +24,15 @@ final mediaConstraintsProvider = Provider<MediaConstraints>(
 /// tile" widget; see Phase 3 architectural constraint #3 in the DoD.
 final mediaStorageProvider = Provider<MediaStorage>(
   (_) => throw UnimplementedError(
-    'mediaStorageProvider must be overridden in main.dart with a concrete '
-    'MediaStorage (Phase 3: LocalFileMediaStorage).',
+    'mediaStorageProvider must be overridden in main.dart with '
+    'ResolvingMediaStorage (local + cloud resolve facade).',
   ),
 );
 
-/// The cloud `MediaStorage` (Week 5 task 3: `FirebaseMediaStorage` —
-/// compress + upload). **Must** be overridden in `main.dart`. Kept separate
-/// from [mediaStorageProvider]: staging (picker writes, previews) stays
-/// local; `SendMessage` uploads staged bytes through this one.
+/// The cloud `MediaStorage` (`FirebaseMediaStorage` — compress + upload +
+/// download URL resolve). **Must** be overridden in `main.dart`. Kept
+/// separate from [mediaStorageProvider]: `SendMessage` uploads staged bytes
+/// through this one; widgets resolve via the facade on [mediaStorageProvider].
 final cloudMediaStorageProvider = Provider<MediaStorage>(
   (_) => throw UnimplementedError(
     'cloudMediaStorageProvider must be overridden in main.dart with a '
