@@ -29,6 +29,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// successful send; preserved on failure so the user can retry.
   List<MediaRef> _stagedMedia = const <MediaRef>[];
 
+  /// True while a send (compress + upload + create, Week 5 task 3 pass 2) is
+  /// in flight. Feeds the composer's existing `canSend` disable so the send
+  /// button greys out for the duration, and guards `_sendMessage` against
+  /// re-entry — a slow upload makes double-tap reachable for the first time.
+  bool _isSending = false;
+
+  /// Gates the one-shot basesList refresh on screen entry (not every rebuild).
+  bool _didRefreshBasesOnEntry = false;
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -61,6 +70,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> _sendMessage() async {
+    if (_isSending) return;
+
     final text = _messageController.text.trim();
     if (!isValidMessageInput(text: text, mediaCount: _stagedMedia.length)) {
       _showErrorSnackBar(
@@ -80,6 +91,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     final mediaToSend = _stagedMedia;
+    setState(() {
+      _isSending = true;
+    });
     try {
       final chatController = ref.read(chatControllerProvider.notifier);
       await chatController.send(
@@ -96,6 +110,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       // Keep _stagedMedia intact so the user can retry without re-picking.
       _showErrorSnackBar('Failed to send message: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
     }
   }
 
@@ -137,10 +157,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _loadedBaseId = null;
     }
 
-    // Force refresh bases list when chat screen loads to ensure we have latest data
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(basesListProvider);
-    });
+    // One-shot on screen entry only — do NOT invalidate every rebuild
+    // (that caused an infinite basesList refetch / log-flood loop).
+    if (!_didRefreshBasesOnEntry) {
+      _didRefreshBasesOnEntry = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.invalidate(basesListProvider);
+      });
+    }
 
     if (!vm.hasSelectedBase) {
       return Scaffold(
@@ -192,6 +216,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             messageController: _messageController,
             onSendMessage: _sendMessage,
             canSend: vm.canSendMessage,
+            // Existing disable affordance doubles as the in-flight state:
+            // while a send (upload + create) runs, the button greys out.
+            isSending: _isSending,
             baseId: vm.selectedBase!.id,
             stagedMedia: _stagedMedia,
             onStage: _stageMedia,

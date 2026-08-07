@@ -5,7 +5,27 @@ import 'package:moonbase_skeleton/features/chat/domain/usecases/list_messages.da
 import 'package:moonbase_skeleton/features/chat/domain/usecases/send_message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/stream_messages.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/controllers/chat_controller.dart';
+import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// Text-only sends never touch media storage; fail loudly if they do.
+class _UnusedMediaStorage implements MediaStorage {
+  @override
+  Future<String> putBytes({
+    required String key,
+    required List<int> bytes,
+    required String mimeType,
+  }) =>
+      throw StateError('MediaStorage must not be touched in this test');
+
+  @override
+  Future<String> resolveUri(String key) =>
+      throw StateError('MediaStorage must not be touched in this test');
+
+  @override
+  Future<void> delete(String key) =>
+      throw StateError('MediaStorage must not be touched in this test');
+}
 
 void main() {
   group('ChatController with in-memory repo', () {
@@ -24,7 +44,11 @@ void main() {
       repo = ChatRepositoryImpl(local: ds);
       c = ChatController(
         ListMessages(repo),
-        SendMessage(repo),
+        SendMessage(
+          repo,
+          stagingStorage: _UnusedMediaStorage(),
+          cloudStorage: _UnusedMediaStorage(),
+        ),
         StreamMessages(repo),
       );
     });

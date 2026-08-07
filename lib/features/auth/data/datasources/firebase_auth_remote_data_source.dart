@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:flutter/foundation.dart';
 
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/features/auth/data/datasources/auth_remote_data_source.dart';
@@ -79,6 +80,12 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
+    // TEMP DIAG_HANG — remove after incident root-cause confirmed
+    final sw = Stopwatch()..start();
+    debugPrint(
+      'DIAG_HANG signInWithEmailAndPassword BEFORE email=$email '
+      't=${DateTime.now().toIso8601String()}',
+    );
     try {
       final cred = await _auth.signInWithEmailAndPassword(
         email: email,
@@ -86,10 +93,22 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       );
       final user = cred.user;
       if (user == null) {
+        debugPrint(
+          'DIAG_HANG signInWithEmailAndPassword AFTER null-user '
+          'elapsedMs=${sw.elapsedMilliseconds}',
+        );
         throw const UnknownFailure('Sign-in succeeded but no user was returned.');
       }
+      debugPrint(
+        'DIAG_HANG signInWithEmailAndPassword AFTER success '
+        'uid=${user.uid} elapsedMs=${sw.elapsedMilliseconds}',
+      );
       return _toModel(user);
     } on fb.FirebaseAuthException catch (e) {
+      debugPrint(
+        'DIAG_HANG signInWithEmailAndPassword AFTER throw '
+        'code=${e.code} elapsedMs=${sw.elapsedMilliseconds}',
+      );
       _mapFirebaseException(e);
     }
   }

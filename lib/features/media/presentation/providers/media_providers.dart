@@ -29,6 +29,17 @@ final mediaStorageProvider = Provider<MediaStorage>(
   ),
 );
 
+/// The cloud `MediaStorage` (Week 5 task 3: `FirebaseMediaStorage` —
+/// compress + upload). **Must** be overridden in `main.dart`. Kept separate
+/// from [mediaStorageProvider]: staging (picker writes, previews) stays
+/// local; `SendMessage` uploads staged bytes through this one.
+final cloudMediaStorageProvider = Provider<MediaStorage>(
+  (_) => throw UnimplementedError(
+    'cloudMediaStorageProvider must be overridden in main.dart with a '
+    'concrete cloud MediaStorage (FirebaseMediaStorage).',
+  ),
+);
+
 /// The single `MediaPicker` instance. **Must** be overridden in `main.dart`
 /// (Phase 3: `ImagePickerMediaPicker`).
 final mediaPickerProvider = Provider<MediaPicker>(

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:flutter/foundation.dart';
 
 import 'package:moonbase_skeleton/features/auth/data/datasources/firebase_auth_remote_data_source.dart';
 import 'package:moonbase_skeleton/features/profile/data/datasources/profile_local_data_source.dart';
@@ -27,34 +28,67 @@ class ProfileFirestoreDataSource implements ProfileLocalDataSource {
 
   @override
   Future<ProfileModel?> readProfile(String userId) async {
-    final ref = _userRef(userId);
-    final existing = await ref.get();
-    if (existing.exists && existing.data() != null) {
-      return ProfileModel.fromFirestore(userId, existing.data()!);
-    }
+    // TEMP DIAG_HANG — remove after incident root-cause confirmed
+    final sw = Stopwatch()..start();
+    debugPrint(
+      'DIAG_HANG readProfile BEFORE get uid=$userId '
+      't=${DateTime.now().toIso8601String()}',
+    );
+    try {
+      final ref = _userRef(userId);
+      final existing = await ref.get();
+      if (existing.exists && existing.data() != null) {
+        debugPrint(
+          'DIAG_HANG readProfile AFTER existing-doc '
+          'elapsedMs=${sw.elapsedMilliseconds}',
+        );
+        return ProfileModel.fromFirestore(userId, existing.data()!);
+      }
 
-    final authUser = _auth.currentUser;
-    if (authUser == null || authUser.uid != userId) {
-      return null;
-    }
+      final authUser = _auth.currentUser;
+      if (authUser == null || authUser.uid != userId) {
+        debugPrint(
+          'DIAG_HANG readProfile AFTER no-auth-for-create '
+          'elapsedMs=${sw.elapsedMilliseconds}',
+        );
+        return null;
+      }
 
-    final nickname = _nicknameFromAuth(authUser);
+      final nickname = _nicknameFromAuth(authUser);
 
-    // Create-only-if-absent: concurrent readers share one write via transaction.
-    await _db.runTransaction((txn) async {
-      final snap = await txn.get(ref);
-      if (snap.exists) return;
-      txn.set(ref, <String, dynamic>{
-        'nickname': nickname,
-        'themeMode': _defaultThemeMode,
-        'createdAt': FieldValue.serverTimestamp(),
-        'schemaVersion': _schemaVersion,
+      // Create-only-if-absent: concurrent readers share one write via transaction.
+      debugPrint('DIAG_HANG readProfile BEFORE create-txn');
+      await _db.runTransaction((txn) async {
+        final snap = await txn.get(ref);
+        if (snap.exists) return;
+        txn.set(ref, <String, dynamic>{
+          'nickname': nickname,
+          'themeMode': _defaultThemeMode,
+          'createdAt': FieldValue.serverTimestamp(),
+          'schemaVersion': _schemaVersion,
+        });
       });
-    });
 
-    final after = await ref.get();
-    if (!after.exists || after.data() == null) return null;
-    return ProfileModel.fromFirestore(userId, after.data()!);
+      final after = await ref.get();
+      if (!after.exists || after.data() == null) {
+        debugPrint(
+          'DIAG_HANG readProfile AFTER create missing-doc '
+          'elapsedMs=${sw.elapsedMilliseconds}',
+        );
+        return null;
+      }
+      debugPrint(
+        'DIAG_HANG readProfile AFTER create-or-return '
+        'elapsedMs=${sw.elapsedMilliseconds}',
+      );
+      return ProfileModel.fromFirestore(userId, after.data()!);
+    } catch (e) {
+      debugPrint(
+        'DIAG_HANG readProfile AFTER throw error=$e '
+        'elapsedMs=${sw.elapsedMilliseconds}',
+      );
+      rethrow;
+    }
   }
 
   @override

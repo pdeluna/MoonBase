@@ -24,6 +24,7 @@ import 'package:moonbase_skeleton/features/bases/data/datasources/base_firestore
 import 'package:moonbase_skeleton/features/bases/data/repositories/base_repository_impl.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
 
+import 'package:moonbase_skeleton/features/media/data/datasources/firebase_media_storage.dart';
 import 'package:moonbase_skeleton/features/media/data/datasources/image_picker_media_picker.dart';
 import 'package:moonbase_skeleton/features/media/data/datasources/local_file_media_storage.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
@@ -87,10 +88,11 @@ void main() async {
       ),
     ),
 
-    // Phase 3 media foundation. The only file that has to change when Phase 4
-    // cloud storage lands is this one (swap LocalFileMediaStorage for the
-    // cloud impl; everything downstream is wired through the ports).
+    // Phase 3 media foundation: staging storage (picker writes + previews)
+    // stays local. Week 5 task 3 adds the cloud storage alongside it —
+    // SendMessage uploads staged bytes through cloudMediaStorageProvider.
     mediaStorageProvider.overrideWithValue(mediaStorage),
+    cloudMediaStorageProvider.overrideWithValue(FirebaseMediaStorage()),
     mediaPickerProvider.overrideWithValue(mediaPicker),
   ];
 

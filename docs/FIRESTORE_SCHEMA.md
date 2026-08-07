@@ -327,6 +327,8 @@ Client-side compress/resize before upload is required in MediaRepository (Week 5
 
 **ADR:** No client `allow delete` on Storage objects. Default-deny. Orphaned media after message delete is a **cleanup** problem (Admin SDK / Cloud Function later), not data loss. Any-auth delete would let any signed-in user wipe media in any base — unscoped and unacceptable for a children's app.
 
+`FirebaseMediaStorage.delete` throws [UnimplementedError] permanently (not a pass-3 stub) — client delete is not part of the pipeline.
+
 **Revisit:** author-scoped delete (uploader identity in metadata) or Admin/CF cleanup when product needs it.
 
 ### Storage Content-Type trust
@@ -345,7 +347,13 @@ Firestorestore message docs store those paths in `mediaPaths` (never bytes, neve
 
 **ADR:** MVP is images-only (`image/.*`, `.jpg` leaf, 10 MB). Video deferred — would require an extension-aware path builder, `video/.*` Storage rules with a separate cap, and a transcode/thumbnail pipeline; domain model retains video fields (`MediaType.video`, `duration`, `thumbnailKey`) as headroom. Video is also a child-safety decision that deserves its own consideration, not a ride-along on path-format work.
 
-**Task 3 note:** `MediaStorage.resolveUri` must learn to resolve `bases/...` cloud keys (today only local relative keys work). That gap is task-3 work, not a regression of this groundwork.
+**Task 3 notes:**
+
+- Pass 1 (`FirebaseMediaStorage.putBytes`): always JPEG-compress (1920 long edge, quality 80 + ladder), set `SettableMetadata(contentType: 'image/jpeg')`, upload at `storagePathFor`. Key parse: local `<baseId>/<uuid>.<ext>` or already-canonical cloud path → otherwise `ValidationFailure` (loud; never a malformed path).
+- **Pass-2 obligation:** `putBytes` returns `Future` and **throws** typed `Failure`s — it does not return `Either`. Send orchestration **must** wrap every cloud `putBytes` in `guard(...)`. An unguarded call will throw raw and crash the send.
+- Pass 3: `resolveUri` for download/render of `bases/...` keys.
+- **HEIC:** JPEG normalization + `MediaUnsupportedFailure` fallback is built, but **HEIC is unverified until iOS build day** (Android test device cannot produce HEIC) — test deliberately on iOS.
+- **StagedBytesReader (`dart:io` / `file://`):** Pass 2 `SendMessage` reads staged picker bytes via the default `File.fromUri` path. Works on Android; **iOS file-path / staging behavior differs and is unverified until iOS build day** — test deliberately alongside HEIC (send with attachments on a real iOS device).
 
 ---
 

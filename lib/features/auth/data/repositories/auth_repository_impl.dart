@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/error_mapper.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
@@ -46,9 +48,27 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) =>
       guard(() async {
+        // TEMP DIAG_HANG — remove after incident root-cause confirmed
+        final sw = Stopwatch()..start();
+        debugPrint(
+          'DIAG_HANG AuthRepository.signIn START '
+          't=${DateTime.now().toIso8601String()}',
+        );
         final model = await remote.signIn(email: email, password: password);
+        debugPrint(
+          'DIAG_HANG AuthRepository.signIn remote done '
+          'elapsedMs=${sw.elapsedMilliseconds}',
+        );
         await local.writeCurrentUser(model);
+        debugPrint(
+          'DIAG_HANG local.writeCurrentUser AFTER '
+          'elapsedMs=${sw.elapsedMilliseconds}',
+        );
         await profiles.readProfile(model.id);
+        debugPrint(
+          'DIAG_HANG AuthRepository.signIn readProfile returned '
+          'elapsedMs=${sw.elapsedMilliseconds}',
+        );
         return model.toEntity();
       });
 
