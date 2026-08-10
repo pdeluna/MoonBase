@@ -29,6 +29,8 @@ Build dependency-first. Domain layer (entities → ports → use cases) before a
 
 ## 2. Step 0 — Tracer bullet (no code yet)
 
+**Pre-reading (recommended).** If the port / implementation / mock triangle is new to you, study [`PORTS_IMPL_MOCK_WALKTHROUGH.md`](PORTS_IMPL_MOCK_WALKTHROUGH.md) first — it teaches that seam with Chat and CreateBase as worked examples.
+
 **Do this before touching a single file.** Read the chat feature end-to-end, in this dependency order, and trace one user intent (typing a message, hitting send, seeing it appear in the list) through every layer:
 
 1. [`lib/features/chat/domain/entities/message.dart`](../lib/features/chat/domain/entities/message.dart) — what a domain entity looks like.
