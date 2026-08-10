@@ -21,8 +21,8 @@ final storyRepositoryProvider = Provider<StoryRepository>((ref) {
 //provider scheme/pathway to usecase files
 // included as each use case lands
 final publishStoryUsecaseProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
-//final listActiveStoriesProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
-//final streamActiveStoriesProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
-//final deleteStoryProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
-//final expireAndArchiveProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
-//final listArchiveProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
+final listActiveStoriesProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
+final streamActiveStoriesProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
+final deleteStoryProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
+final expireAndArchiveProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
+final listArchiveProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
