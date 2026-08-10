@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
+import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 
 /// Full-screen viewer for a single `MediaRef`.
@@ -22,7 +23,10 @@ import 'package:moonbase_skeleton/features/media/presentation/providers/media_pr
 /// [MediaRef.storageKey] (stable Storage path), never the tokenized download
 /// URL. Resolve/download failures fall to a broken-image icon — not an
 /// indefinite spinner.
-class MediaPreview extends ConsumerWidget {
+///
+/// The resolve [Future] is held in [State] and reused across rebuilds (same
+/// anti-pattern fix as [MediaTile]).
+class MediaPreview extends ConsumerStatefulWidget {
   const MediaPreview({super.key, required this.media});
 
   final MediaRef media;
@@ -40,8 +44,32 @@ class MediaPreview extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MediaPreview> createState() => _MediaPreviewState();
+}
+
+class _MediaPreviewState extends ConsumerState<MediaPreview> {
+  Future<String>? _uriFuture;
+  String? _boundKey;
+  MediaStorage? _boundStorage;
+
+  void _ensureUriFuture(MediaStorage storage) {
+    final key = widget.media.storageKey;
+    if (_uriFuture != null &&
+        _boundKey == key &&
+        identical(_boundStorage, storage)) {
+      return;
+    }
+    _boundKey = key;
+    _boundStorage = storage;
+    _uriFuture = storage.resolveUri(key);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final storage = ref.watch(mediaStorageProvider);
+    _ensureUriFuture(storage);
+    final uriFuture = _uriFuture!;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -50,7 +78,7 @@ class MediaPreview extends ConsumerWidget {
         elevation: 0,
       ),
       body: FutureBuilder<String>(
-        future: storage.resolveUri(media.storageKey),
+        future: uriFuture,
         builder: (context, snap) {
           if (snap.hasError) {
             return const Center(
@@ -70,11 +98,11 @@ class MediaPreview extends ConsumerWidget {
             );
           }
           final uri = snap.data!;
-          switch (media.type) {
+          switch (widget.media.type) {
             case MediaType.image:
               return _ImagePreview(
                 uri: uri,
-                cacheKey: media.storageKey,
+                cacheKey: widget.media.storageKey,
               );
             case MediaType.video:
               return _VideoPreview(uri: uri);

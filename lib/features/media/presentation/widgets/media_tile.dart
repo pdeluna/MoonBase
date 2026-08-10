@@ -42,6 +42,10 @@ ImageProvider imageProviderForUri(String uri, {String? cacheKey}) {
 ///    `Image.file` or `CachedNetworkImage` for images; for video, paint a
 ///    `VideoThumbnail` with an optional poster underlay.
 ///
+/// The resolve [Future] is held in [State] and reused across rebuilds (chat
+/// stream emissions). Creating a new future every [build] left peer images
+/// stuck on the loading placeholder after relog.
+///
 /// Failure contract: [MediaStorage.resolveUri] throws → `FutureBuilder.hasError`
 /// → broken-image widget. Network decode/download failures →
 /// [CachedNetworkImage.errorWidget] → same broken-image widget. There is no
@@ -52,7 +56,7 @@ ImageProvider imageProviderForUri(String uri, {String? cacheKey}) {
 /// directly; URI resolution is platform-specific infrastructure that does
 /// not belong in a controller. See Phase 3 architectural constraint #3 in
 /// `docs/PHASE3_DOD_ACTION_LIST.md`.
-class MediaTile extends ConsumerWidget {
+class MediaTile extends ConsumerStatefulWidget {
   const MediaTile({
     super.key,
     required this.media,
@@ -73,19 +77,43 @@ class MediaTile extends ConsumerWidget {
   /// `MediaPreview` route for the same `MediaRef`.
   final VoidCallback? onTap;
 
+  @override
+  ConsumerState<MediaTile> createState() => _MediaTileState();
+}
+
+class _MediaTileState extends ConsumerState<MediaTile> {
+  Future<String>? _uriFuture;
+  String? _boundKey;
+  MediaStorage? _boundStorage;
+
   /// Key passed to [MediaStorage.resolveUri] and used as the network cache key.
   String get _resolveKey {
+    final media = widget.media;
     if (media.type == MediaType.video && media.thumbnailKey != null) {
       return media.thumbnailKey!;
     }
     return media.storageKey;
   }
 
+  void _ensureUriFuture(MediaStorage storage) {
+    final key = _resolveKey;
+    if (_uriFuture != null &&
+        _boundKey == key &&
+        identical(_boundStorage, storage)) {
+      return;
+    }
+    _boundKey = key;
+    _boundStorage = storage;
+    _uriFuture = storage.resolveUri(key);
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final storage = ref.watch(mediaStorageProvider);
-    final resolveKey = _resolveKey;
-    final uriFuture = storage.resolveUri(resolveKey);
+    _ensureUriFuture(storage);
+    final resolveKey = _boundKey!;
+    final uriFuture = _uriFuture!;
+
     return FutureBuilder<String>(
       future: uriFuture,
       builder: (context, snap) {
@@ -94,17 +122,21 @@ class MediaTile extends ConsumerWidget {
             (snap.connectionState == ConnectionState.done &&
                 snap.data == null)) {
           // resolveUri threw, or completed without a URI → broken, never spin.
-          body = _Broken(width: width, height: height);
+          body = _Broken(width: widget.width, height: widget.height);
         } else if (snap.connectionState != ConnectionState.done) {
-          body = _Placeholder(width: width, height: height);
+          body = _Placeholder(width: widget.width, height: widget.height);
         } else {
           body = _renderFor(snap.data!, cacheKey: resolveKey);
         }
         return GestureDetector(
-          onTap: onTap,
+          onTap: widget.onTap,
           child: ClipRRect(
-            borderRadius: borderRadius,
-            child: SizedBox(width: width, height: height, child: body),
+            borderRadius: widget.borderRadius,
+            child: SizedBox(
+              width: widget.width,
+              height: widget.height,
+              child: body,
+            ),
           ),
         );
       },
@@ -112,29 +144,29 @@ class MediaTile extends ConsumerWidget {
   }
 
   Widget _renderFor(String uri, {required String cacheKey}) {
-    switch (media.type) {
+    switch (widget.media.type) {
       case MediaType.image:
         return _ImageView(
           uri: uri,
-          fit: fit,
+          fit: widget.fit,
           cacheKey: cacheKey,
-          width: width,
-          height: height,
+          width: widget.width,
+          height: widget.height,
         );
       case MediaType.video:
-        final poster = media.thumbnailKey != null
+        final poster = widget.media.thumbnailKey != null
             ? _ImageView(
                 uri: uri,
-                fit: fit,
+                fit: widget.fit,
                 cacheKey: cacheKey,
-                width: width,
-                height: height,
+                width: widget.width,
+                height: widget.height,
               )
             : null;
         return VideoThumbnail(
-          duration: media.duration,
-          width: width,
-          height: height,
+          duration: widget.media.duration,
+          width: widget.width,
+          height: widget.height,
           borderRadius: BorderRadius.zero,
           child: poster,
         );

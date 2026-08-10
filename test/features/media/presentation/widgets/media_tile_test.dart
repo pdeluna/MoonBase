@@ -13,11 +13,18 @@ import 'package:moonbase_skeleton/features/media/presentation/widgets/video_thum
 
 /// Trivial `MediaStorage` stub for widget tests.
 class _StubMediaStorage implements MediaStorage {
-  _StubMediaStorage(this.uri, {this.keyedUris, this.resolveError});
+  _StubMediaStorage(
+    this.uri, {
+    this.keyedUris,
+    this.resolveError,
+    this.resolveDelay,
+  });
 
   final String uri;
   final Map<String, String>? keyedUris;
   final Object? resolveError;
+  final Duration? resolveDelay;
+  int resolveCallCount = 0;
 
   @override
   Future<String> putBytes({
@@ -29,6 +36,9 @@ class _StubMediaStorage implements MediaStorage {
 
   @override
   Future<String> resolveUri(String key) async {
+    resolveCallCount++;
+    final delay = resolveDelay;
+    if (delay != null) await Future<void>.delayed(delay);
     final err = resolveError;
     if (err != null) throw err;
     return keyedUris?[key] ?? uri;
@@ -203,6 +213,50 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'parent rebuilds do not restart resolveUri (stable Future)',
+    (tester) async {
+      final storage = _StubMediaStorage(
+        'file:///tmp/stable.jpg',
+        resolveDelay: const Duration(milliseconds: 50),
+      );
+      const media = MediaRef(
+        id: MediaId('m-stable'),
+        type: MediaType.image,
+        storageKey: 'bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg',
+      );
+
+      late VoidCallback triggerRebuild;
+      await tester.pumpWidget(ProviderScope(
+        overrides: [mediaStorageProvider.overrideWithValue(storage)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                // Keep the same MediaTile Element across chat-like rebuilds.
+                triggerRebuild = () => setState(() {});
+                return const Center(
+                  child: MediaTile(media: media, width: 120, height: 120),
+                );
+              },
+            ),
+          ),
+        ),
+      ));
+
+      await tester.pump();
+      triggerRebuild();
+      await tester.pump();
+      triggerRebuild();
+      await tester.pump();
+
+      await tester.pump(const Duration(milliseconds: 60));
+
+      expect(storage.resolveCallCount, 1);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     },
   );

@@ -44,6 +44,11 @@ typedef StorageGetDownloadUrlFn = Future<String> Function(String path);
 /// keys / Firebase errors (same Future-throws convention as [putBytes]; the
 /// port is not `Either`). Widgets map failures to a broken-image fallback.
 ///
+/// In-flight / completed download-URL futures are memoized per Storage path for
+/// the session so chat rebuilds share one `getDownloadURL` call. Failed
+/// futures are evicted so a later retry can succeed. A [resolveTimeout] turns
+/// hangs into [NetworkFailure] (broken-image, not infinite spinner).
+///
 /// Download URLs carry rotating auth tokens — render caches **must** key on
 /// the stable Storage path (`bases/{baseId}/media/{uuid}.jpg`), not the URL.
 ///
@@ -64,6 +69,7 @@ class FirebaseMediaStorage extends RemoteMediaStorage {
     this.maxBytes = MediaConstraints.imageMaxBytesDefault,
     this.maxEdge = 1920,
     this.initialQuality = 80,
+    this.resolveTimeout = const Duration(seconds: 15),
   })  : _compressJpeg = compressJpeg ?? _defaultCompressJpeg,
         // Defaults close over [storage] and only touch FirebaseStorage.instance
         // when invoked — so unit tests that stub put/get never need Firebase.
@@ -74,6 +80,9 @@ class FirebaseMediaStorage extends RemoteMediaStorage {
   final StoragePutFn _putObject;
   final StorageGetDownloadUrlFn _getDownloadUrl;
 
+  /// Session memo of path → in-flight/completed download URL future.
+  final Map<String, Future<String>> _downloadUrlByPath = {};
+
   /// Post-compression ceiling (matches `storage.rules` + [MediaConstraints]).
   final int maxBytes;
 
@@ -82,6 +91,9 @@ class FirebaseMediaStorage extends RemoteMediaStorage {
 
   /// First quality attempt before the ladder.
   final int initialQuality;
+
+  /// Cap for [getDownloadURL] so a hung Storage RPC cannot leave tiles spinning.
+  final Duration resolveTimeout;
 
   static const _qualityLadder = [80, 70, 55, 40, 25];
 
@@ -104,9 +116,29 @@ class FirebaseMediaStorage extends RemoteMediaStorage {
   }
 
   @override
-  Future<String> resolveUri(String key) async {
+  Future<String> resolveUri(String key) {
     final path = cloudStoragePathFromKey(key);
-    return _getDownloadUrl(path);
+    final existing = _downloadUrlByPath[path];
+    if (existing != null) return existing;
+
+    final future = _resolveDownloadUrl(path);
+    _downloadUrlByPath[path] = future;
+    return future;
+  }
+
+  Future<String> _resolveDownloadUrl(String path) async {
+    try {
+      return await _getDownloadUrl(path).timeout(
+        resolveTimeout,
+        onTimeout: () => throw const NetworkFailure(
+          'Timed out resolving media download URL.',
+        ),
+      );
+    } catch (_) {
+      // Evict so a later attempt (e.g. after auth settles) can retry.
+      _downloadUrlByPath.remove(path);
+      rethrow;
+    }
   }
 
   @override

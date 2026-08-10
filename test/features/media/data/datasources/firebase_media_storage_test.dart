@@ -244,6 +244,59 @@ void main() {
       );
       expect(getCalled, isFalse);
     });
+
+    test('memoizes getDownloadURL per path across resolveUri calls', () async {
+      var getCalls = 0;
+      final storage = FirebaseMediaStorage(
+        compressJpeg: (bytes, {required quality, required maxEdge}) async =>
+            _tinyJpeg(),
+        putObject: ({
+          required path,
+          required bytes,
+          required contentType,
+        }) async {},
+        getDownloadUrl: (path) async {
+          getCalls++;
+          return 'https://example.com/$path';
+        },
+      );
+
+      final a = storage.resolveUri(cloudPath);
+      final b = storage.resolveUri(cloudPath);
+      expect(identical(a, b), isTrue);
+      expect(await a, 'https://example.com/$cloudPath');
+      expect(await b, 'https://example.com/$cloudPath');
+      expect(getCalls, 1);
+    });
+
+    test('timeout throws NetworkFailure and allows retry', () async {
+      var getCalls = 0;
+      final storage = FirebaseMediaStorage(
+        resolveTimeout: const Duration(milliseconds: 20),
+        compressJpeg: (bytes, {required quality, required maxEdge}) async =>
+            _tinyJpeg(),
+        putObject: ({
+          required path,
+          required bytes,
+          required contentType,
+        }) async {},
+        getDownloadUrl: (path) async {
+          getCalls++;
+          if (getCalls == 1) {
+            await Future<void>.delayed(const Duration(milliseconds: 100));
+            return 'https://example.com/late';
+          }
+          return 'https://example.com/ok';
+        },
+      );
+
+      await expectLater(
+        storage.resolveUri(cloudPath),
+        throwsA(isA<NetworkFailure>()),
+      );
+      expect(await storage.resolveUri(cloudPath), 'https://example.com/ok');
+      expect(getCalls, 2);
+    });
   });
 
   group('FirebaseMediaStorage stubs', () {
