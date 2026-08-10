@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/sync_status.dart';
-import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart'; // missing functionality from scaffolding? will check during testing.
+// import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart'; // missing functionality from scaffolding? will check during testing. 
+// above import actually not needed! - p
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 
 @immutable
@@ -11,11 +12,12 @@ class Story {
       required this.baseId,
       required this.authorUserId,
       required this.media,
-      required this.caption,
+      //required this.caption, // lets make captions not required ! - p
       required this.ttl,
       required this.createdAt,
-      this.archived = true,
-      this.syncStatus = SyncStatus.synced,
+      this.caption,
+      this.archived = false, // i know i said status didn't matter (still true) just to be safe let's keep it false since the archive feature is not built yet ;p
+      this.syncStatus = SyncStatus.synced, //default sync status must exist so phase 4 will be a one-line change - p
     }
   );
 
@@ -64,9 +66,9 @@ class Story {
     other.media == media &&
     other.caption == caption &&
     other.ttl == ttl &&
-    other.createdAt == createdAt;//&&
-    //other.archived == archived &&
-    //other.syncStatus == syncStatus;
+    other.createdAt == createdAt; && // safe to include these, we will use these values for unit tests - p
+    other.archived == archived &&
+    other.syncStatus == syncStatus;
   }
 
   @override
@@ -78,7 +80,7 @@ class Story {
     caption,
     ttl,
     createdAt,
-    //archived,
-    //syncStatus,
+    archived, // included these similar to == operator - p
+    syncStatus, 
   );
 }
