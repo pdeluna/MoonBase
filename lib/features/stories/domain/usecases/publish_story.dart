@@ -8,13 +8,15 @@ import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart'
 import 'package:moonbase_skeleton/features/stories/domain/entities/story.dart';
 import 'package:moonbase_skeleton/features/stories/domain/repositories/story_repository.dart';
 
+// just a few comments based on the changes I mentioned in the other files, otherwise this looks great ! - p
+
 //class initialization
 class PublishStoryParams {
   const PublishStoryParams({required this.baseId, required this.authorUserId, required this.media, required this.settings, this.caption});
   final BaseId baseId;
   final UserId authorUserId;
   final MediaRef media;
-  final BaseSettings settings;
+  //final BaseSettings settings; already defined in PublishStoryParams - p
   final String? caption;
 
 }
@@ -33,7 +35,7 @@ class PublishStory implements UseCase<Story, PublishStoryParams> { // implements
     if(!p.settings.storiesEnabled){
       return const Left(ValidationFailure('Stories are disabled for this base'));
     }
-    const int maxCaptionSize = 280;
+    const int maxCaptionSize = 280; // better to define outside of override function - p
     final String? cap = p.caption?.trim();
     if(cap != null && cap.length > maxCaptionSize) { 
       return const Left(ValidationFailure('Caption must be 280 or fewer characters'));
