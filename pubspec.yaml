@@ -14,10 +14,10 @@ dependencies:
 
   # Firebase (Phase 4 foundation). firebase_core must initialize before any
   # other Firebase plugin is used; see Firebase.initializeApp in main.dart.
-  firebase_core: ^4.12.1
-  firebase_auth: ^6.5.5
-  cloud_firestore: ^6.7.0
-  firebase_storage: ^13.4.4
+  firebase_core: ^4.13.0
+  firebase_auth: ^6.5.7
+  cloud_firestore: ^6.8.0
+  firebase_storage: ^13.4.6
 
   flutter_riverpod: ^2.5.1
   go_router: ^14.2.0

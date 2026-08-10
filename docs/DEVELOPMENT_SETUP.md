@@ -334,10 +334,10 @@ The full dependency list at the time of writing:
 
 | Runtime | Why |
 | --- | --- |
-| `firebase_core ^4.12.1` | Firebase initialization; must run before any other Firebase plugin (Phase 4 foundation) |
-| `firebase_auth ^6.5.5` | Authentication backend (Phase 4); requires Android `minSdk` 23+ |
-| `cloud_firestore ^6.7.0` | Cloud document store (Phase 4) |
-| `firebase_storage ^13.4.4` | Cloud media/object storage (Phase 4) |
+| `firebase_core ^4.13.0` | Firebase initialization; must run before any other Firebase plugin (Phase 4 foundation). Pins Android BoM 34.17.0 (Auth 24.2.0 dual-stack Wi‑Fi fix) |
+| `firebase_auth ^6.5.7` | Authentication backend (Phase 4); requires Android `minSdk` 23+ |
+| `cloud_firestore ^6.8.0` | Cloud document store (Phase 4); Android Firestore 26.5.0 via BoM 34.17.0 |
+| `firebase_storage ^13.4.6` | Cloud media/object storage (Phase 4) |
 | `flutter_riverpod ^2.5.1` | State management (controllers and providers) |
 | `go_router ^14.2.0` | Declarative routing |
 | `shared_preferences ^2.3.2` | Local key-value persistence (the L1 cache layer) |

@@ -262,6 +262,14 @@ Locked Week 3 choices — do not re-open without a new ADR.
 
 **When a decision un-parks:** see [`FIRESTORE_UPDATE_TRIGGERS.md`](FIRESTORE_UPDATE_TRIGGERS.md) (precise rule/test change per trigger).
 
+### Android Wi‑Fi Auth hang — dual-stack IPv6 (SDK bump)
+
+**Root cause (confirmed):** Fresh-install email/password sign-in hung on some dual-stack Wi‑Fi networks (immediate on cellular; Wi‑Fi worked after a successful cellular login). Not SHA/Play Integrity, not emulator wiring, not an app architecture bug. Matches Firebase Android Auth release notes: long IPv6 timeouts blocked IPv4 fallback.
+
+**Fix:** Lockstep FlutterFire bump so Android BoM pulls Auth **24.2.0** — `firebase_core ^4.13.0` (BoM **34.17.0**), `firebase_auth ^6.5.7`, `cloud_firestore ^6.8.0`, `firebase_storage ^13.4.6`. No REST Auth client, Cloud Function broker, or custom-token fallback.
+
+**Verification obligation:** Cold sign-in on the failing Wi‑Fi is the Auth proof. Firestore **26.5.0** (same BoM) does **not** carry an equivalent explicit dual-stack IPv6 fix — also verify chat sync and media load on that same Wi‑Fi after the bump.
+
 ### Membership `get()` cost (option A)
 
 `isMember(baseId)` / `isOwner(baseId)` use `get()` on the base doc. Nested reads (`members/*`, `messages/*`) therefore bill **one extra base-doc read per matched document**, not once per query. Accepted MVP cost. No custom claims; no Cloud Functions for this.
