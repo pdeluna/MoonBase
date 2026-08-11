@@ -121,6 +121,32 @@ fvm flutter pub get   # or: flutter pub get
 fvm flutter run -d windows   # or an authorized Android device
 ```
 
+### Debug network harness
+
+Deterministic Firestore/Storage degradation for reproducing Android gRPC /
+transport hangs. **Physical Android device only** — Windows desktop uses a
+different Firestore implementation, and emulator networking is NATed through
+the host (neither matches real Wi-Fi association failure shapes).
+
+Flags are compile-time (`--dart-define`) and hard-disabled outside debug
+(`kDebugMode`). They are **mutually exclusive**.
+
+```powershell
+# List devices; use a physical Android id (not windows, not an emulator).
+fvm flutter devices
+
+# Offline-with-cache (Firestore disableNetwork — local cache still serves reads)
+fvm flutter run -d <device-id> --dart-define=MOONBASE_FORCE_OFFLINE=true
+
+# Connect hang (TEST-NET-1 192.0.2.1:443 — Firestore Settings.host + Storage
+# useStorageEmulator; packets dropped, not refused)
+fvm flutter run -d <device-id> --dart-define=MOONBASE_BLACKHOLE=true
+```
+
+When armed, a top-of-screen banner shows the active mode. Implementation:
+`lib/core/debug/firebase_debug_harness.dart` (bootstrap applies it from
+`lib/main.dart` — single `Settings` assignment site).
+
 ### Quick start
 
 1. **Create account** — nickname (chat label) → email → password
