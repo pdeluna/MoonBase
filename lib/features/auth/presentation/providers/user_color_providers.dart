@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:moonbase_skeleton/core/user_color_utils.dart';
-import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart' show currentUserProvider;
+import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart'
+    show currentUserProvider;
 
 /// Provider for the current user's color
 final currentUserColorProvider = Provider<Color>((ref) {
-  final user = ref.watch(currentUserProvider);
-  
+  final user = ref.watch(currentUserProvider).valueOrNull;
+
   if (user == null) {
     // Return a default color when no user is logged in
     return Colors.grey;
   }
-  
+
   return UserColorUtils.getColorForUserId(user.id.value);
 });
 

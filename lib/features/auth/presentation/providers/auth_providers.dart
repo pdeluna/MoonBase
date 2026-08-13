@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:moonbase_skeleton/features/auth/domain/repositories/auth_repository.dart';
@@ -24,40 +23,11 @@ final signOutUseCaseProvider =
 final getCurrentUserProvider =
     Provider((ref) => GetCurrentUser(ref.read(authRepositoryProvider)));
 
-/// Convenience provider for accessing the current user
-final currentUserProvider = Provider<User?>((ref) {
-  final authState = ref.watch(authControllerProvider);
-  return authState.current.when(
-    data: (user) {
-      // TEMP DIAG_HANG — remove after incident root-cause confirmed
-      if (kDebugMode) {
-        debugPrint(
-          'DIAG_HANG currentUserProvider branch=data '
-          'uid=${user?.id.value ?? 'null'} '
-          'gateSeesSignedIn=${user != null}',
-        );
-      }
-      return user;
-    },
-    loading: () {
-      // TEMP DIAG_HANG — remove after incident root-cause confirmed
-      if (kDebugMode) {
-        debugPrint(
-          'DIAG_HANG currentUserProvider branch=loading→null '
-          'gateSeesSignedIn=false',
-        );
-      }
-      return null;
-    },
-    error: (e, _) {
-      // TEMP DIAG_HANG — remove after incident root-cause confirmed
-      if (kDebugMode) {
-        debugPrint(
-          'DIAG_HANG currentUserProvider branch=error→null '
-          'error=$e gateSeesSignedIn=false',
-        );
-      }
-      return null;
-    },
-  );
+/// Session for the gate: pass-through of [AuthController.current].
+///
+/// Does not flatten loading or error to `null`. Only [AsyncValue.data] with a
+/// null user is signed out. Consumers that need a [User]? (chrome, ids) use
+/// [AsyncValue.valueOrNull].
+final currentUserProvider = Provider<AsyncValue<User?>>((ref) {
+  return ref.watch(authControllerProvider).current;
 });

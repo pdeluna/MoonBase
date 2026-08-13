@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:moonbase_skeleton/core/usecase.dart';
@@ -8,15 +7,6 @@ import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_in.dart';
 import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_out.dart';
 import 'package:moonbase_skeleton/features/auth/domain/usecases/sign_up.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
-
-// TEMP DIAG_HANG — remove after incident root-cause confirmed
-int _diagHangAuthControllerN = 0;
-
-String _diagHangAuthUiState(AsyncValue<User?> current) => current.when(
-      data: (u) => 'data(uid=${u?.id.value ?? 'null'})',
-      loading: () => 'loading',
-      error: (e, _) => 'error($e)',
-    );
 
 class AuthState {
   const AuthState({this.current = const AsyncValue.loading()});
@@ -37,41 +27,16 @@ class AuthController extends StateNotifier<AuthState> {
   final SignOut _signOut;
 
   Future<void> load() async {
-    // TEMP DIAG_HANG — remove after incident root-cause confirmed
-    final sw = Stopwatch()..start();
-    if (kDebugMode) {
-      _diagHangAuthControllerN++;
-      debugPrint(
-        'DIAG_HANG AuthController.load BEFORE #$_diagHangAuthControllerN '
-        'uiState=${_diagHangAuthUiState(state.current)} '
-        't=${DateTime.now().toIso8601String()}',
-      );
-    }
     state = state.copyWith(current: const AsyncValue.loading());
-    if (kDebugMode) {
-      _diagHangAuthControllerN++;
-      debugPrint(
-        'DIAG_HANG AuthController.load set-loading #$_diagHangAuthControllerN '
-        'uiState=loading',
-      );
-    }
     final res = await _getCurrent(const NoParams());
     state = res.match(
       (f) => state.copyWith(current: AsyncValue.error(f, StackTrace.current)),
       (u) => state.copyWith(current: AsyncValue.data(u)),
     );
-    // TEMP DIAG_HANG — remove after incident root-cause confirmed
-    if (kDebugMode) {
-      _diagHangAuthControllerN++;
-      debugPrint(
-        'DIAG_HANG AuthController.load AFTER #$_diagHangAuthControllerN '
-        'uiState=${_diagHangAuthUiState(state.current)} '
-        'elapsedMs=${sw.elapsedMilliseconds}',
-      );
-    }
   }
 
-  Future<void> signUp(String email, String password, {required String nickname}) async {
+  Future<void> signUp(String email, String password,
+      {required String nickname}) async {
     state = state.copyWith(current: const AsyncValue.loading());
     final res = await _signUp(SignUpParams(
       email: email,

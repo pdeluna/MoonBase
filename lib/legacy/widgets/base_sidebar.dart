@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/legacy/models/base.dart';
 import 'package:moonbase_skeleton/legacy/providers/bases_provider.dart';
@@ -12,7 +12,7 @@ class BaseSidebar extends ConsumerWidget {
     this.onCreateBase,
     this.onJoinBase,
   });
-  
+
   final VoidCallback? onBaseSelected;
   final VoidCallback? onCreateBase;
   final VoidCallback? onJoinBase;
@@ -36,7 +36,7 @@ class BaseSidebar extends ConsumerWidget {
               height: 0,
             ),
           ),
-          
+
           // Header
           Container(
             padding: const EdgeInsets.all(20),
@@ -57,9 +57,11 @@ class BaseSidebar extends ConsumerWidget {
                     Text(
                       'My Bases',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                          ),
                     ),
                   ],
                 ),
@@ -67,8 +69,11 @@ class BaseSidebar extends ConsumerWidget {
                 Text(
                   'Switch between your bases',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
-                  ),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer
+                            .withValues(alpha: 0.8),
+                      ),
                 ),
               ],
             ),
@@ -84,7 +89,10 @@ class BaseSidebar extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.secondaryContainer,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outline
+                      .withValues(alpha: 0.2),
                 ),
               ),
               child: Column(
@@ -93,9 +101,11 @@ class BaseSidebar extends ConsumerWidget {
                   Text(
                     'Current Base',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSecondaryContainer,
-                      fontWeight: FontWeight.w600,
-                    ),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSecondaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -119,19 +129,30 @@ class BaseSidebar extends ConsumerWidget {
                           children: [
                             Text(
                               selectedBase.name,
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSecondaryContainer,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSecondaryContainer,
+                                  ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             if (selectedBase.description != null)
                               Text(
                                 selectedBase.description!,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSecondaryContainer
+                                          .withValues(alpha: 0.8),
+                                    ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -163,21 +184,25 @@ class BaseSidebar extends ConsumerWidget {
                       const SizedBox(height: 16),
                       Text(
                         'Error loading bases',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         error.toString(),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
-                        onPressed: () => ref.read(basesProvider.notifier).refresh(),
+                        onPressed: () =>
+                            ref.read(basesProvider.notifier).refresh(),
                         icon: const Icon(Icons.refresh),
                         label: const Text('Retry'),
                       ),
@@ -209,7 +234,8 @@ class BaseSidebar extends ConsumerWidget {
                       label: const Text('Create Base'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -251,17 +277,17 @@ class BaseSidebar extends ConsumerWidget {
             Text(
               'No bases yet',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             ),
             const SizedBox(height: 12),
             Text(
               'Create your first base to start sharing with your circle',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             ),
           ],
         ),
@@ -281,8 +307,9 @@ class BaseSidebar extends ConsumerWidget {
       itemBuilder: (context, index) {
         final base = bases[index];
         final isSelected = selectedBase?.id == base.id;
-        final currentUser = ref.watch(currentUserProvider);
-        final isOwner = currentUser != null && base.ownerUserId == currentUser.id.value;
+        final currentUser = ref.watch(currentUserProvider).valueOrNull;
+        final isOwner =
+            currentUser != null && base.ownerUserId == currentUser.id.value;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
@@ -297,7 +324,8 @@ class BaseSidebar extends ConsumerWidget {
                 : BorderSide.none,
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             leading: CircleAvatar(
               radius: 20,
               backgroundColor: isSelected
@@ -335,14 +363,18 @@ class BaseSidebar extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: isSelected
-                          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.8)
+                          ? Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.8)
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 if (isOwner)
                   Container(
                     margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(4),
@@ -350,9 +382,11 @@ class BaseSidebar extends ConsumerWidget {
                     child: Text(
                       'Owner',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.w500,
-                      ),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            fontWeight: FontWeight.w500,
+                          ),
                     ),
                   ),
               ],
@@ -367,7 +401,8 @@ class BaseSidebar extends ConsumerWidget {
               ref.read(selectedBaseProvider.notifier).selectBase(base);
               onBaseSelected?.call();
             },
-            onLongPress: isOwner ? () => _showBaseOptions(context, base, ref) : null,
+            onLongPress:
+                isOwner ? () => _showBaseOptions(context, base, ref) : null,
           ),
         );
       },
@@ -385,8 +420,8 @@ class BaseSidebar extends ConsumerWidget {
             Text(
               'Base Options',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 20),
             ListTile(
@@ -400,8 +435,10 @@ class BaseSidebar extends ConsumerWidget {
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Delete Base', style: TextStyle(color: Colors.red)),
-              subtitle: const Text('Permanently delete this base and all its data'),
+              title: const Text('Delete Base',
+                  style: TextStyle(color: Colors.red)),
+              subtitle:
+                  const Text('Permanently delete this base and all its data'),
               onTap: () {
                 Navigator.of(context).pop();
                 _showDeleteConfirmation(context, base, ref);
@@ -423,7 +460,8 @@ class BaseSidebar extends ConsumerWidget {
 
   void _showRenameDialog(BuildContext context, Base base, WidgetRef ref) {
     final nameController = TextEditingController(text: base.name);
-    final descriptionController = TextEditingController(text: base.description ?? '');
+    final descriptionController =
+        TextEditingController(text: base.description ?? '');
     final formKey = GlobalKey<FormState>();
 
     showDialog<void>(
@@ -472,7 +510,12 @@ class BaseSidebar extends ConsumerWidget {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 Navigator.of(context).pop();
-                await _updateBase(context, base, ref, nameController.text.trim(), descriptionController.text.trim());
+                await _updateBase(
+                    context,
+                    base,
+                    ref,
+                    nameController.text.trim(),
+                    descriptionController.text.trim());
               }
             },
             child: const Text('Save'),
@@ -520,14 +563,15 @@ class BaseSidebar extends ConsumerWidget {
     );
   }
 
-  Future<void> _updateBase(BuildContext context, Base base, WidgetRef ref, String name, String description) async {
+  Future<void> _updateBase(BuildContext context, Base base, WidgetRef ref,
+      String name, String description) async {
     try {
       await ref.read(basesProvider.notifier).updateBase(
-        base.id,
-        name: name,
-        description: description.isEmpty ? null : description,
-      );
-      
+            base.id,
+            name: name,
+            description: description.isEmpty ? null : description,
+          );
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Base updated successfully')),
@@ -542,10 +586,11 @@ class BaseSidebar extends ConsumerWidget {
     }
   }
 
-  Future<void> _deleteBase(BuildContext context, Base base, WidgetRef ref) async {
+  Future<void> _deleteBase(
+      BuildContext context, Base base, WidgetRef ref) async {
     try {
       await ref.read(basesProvider.notifier).deleteBase(base.id);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Base deleted successfully')),
