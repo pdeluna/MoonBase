@@ -1,12 +1,12 @@
 # Firestore Update Triggers
 
-**Keep next to:** [`FIRESTORE_SCHEMA.md`](FIRESTORE_SCHEMA.md)  
+**Keep next to:** [`FIRESTORE_SCHEMA.md`](FIRESTORE_SCHEMA.md), [`RESILIENCE_DECISIONS.md`](RESILIENCE_DECISIONS.md)  
 **Rules:** [`../firestore.rules`](../firestore.rules), [`../storage.rules`](../storage.rules)  
 **Emulator suite:** [`../firestore/tests/`](../firestore/tests/), [`../storage/tests/`](../storage/tests/) (`.\run-tests.ps1`)
 
 Scale-time reference — when each parked Week 3 / Week 5 decision forces a **rule** and/or **test** change. Each row is *what’s parked, and the precise trigger that un-parks it.* Do not re-open these without hitting the trigger.
 
-Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisions & deferred](FIRESTORE_SCHEMA.md#decisions--deferred).
+Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisions & deferred](FIRESTORE_SCHEMA.md#decisions--deferred). Hang measurements: [RESILIENCE_DECISIONS.md](RESILIENCE_DECISIONS.md).
 
 ---
 
@@ -25,6 +25,11 @@ Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisio
 | 9 | Messages rules ahead of feature | Week 4 chat data source lands | Confirm codec + cap mirror |
 | 10 | Storage auth-only (no membership) | Media privacy across bases is hard | Claims CF + `storage.rules` + invert tests |
 | 11 | Storage delete denied | Author delete or Admin cleanup is a product need | `allow delete` (scoped) or CF + tests |
+| 12 | Create-or-return profile write unbounded | When we bound writes | Dart `guard` / write-timeout constant — not rules |
+| 13 | Firestore/Storage dual-stack hang (Auth-only SDK fix) | Each FlutterFire / Android BoM release cycle | Re-read release notes; device check on home dual-stack Wi‑Fi |
+| 14 | `NetworkFailure` covers four SDK codes | When R2b needs copy or retry to vary by cause | `mapException` + `Failure` hierarchy — not rules |
+| 15 | Timeout ordering 15s → 20s → 20s | When any of those three constants is changed | Native retry / `resolveTimeout` / `kGuardTimeout` — never equal on the same call |
+| 16 | First-sign-in / fresh-install need a network | Copy, not a timeout change | UX copy — not rules |
 
 ---
 
@@ -196,11 +201,82 @@ This is why the field is on every doc — you’re pre-positioned.
 
 ---
 
+## 12 — Create-or-return profile write unbounded
+
+**Parked as:** R3 Pass 2 bounds get-only reads (`kGuardTimeout` 20s). First-sign-in `readProfile` create-or-return (transaction set + follow-up get) is a write and stays unbounded. Accepted new-device limitation. Same class as the chat send-hang (write waits on server ack).
+
+**Code (today):** [`ProfileFirestoreDataSource.readProfile`](../lib/features/profile/data/datasources/profile_firestore_data_source.dart) — missing-doc branch `runTransaction` + `after.get()`. Callers wrap the existing-doc get via `guardWithTimeout`; they do not wrap this write.
+
+**Trigger:** when we bound writes.
+
+**Change:** a **write-sized** timeout constant (not `kGuardTimeout`) and a separate task. Interacts with `ChatController.send()` / Firestore write-ack hang and with Storage `maxUploadRetryTime` (60s). Do not reuse the 20s get budget.
+
+**Not a rules or emulator-test change.**
+
+---
+
+## 13 — SDK dual-stack check (Auth-only fix)
+
+**Parked as:** SDK check **2026-08-11**. BoM **34.17.0** / Firestore **26.5.0** / Storage **22.0.1** / Auth **24.2.0**. Auth carries the dual-stack fix ("Fixed authentication timeout on dual-stack Wi-Fi networks caused by long IPv6 timeouts which prevented IPv4 fallback"); Firestore and Storage do not.
+
+**Trigger has not fired.** Re-check each FlutterFire / Android BoM release cycle. Device proof is cold sign-in **and** chat sync / media load on the home dual-stack network ([`RESILIENCE_DECISIONS.md`](RESILIENCE_DECISIONS.md) § Network posture). An IPv4-only network will not fire this trigger.
+
+**Not a rules change.**
+
+---
+
+## 14 — `NetworkFailure` covers four SDK conditions
+
+**Parked as:** `mapException` maps `retry-limit-exceeded`, `unavailable`, `deadline-exceeded`, and `network-request-failed` to [`NetworkFailure`](../lib/core/failure.dart). Distinct from [`NetworkTimeoutFailure`](../lib/core/failure.dart) (Dart `TimeoutException` / `guardWithTimeout` — the Future never completed). Native retry exhaustion is the SDK completing with an error.
+
+**Trigger:** when R2b needs copy or retry behaviour to vary by cause.
+
+**Change:** split the `Failure` hierarchy and/or `mapException` cases. Do not flatten them into `UnknownFailure` (that was the defect).
+
+**Not a rules change.**
+
+---
+
+## 15 — Timeout ordering (never equal on the same call)
+
+**Parked as:** 15s native `maxOperationRetryTime` → 20s `resolveTimeout` → 20s `kGuardTimeout`. Deliberately ordered; never set two of these equal on the same call. Native 15s is the expected Storage terminator; Dart 20s `resolveTimeout` is a backstop if native never returns; `kGuardTimeout` is a get-only Firestore backstop.
+
+`kGuardTimeout` is **per-call, not per-get**. `getInviteByCode` and `getLastAccessedBase` each run two sequential gets under one budget. A single cache fallback can land at 14.9s, so a legitimate pair could exceed 20s. Acceptable for a backstop.
+
+**Trigger:** changing any of the three constants. Re-read [`RESILIENCE_DECISIONS.md`](RESILIENCE_DECISIONS.md) measurements before touching them.
+
+**Not a rules change.**
+
+---
+
+## 16 — Accepted limitations (copy, not bugs)
+
+**Parked as:**
+
+- First-ever sign-in requires a network (create-or-return write is unbounded — §12).
+- A fresh install on a bad network reaches `/home` with no bases and no chats.
+
+Both are copy problems, not hangs to timeout-away.
+
+**Trigger:** product wants different copy or an offline-first empty-state for those two paths.
+
+---
+
+## Rejected approaches
+
+Do not revive without a new ADR. These were rejected against **this** hang:
+
+- **`connectivity_plus` / any OS-level connectivity check** — the OS reports healthy while the socket is dead. That is this exact bug.
+- **`setGrpcFlowControlWindow()`** — large-document throughput. Unrelated to connect hangs.
+
+---
+
 ## Related
 
 | Doc / path | Role |
 |------------|------|
 | [FIRESTORE_SCHEMA.md](FIRESTORE_SCHEMA.md) | Shape + Decisions & deferred |
+| [RESILIENCE_DECISIONS.md](RESILIENCE_DECISIONS.md) | Hang measurements, red herrings, network posture |
 | [`../firestore.rules`](../firestore.rules) | Checked-in Firestore rules |
 | [`../storage.rules`](../storage.rules) | Checked-in Storage rules |
 | [`../firestore/tests/`](../firestore/tests/) | Firestore emulator deny/allow matrix |

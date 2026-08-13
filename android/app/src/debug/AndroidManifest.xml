@@ -5,7 +5,7 @@
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
-    <!-- TEMP DIAG_HANG / debug harness — remove with the DIAG_HANG instrumentation.
+    <!-- Permanent debug-harness support for MOONBASE_BLACKHOLE; not throwaway.
          Debug-only cleartext exemption for the MOONBASE_BLACKHOLE sink
          (192.0.2.1 only; see res/xml/network_security_config.xml). The main
          manifest declares no networkSecurityConfig, so release is unaffected. -->

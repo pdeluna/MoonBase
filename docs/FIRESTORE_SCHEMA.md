@@ -262,13 +262,25 @@ Locked Week 3 choices — do not re-open without a new ADR.
 
 **When a decision un-parks:** see [`FIRESTORE_UPDATE_TRIGGERS.md`](FIRESTORE_UPDATE_TRIGGERS.md) (precise rule/test change per trigger).
 
+**Hang / transport measurements, red herrings, network posture:** [`RESILIENCE_DECISIONS.md`](RESILIENCE_DECISIONS.md). This section stays document-shape ADRs.
+
 ### Android Wi‑Fi Auth hang — dual-stack IPv6 (SDK bump)
 
 **Root cause (confirmed):** Fresh-install email/password sign-in hung on some dual-stack Wi‑Fi networks (immediate on cellular; Wi‑Fi worked after a successful cellular login). Not SHA/Play Integrity, not emulator wiring, not an app architecture bug. Matches Firebase Android Auth release notes: long IPv6 timeouts blocked IPv4 fallback.
 
 **Fix:** Lockstep FlutterFire bump so Android BoM pulls Auth **24.2.0** — `firebase_core ^4.13.0` (BoM **34.17.0**), `firebase_auth ^6.5.7`, `cloud_firestore ^6.8.0`, `firebase_storage ^13.4.6`. No REST Auth client, Cloud Function broker, or custom-token fallback.
 
-**Verification obligation:** Cold sign-in on the failing Wi‑Fi is the Auth proof. Firestore **26.5.0** (same BoM) does **not** carry an equivalent explicit dual-stack IPv6 fix — also verify chat sync and media load on that same Wi‑Fi after the bump.
+**Verification obligation:** Cold sign-in on the **home** dual-stack Wi‑Fi is the Auth proof (see [`RESILIENCE_DECISIONS.md`](RESILIENCE_DECISIONS.md) § Network posture). Firestore **26.5.0** and Storage **22.0.1** (same BoM) do **not** carry an equivalent explicit dual-stack IPv6 fix — also verify chat sync and media load on that same Wi‑Fi after the bump. A clean run on an IPv4-only network is not that proof.
+
+### R3 — create-or-return write stays unbounded
+
+**Parked as:** R3 Pass 2 wraps **get-only** Firestore reads with `guardWithTimeout` (20s, sized from cache-fallback `readProfile` gets). First-sign-in / new-device `readProfile` create-or-return (`runTransaction` set + follow-up get) is a **write**. It stays unbounded.
+
+That is the accepted new-device limitation: a missing `users/{uid}` doc still waits on server ack for the create. Same class of hang as chat send (Firestore write future does not complete until the server acknowledges).
+
+**Un-park trigger:** when we bound writes. A write-sized budget is a different constant and a different task. Do not reuse `kGuardTimeout` (20s, get-sized) on writes — it would interact with the known send-hang and with Storage upload (native 60s).
+
+**Not a rules change.** Dart I/O helper only.
 
 ### Membership `get()` cost (option A)
 

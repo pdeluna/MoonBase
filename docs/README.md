@@ -13,10 +13,24 @@ This folder contains architecture, process, and reference docs. Phase 2 archives
 | [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) | Onboarding: FVM, IDE, Firebase foundation, commits. |
 | [DEV_GUIDE.md](DEV_GUIDE.md) | Git workflow, FVM, Flutter basics, testing strategy. |
 | [FIRESTORE_SCHEMA.md](FIRESTORE_SCHEMA.md) | Week 3 Firestore document shape (`schemaVersion: 1`), Decisions & deferred, and rules summary. Rules emulator suite: [`../firestore/tests/`](../firestore/tests/). |
+| [RESILIENCE_DECISIONS.md](RESILIENCE_DECISIONS.md) | Hang measurements, red herrings, network posture. Figures from instrumentation removed 2026-08-13. |
 | [WEEK3_PR_SUMMARY.md](WEEK3_PR_SUMMARY.md) | Week 3 PR summary: what shipped, critical locked notes, test plan. |
 | [FIRESTORE_UPDATE_TRIGGERS.md](FIRESTORE_UPDATE_TRIGGERS.md) | Scale-time reference: what’s parked in rules/tests and the precise trigger that forces a change. |
 | [CLOUD_FIRESTORE_TEST_EXPANSION.md](CLOUD_FIRESTORE_TEST_EXPANSION.md) | Where tests must expand when profiles/bases/chat move to Firestore (Week 3+). |
 | [git_alias_cheat_sheet.md](git_alias_cheat_sheet.md) | Optional git shortcuts. |
+| [DIAG_HANG_REVERT_PLAN.md](DIAG_HANG_REVERT_PLAN.md) | **Executed 2026-08-13.** Historical strip procedure. Survivors and naming convention: see the header and [`RESILIENCE_DECISIONS.md`](RESILIENCE_DECISIONS.md). |
+
+---
+
+## Follow-ups (not this PR)
+
+Git-workflow docs, deferred so they do not block Phase 1 merge:
+
+1. Commit `GIT_HYGIENE_GUIDE.md` under `docs/` as the git-workflow canonical (own small `docs:` PR).
+2. Uncomment `.vscode/` in `.gitignore` so the per-contributor untracked convention is real (hygiene § 8).
+3. Resolve the branch-prefix conflict between [`DEVELOPMENT_SETUP.md`](DEVELOPMENT_SETUP.md) § 4.1 and [`DEV_GUIDE.md`](DEV_GUIDE.md), then rewrite `DEVELOPMENT_SETUP.md` § 4 as a pointer at the hygiene guide.
+
+`chore/dart-format` rebases onto `main` **after** this branch merges, then re-runs `fvm dart format .`. Do not merge the format sweep first.
 
 ---
 

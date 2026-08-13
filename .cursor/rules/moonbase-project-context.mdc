@@ -1,0 +1,22 @@
+---
+description: MoonBase project context — architecture, FVM, hang Phase 1 status, FlutterFire versions, dual-stack
+alwaysApply: true
+---
+
+# MoonBase project context
+
+Flutter **3.29.2** / Dart **3.7.2** via FVM (`fvm flutter` / `fvm dart` only). Windows/PowerShell — never chain with `&&`.
+
+Clean architecture, strictly layered: **domain** (entities, repository ports, use cases — no Firebase types), **data** (impls, data sources, codecs — Firebase lives here only), **presentation** (Riverpod controllers exposing `AsyncValue`, widgets). `Either<Failure, T>` with `guard()` / `guardWithTimeout()` wrapping I/O — no try/catch outside them; `MediaStorage` is the deliberate exception (it throws, callers guard). `schemaVersion: 1` on every Firestore doc.
+
+Review filter: does this create two sources of truth, or two things that must agree but could drift?
+
+**Hang Phase 1 (signed off 2026-08-13):** R2 Storage caps, R3 `kGuardTimeout` 20s, R4 session gate, R5 cache-vs-live freshness, debug harness. `DIAG_HANG` stripped. Measurements: `docs/RESILIENCE_DECISIONS.md`.
+
+**FlutterFire:** `firebase_core ^4.13.0` → Android BoM **34.17.0**. Auth **24.2.0** (dual-stack IPv6 timeout fix). Firestore **26.5.0** and Storage **22.0.1** do **not** carry an equivalent fix. Trigger has not fired — re-check each BoM cycle. Home Wi-Fi is dual-stack (acceptance-test network); IPv4-only networks never reproduced the hang.
+
+PLAN FIRST tasks: written plan only, then stop. Testing: hot restart/reload wedge the debug harness gRPC channel — full stop and re-run.
+
+This file is the source of truth for project context. Any brief pasted into a chat derives from it — do not maintain a second copy.
+
+Update this rule when Phase 1 status, plugin versions, or dual-stack status change.
