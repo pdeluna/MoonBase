@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:moonbase_skeleton/features/auth/domain/repositories/auth_repository.dart';
@@ -27,8 +28,36 @@ final getCurrentUserProvider =
 final currentUserProvider = Provider<User?>((ref) {
   final authState = ref.watch(authControllerProvider);
   return authState.current.when(
-    data: (user) => user,
-    loading: () => null,
-    error: (_, __) => null,
+    data: (user) {
+      // TEMP DIAG_HANG — remove after incident root-cause confirmed
+      if (kDebugMode) {
+        debugPrint(
+          'DIAG_HANG currentUserProvider branch=data '
+          'uid=${user?.id.value ?? 'null'} '
+          'gateSeesSignedIn=${user != null}',
+        );
+      }
+      return user;
+    },
+    loading: () {
+      // TEMP DIAG_HANG — remove after incident root-cause confirmed
+      if (kDebugMode) {
+        debugPrint(
+          'DIAG_HANG currentUserProvider branch=loading→null '
+          'gateSeesSignedIn=false',
+        );
+      }
+      return null;
+    },
+    error: (e, _) {
+      // TEMP DIAG_HANG — remove after incident root-cause confirmed
+      if (kDebugMode) {
+        debugPrint(
+          'DIAG_HANG currentUserProvider branch=error→null '
+          'error=$e gateSeesSignedIn=false',
+        );
+      }
+      return null;
+    },
   );
 });

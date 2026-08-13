@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
@@ -61,14 +62,34 @@ class ChatFirestoreDataSource implements ChatLocalDataSource {
   }
 
   @override
-  Stream<List<MessageModel>> streamMessages(String baseId) {
-    return _messagesCol(baseId).orderBy('createdAt').snapshots().map((snap) {
+  Stream<List<MessageModel>> streamMessages(String baseId) async* {
+    // TEMP DIAG_HANG — remove after incident root-cause confirmed
+    // async* body runs on listen → stopwatch/counter are per-subscription.
+    // Metadata is read here only for logging and is not surfaced upward.
+    // includeMetadataChanges: true so cache→live metadata-only transitions
+    // emit (task #5 will formalise this; currently required for DIAG_HANG).
+    final sw = Stopwatch()..start();
+    var emissionN = 0;
+    await for (final snap in _messagesCol(baseId)
+        .orderBy('createdAt')
+        .snapshots(includeMetadataChanges: true)) {
       final list = snap.docs
           .map((d) => MessageModel.fromFirestore(d.id, baseId, d.data()))
           .toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      return list;
-    });
+      if (kDebugMode) {
+        emissionN++;
+        if (emissionN <= 3) {
+          debugPrint(
+            'DIAG_HANG chatMessages emission #$emissionN baseId=$baseId '
+            'count=${list.length} isFromCache=${snap.metadata.isFromCache} '
+            'hasPendingWrites=${snap.metadata.hasPendingWrites} '
+            'elapsedMs=${sw.elapsedMilliseconds}',
+          );
+        }
+      }
+      yield list;
+    }
   }
 
   @override

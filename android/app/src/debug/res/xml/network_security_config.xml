@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  TEMP DIAG_HANG / debug harness — remove with the DIAG_HANG instrumentation.
+
+  Debug source set only: this file does not exist in release, so release keeps
+  Android's default (cleartext denied for every host).
+
+  Why: MOONBASE_BLACKHOLE points Storage at TEST-NET-1 192.0.2.1 via
+  useStorageEmulator, which forces http://. Android's default cleartext policy
+  rejects that instantly ("Cleartext HTTP traffic to 192.0.2.1 not permitted"),
+  producing a fast IOException instead of the connect hang we need to reproduce.
+
+  Scope is deliberately one literal IP: base-config keeps cleartext denied for
+  every other host, so a real endpoint can never silently downgrade to http.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.0.2.1</domain>
+    </domain-config>
+</network-security-config>

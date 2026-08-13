@@ -82,13 +82,51 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, User?>> getCurrentUser() =>
       guard(() async {
+        // TEMP DIAG_HANG — remove after incident root-cause confirmed
+        final sw = Stopwatch()..start();
+        if (kDebugMode) {
+          debugPrint(
+            'DIAG_HANG AuthRepository.getCurrentUser BEFORE '
+            't=${DateTime.now().toIso8601String()}',
+          );
+        }
         final model = await remote.getCurrentUser();
         if (model == null) {
           await local.clear();
+          if (kDebugMode) {
+            debugPrint(
+              'DIAG_HANG AuthRepository.getCurrentUser AFTER null-auth '
+              'uiWouldBe=data(null) elapsedMs=${sw.elapsedMilliseconds}',
+            );
+          }
           return null;
         }
         await local.writeCurrentUser(model);
-        await profiles.readProfile(model.id);
+        if (kDebugMode) {
+          debugPrint(
+            'DIAG_HANG AuthRepository.getCurrentUser BEFORE readProfile '
+            'uid=${model.id} elapsedMs=${sw.elapsedMilliseconds}',
+          );
+        }
+        try { // TEMP DIAG_HANG — remove with instrumentation
+          await profiles.readProfile(model.id);
+          if (kDebugMode) {
+            debugPrint(
+              'DIAG_HANG AuthRepository.getCurrentUser AFTER readProfile '
+              'success uid=${model.id} uiWouldBe=data '
+              'elapsedMs=${sw.elapsedMilliseconds}',
+            );
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint(
+              'DIAG_HANG AuthRepository.getCurrentUser AFTER readProfile '
+              'failure uid=${model.id} uiWouldBe=error error=$e '
+              'elapsedMs=${sw.elapsedMilliseconds}',
+            );
+          }
+          rethrow;
+        }
         return model.toEntity();
       });
 }

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -47,6 +49,24 @@ void main() async {
 
     final appName = Firebase.app().name;
     debugPrint('🚀 FIREBASE SUCCESS: Connected to app [$appName]');
+
+    // TEMP DIAG_HANG — remove after incident root-cause confirmed
+    if (kDebugMode) {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      debugPrint(
+        'DIAG_HANG appStart currentUser uid=${uid ?? 'null'} '
+        'isNull=${uid == null} t=${DateTime.now().toIso8601String()}',
+      );
+      var authStateChangesN = 0;
+      FirebaseAuth.instance.authStateChanges().listen((user) {
+        authStateChangesN++;
+        debugPrint(
+          'DIAG_HANG authStateChanges #$authStateChangesN '
+          'uid=${user?.uid ?? 'null'} '
+          't=${DateTime.now().toIso8601String()}',
+        );
+      });
+    }
   } catch (e) {
     debugPrint('❌ FIREBASE ERROR: Initialization failed: $e');
   }
