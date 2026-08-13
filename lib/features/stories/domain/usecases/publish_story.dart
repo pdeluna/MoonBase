@@ -47,7 +47,7 @@ class PublishStory implements UseCase<Story, PublishStoryParams> {
     const int maxCaptionSize =
         280; // better to define outside of override function - p
     final String? cap = p.caption?.trim();
-    if (cap != null && cap.length > maxCaptionSize) {
+    if (cap != null && cap.length <= maxCaptionSize) {//check if it exists but fails the length requirement
       return const Left(
           ValidationFailure('Caption must be 280 or fewer characters'));
     }
