@@ -145,39 +145,16 @@ class SendMessage implements UseCase<Message, SendMessageParams> {
     List<MediaRef> media,
   ) async {
     final uploaded = <MediaRef>[];
-    var index = 0;
     for (final m in media) {
-      final i = index++;
       final result = await guard(() async {
         final uri = await stagingStorage.resolveUri(m.storageKey);
         final bytes = await _readStagedBytes(uri);
-        // TEMP DIAG_HANG — remove after incident root-cause confirmed
-        final sw = Stopwatch()..start();
-        developer.log(
-          'putBytes BEFORE i=$i key=${m.storageKey} bytes=${bytes.length} '
-          't=${DateTime.now().toIso8601String()}',
-          name: 'DIAG_HANG',
+        final cloudPath = await cloudStorage.putBytes(
+          key: m.storageKey,
+          bytes: bytes,
+          mimeType: m.mimeType ?? 'image/jpeg',
         );
-        try {
-          final cloudPath = await cloudStorage.putBytes(
-            key: m.storageKey,
-            bytes: bytes,
-            mimeType: m.mimeType ?? 'image/jpeg',
-          );
-          developer.log(
-            'putBytes AFTER success i=$i path=$cloudPath '
-            'elapsedMs=${sw.elapsedMilliseconds}',
-            name: 'DIAG_HANG',
-          );
-          return m.copyWith(storageKey: cloudPath);
-        } catch (e) {
-          developer.log(
-            'putBytes AFTER throw i=$i error=$e '
-            'elapsedMs=${sw.elapsedMilliseconds}',
-            name: 'DIAG_HANG',
-          );
-          rethrow;
-        }
+        return m.copyWith(storageKey: cloudPath);
       });
 
       final failure = result.match<Failure?>((f) => f, (ref) {

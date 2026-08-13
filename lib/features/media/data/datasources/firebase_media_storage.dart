@@ -28,6 +28,17 @@ typedef StoragePutFn = Future<void> Function({
 /// Resolves a Storage object [path] to a short-lived HTTPS download URL.
 typedef StorageGetDownloadUrlFn = Future<String> Function(String path);
 
+/// Dart-side await cap for [FirebaseMediaStorage.resolveUri] / getDownloadURL.
+///
+/// Ordered after `kFirebaseStorageMaxOperationRetry` (15s native retry budget)
+/// on purpose — they bound different things (native retry vs Dart
+/// `Future.timeout`) and **must not be set equal**. Native 15s is the expected
+/// terminator; this 20s timeout is a backstop if the native layer never
+/// returns. Either can legitimately be absent (this default is unused when
+/// tests inject [FirebaseMediaStorage.resolveTimeout]; native caps are unused
+/// when getDownloadURL is stubbed).
+const Duration kFirebaseMediaResolveTimeout = Duration(seconds: 20);
+
 /// Cloud [MediaStorage]: compress to JPEG ≤ 10 MB, then upload to Firebase Storage.
 ///
 /// ## Pass-2 obligation (interface seam)
@@ -46,8 +57,11 @@ typedef StorageGetDownloadUrlFn = Future<String> Function(String path);
 ///
 /// In-flight / completed download-URL futures are memoized per Storage path for
 /// the session so chat rebuilds share one `getDownloadURL` call. Failed
-/// futures are evicted so a later retry can succeed. A [resolveTimeout] turns
-/// hangs into [NetworkFailure] (broken-image, not infinite spinner).
+/// futures are evicted so a later retry can succeed. [resolveTimeout] (see
+/// [kFirebaseMediaResolveTimeout]) is a Dart-side backstop if the native
+/// layer never returns — not the expected terminator; that is
+/// `kFirebaseStorageMaxOperationRetry` (15s native retry budget). The two
+/// must not be set equal.
 ///
 /// Download URLs carry rotating auth tokens — render caches **must** key on
 /// the stable Storage path (`bases/{baseId}/media/{uuid}.jpg`), not the URL.
@@ -69,7 +83,7 @@ class FirebaseMediaStorage extends RemoteMediaStorage {
     this.maxBytes = MediaConstraints.imageMaxBytesDefault,
     this.maxEdge = 1920,
     this.initialQuality = 80,
-    this.resolveTimeout = const Duration(seconds: 15),
+    this.resolveTimeout = kFirebaseMediaResolveTimeout,
   })  : _compressJpeg = compressJpeg ?? _defaultCompressJpeg,
         // Defaults close over [storage] and only touch FirebaseStorage.instance
         // when invoked — so unit tests that stub put/get never need Firebase.
@@ -92,7 +106,9 @@ class FirebaseMediaStorage extends RemoteMediaStorage {
   /// First quality attempt before the ladder.
   final int initialQuality;
 
-  /// Cap for [getDownloadURL] so a hung Storage RPC cannot leave tiles spinning.
+  /// Dart-side await cap for [getDownloadURL] so a hung native RPC cannot
+  /// leave tiles spinning. See [kFirebaseMediaResolveTimeout]. Ordered after
+  /// `kFirebaseStorageMaxOperationRetry` on purpose — must not be set equal.
   final Duration resolveTimeout;
 
   static const _qualityLadder = [80, 70, 55, 40, 25];

@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -13,7 +12,8 @@ import 'package:moonbase_skeleton/firebase_options.dart';
 
 import 'package:moonbase_skeleton/features/profile/data/datasources/profile_firestore_data_source.dart';
 import 'package:moonbase_skeleton/features/profile/data/repositories/profile_repository_impl.dart';
-import 'package:moonbase_skeleton/features/profile/presentation/providers/profile_providers.dart' as profile_providers;
+import 'package:moonbase_skeleton/features/profile/presentation/providers/profile_providers.dart'
+    as profile_providers;
 
 import 'package:moonbase_skeleton/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
@@ -32,9 +32,11 @@ import 'package:moonbase_skeleton/features/media/data/datasources/firebase_media
 import 'package:moonbase_skeleton/features/media/data/datasources/image_picker_media_picker.dart';
 import 'package:moonbase_skeleton/features/media/data/datasources/local_file_media_storage.dart';
 import 'package:moonbase_skeleton/features/media/data/datasources/resolving_media_storage.dart';
+import 'package:moonbase_skeleton/features/media/data/firebase_storage_retry.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 
-import 'package:moonbase_skeleton/core/di/providers.dart' show sharedPrefsProvider;
+import 'package:moonbase_skeleton/core/di/providers.dart'
+    show sharedPrefsProvider;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,40 +51,31 @@ void main() async {
 
     final appName = Firebase.app().name;
     debugPrint('🚀 FIREBASE SUCCESS: Connected to app [$appName]');
-
-    // TEMP DIAG_HANG — remove after incident root-cause confirmed
-    if (kDebugMode) {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      debugPrint(
-        'DIAG_HANG appStart currentUser uid=${uid ?? 'null'} '
-        'isNull=${uid == null} t=${DateTime.now().toIso8601String()}',
-      );
-      var authStateChangesN = 0;
-      FirebaseAuth.instance.authStateChanges().listen((user) {
-        authStateChangesN++;
-        debugPrint(
-          'DIAG_HANG authStateChanges #$authStateChangesN '
-          'uid=${user?.uid ?? 'null'} '
-          't=${DateTime.now().toIso8601String()}',
-        );
-      });
-    }
   } catch (e) {
     debugPrint('❌ FIREBASE ERROR: Initialization failed: $e');
   }
 
   // Single Settings assignment site (canonical object lives here). Debug
   // harness may return a copyWith(host: ...) for BLACKHOLE; it never assigns.
-  // Task #5 adds persistenceEnabled: true on this same construction — do not
-  // introduce a second `settings =` elsewhere.
+  // persistenceEnabled is explicit so a later reader does not treat the SDK
+  // default as an accident. Leave cacheSizeBytes unset (SDK default).
+  // Do not introduce a second `settings =` elsewhere.
   if (Firebase.apps.isNotEmpty) {
-    const canonicalSettings = Settings();
+    const canonicalSettings = Settings(persistenceEnabled: true);
     FirebaseFirestore.instance.settings =
         applyFirestoreDebugSettings(canonicalSettings);
     // Awaited only so Storage blackhole config lands before first Storage use
     // (local platform channel + 3s timeout — not a network I/O wait; do not
     // "fix" this back to unawaited). disableNetwork stays unawaited inside.
     await applyFirebaseDebugNetworkEffects();
+
+    // Native retry budgets — see firebase_storage_retry.dart. After the
+    // emulator/offline harness so this is not "first Storage use" before
+    // blackhole arms. Do not add a second call site.
+    final storage = FirebaseStorage.instance;
+    storage.setMaxOperationRetryTime(kFirebaseStorageMaxOperationRetry);
+    storage.setMaxDownloadRetryTime(kFirebaseStorageMaxDownloadRetry);
+    storage.setMaxUploadRetryTime(kFirebaseStorageMaxUploadRetry);
   }
 
   final prefs = await SharedPreferences.getInstance();
@@ -141,4 +134,3 @@ void main() async {
 
   runApp(ProviderScope(overrides: overrides, child: const App()));
 }
-
