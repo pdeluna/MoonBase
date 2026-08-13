@@ -2,32 +2,30 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
-import 'package:moonbase_skeleton/features/chat/domain/usecases/list_messages.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/send_message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/stream_messages.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 
-
 class ChatState {
-  const ChatState({this.messages = const AsyncValue.data([])});
+  const ChatState({this.feed = const AsyncValue<ChatFeed>.loading()});
 
-  final AsyncValue<List<Message>> messages;
+  final AsyncValue<ChatFeed> feed;
 
-  ChatState copyWith({AsyncValue<List<Message>>? messages}) =>
-      ChatState(messages: messages ?? this.messages);
+  ChatState copyWith({AsyncValue<ChatFeed>? feed}) =>
+      ChatState(feed: feed ?? this.feed);
 }
 
 class ChatController extends StateNotifier<ChatState> {
-  ChatController(this._listMessages, this._sendMessage, this._streamMessages)
+  ChatController(this._sendMessage, this._streamMessages)
       : super(const ChatState());
 
-  final ListMessages _listMessages;
   final SendMessage _sendMessage;
   final StreamMessages _streamMessages;
 
-  StreamSubscription<List<Message>>? _sub;
+  StreamSubscription<ChatFeed>? _sub;
 
   @override
   void dispose() {
@@ -42,21 +40,32 @@ class ChatController extends StateNotifier<ChatState> {
     return copy;
   }
 
+  /// Subscribe to the message stream. First paint is the first ChatFeed
+  /// emission — do not mint a freshness value from listMessages.
+  /// Pagination is not wired; listMessagesUseCaseProvider stays for that.
   Future<void> load(String baseId) async {
     _sub?.cancel();
-    state = state.copyWith(messages: const AsyncValue.loading());
-
-    final res = await _listMessages(ListMessagesParams(baseId: baseId.bid));
-    state = res.match(
-      (f) => state.copyWith(messages: AsyncValue.error(f, StackTrace.current)),
-      (list) => state.copyWith(messages: AsyncValue.data(_newestFirst(list))),
-    );
+    state = state.copyWith(feed: const AsyncValue<ChatFeed>.loading());
 
     developer.log('ChatController: Starting stream for base $baseId');
-    _sub = _streamMessages(baseId.bid).listen((list) {
-      developer.log('ChatController: Received ${list.length} messages from stream');
-      state = state.copyWith(messages: AsyncValue.data(_newestFirst(list)));
-    });
+    _sub = _streamMessages(baseId.bid).listen(
+      (feed) {
+        developer.log(
+          'ChatController: Received ${feed.messages.length} messages from stream',
+        );
+        state = state.copyWith(
+          feed: AsyncValue.data(
+            ChatFeed(
+              messages: _newestFirst(feed.messages),
+              freshness: feed.freshness,
+            ),
+          ),
+        );
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        state = state.copyWith(feed: AsyncValue.error(error, stackTrace));
+      },
+    );
   }
 
   Future<void> send(
@@ -90,9 +99,9 @@ class ChatController extends StateNotifier<ChatState> {
   }
 }
 
-final chatControllerProvider = StateNotifierProvider<ChatController, ChatState>((ref) {
+final chatControllerProvider =
+    StateNotifierProvider<ChatController, ChatState>((ref) {
   return ChatController(
-    ref.read(listMessagesUseCaseProvider),
     ref.read(sendMessageUseCaseProvider),
     ref.read(streamMessagesUseCaseProvider),
   );

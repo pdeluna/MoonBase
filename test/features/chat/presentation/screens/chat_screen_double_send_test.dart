@@ -11,9 +11,10 @@ import 'package:moonbase_skeleton/core/sync_status.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/chat_freshness.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
-import 'package:moonbase_skeleton/features/chat/domain/usecases/list_messages.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/send_message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/stream_messages.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/controllers/chat_controller.dart';
@@ -51,8 +52,9 @@ class _SlowCountingChatRepo implements ChatRepository {
   }
 
   @override
-  Stream<List<Message>> streamMessages(BaseId baseId) =>
-      const Stream<List<Message>>.empty();
+  Stream<ChatFeed> streamMessages(BaseId baseId) => Stream.value(
+        const ChatFeed(messages: [], freshness: ChatFreshness.live),
+      );
 
   @override
   Future<Either<Failure, List<Message>>> listMessages({
@@ -107,7 +109,6 @@ void main() {
             canSendMessage: true,
           )),
           chatControllerProvider.overrideWith((ref) => ChatController(
-                ListMessages(repo),
                 SendMessage(
                   repo,
                   stagingStorage: _UnusedMediaStorage(),

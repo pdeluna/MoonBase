@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:moonbase_skeleton/features/chat/data/models/chat_message_batch.dart';
 import 'package:moonbase_skeleton/features/chat/data/models/message_model.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
@@ -10,12 +11,12 @@ import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart'
 /// Uses the same storage format as the legacy SpChatRepository
 class ChatSharedPrefsDataSource implements ChatLocalDataSource {
   ChatSharedPrefsDataSource(this._prefs);
-  
+
   static const _kMessages = 'mb.messages';
   static const _kMessageIds = 'mb.messageIds';
 
   final SharedPreferences _prefs;
-  final Map<String, StreamController<List<MessageModel>>> _streamControllers = {};
+  final Map<String, StreamController<ChatMessageBatch>> _streamControllers = {};
 
   // ---- helpers ----
 
@@ -51,13 +52,15 @@ class ChatSharedPrefsDataSource implements ChatLocalDataSource {
 
   // Notify stream listeners
   void _notifyStreamListeners(String baseId, List<MessageModel> messages) {
-    developer.log('ChatSharedPrefsDataSource: Notifying stream listeners for base $baseId with ${messages.length} messages');
+    developer.log(
+        'ChatSharedPrefsDataSource: Notifying stream listeners for base $baseId with ${messages.length} messages');
     final controller = _streamControllers[baseId];
     if (controller != null && !controller.isClosed) {
-      controller.add(messages);
+      controller.add(ChatMessageBatch(messages: messages, fromCache: false));
       developer.log('ChatSharedPrefsDataSource: Stream notification sent');
     } else {
-      developer.log('ChatSharedPrefsDataSource: No active stream controller for base $baseId');
+      developer.log(
+          'ChatSharedPrefsDataSource: No active stream controller for base $baseId');
     }
   }
 
@@ -85,8 +88,7 @@ class ChatSharedPrefsDataSource implements ChatLocalDataSource {
     // Save message
     final messages = _readMessages();
     final baseMessages = List<Map<String, dynamic>>.from(
-      (messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>
-    );
+        (messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     baseMessages.add(message.toMap());
     messages[baseId] = baseMessages;
     await _writeMessages(messages);
@@ -98,27 +100,30 @@ class ChatSharedPrefsDataSource implements ChatLocalDataSource {
 
     // Notify stream listeners
     final allMessages = await _getMessagesForBase(baseId);
-    developer.log('ChatSharedPrefsDataSource: Message saved, notifying listeners with ${allMessages.length} total messages');
+    developer.log(
+        'ChatSharedPrefsDataSource: Message saved, notifying listeners with ${allMessages.length} total messages');
     _notifyStreamListeners(baseId, allMessages);
 
     return message;
   }
 
   @override
-  Stream<List<MessageModel>> streamMessages(String baseId) {
+  Stream<ChatMessageBatch> streamMessages(String baseId) {
     // Create stream controller if it doesn't exist
     if (!_streamControllers.containsKey(baseId)) {
-      _streamControllers[baseId] = StreamController<List<MessageModel>>.broadcast();
-      
+      _streamControllers[baseId] =
+          StreamController<ChatMessageBatch>.broadcast();
+
       // Load initial messages
       _getMessagesForBase(baseId).then((messages) {
         final controller = _streamControllers[baseId];
         if (controller != null && !controller.isClosed) {
-          controller.add(messages);
+          controller
+              .add(ChatMessageBatch(messages: messages, fromCache: false));
         }
       });
     }
-    
+
     return _streamControllers[baseId]!.stream;
   }
 
@@ -129,13 +134,14 @@ class ChatSharedPrefsDataSource implements ChatLocalDataSource {
     int limit = 50,
   }) async {
     final messages = await _getMessagesForBase(baseId);
-    
+
     // Sort by creation date (newest first)
     messages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    
+
     // Apply pagination
     if (before != null) {
-      final beforeIndex = messages.indexWhere((m) => m.createdAt.isBefore(before));
+      final beforeIndex =
+          messages.indexWhere((m) => m.createdAt.isBefore(before));
       if (beforeIndex != -1) {
         // Get messages before the specified timestamp
         final startIndex = beforeIndex + 1;
@@ -146,12 +152,12 @@ class ChatSharedPrefsDataSource implements ChatLocalDataSource {
         }
       }
     }
-    
+
     // Limit results
     if (messages.length > limit) {
       messages.removeRange(limit, messages.length);
     }
-    
+
     return messages;
   }
 
@@ -159,9 +165,8 @@ class ChatSharedPrefsDataSource implements ChatLocalDataSource {
   Future<List<MessageModel>> _getMessagesForBase(String baseId) async {
     final messages = _readMessages();
     final baseMessages = List<Map<String, dynamic>>.from(
-      (messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>
-    );
-    
+        (messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+
     final result = <MessageModel>[];
     for (final messageJson in baseMessages) {
       try {
@@ -171,7 +176,7 @@ class ChatSharedPrefsDataSource implements ChatLocalDataSource {
         // Skip corrupted message data
       }
     }
-    
+
     return result;
   }
 

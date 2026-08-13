@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
-import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
+import 'package:moonbase_skeleton/features/chat/data/models/chat_message_batch.dart';
 import 'package:moonbase_skeleton/features/chat/data/models/message_model.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 
@@ -13,7 +13,8 @@ import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart'
 /// `schemaVersion: 1`. Message ids are client-generated ([Uuid]) so a later
 /// optimistic-send pass can dedup without changing the write path.
 ///
-/// The stream is `orderBy('createdAt').snapshots()`. After mapping, the list
+/// The stream is `orderBy('createdAt').snapshots(includeMetadataChanges: true)`.
+/// After mapping, the list
 /// is always re-sorted by `createdAt` so pending null→`now()` stand-ins land
 /// at the newest end (query order alone puts nulls first / oldest).
 class ChatFirestoreDataSource implements ChatLocalDataSource {
@@ -62,34 +63,24 @@ class ChatFirestoreDataSource implements ChatLocalDataSource {
   }
 
   @override
-  Stream<List<MessageModel>> streamMessages(String baseId) async* {
-    // TEMP DIAG_HANG — remove after incident root-cause confirmed
-    // async* body runs on listen → stopwatch/counter are per-subscription.
-    // Metadata is read here only for logging and is not surfaced upward.
-    // includeMetadataChanges: true so cache→live metadata-only transitions
-    // emit (task #5 will formalise this; currently required for DIAG_HANG).
-    final sw = Stopwatch()..start();
-    var emissionN = 0;
-    await for (final snap in _messagesCol(baseId)
+  Stream<ChatMessageBatch> streamMessages(String baseId) {
+    // includeMetadataChanges: true is production (R5). Firestore otherwise
+    // suppresses metadata-only cache→live events, so a stale banner would
+    // never clear. fromCache is isFromCache alone — do not AND
+    // hasPendingWrites.
+    return _messagesCol(baseId)
         .orderBy('createdAt')
-        .snapshots(includeMetadataChanges: true)) {
+        .snapshots(includeMetadataChanges: true)
+        .map((snap) {
       final list = snap.docs
           .map((d) => MessageModel.fromFirestore(d.id, baseId, d.data()))
           .toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      if (kDebugMode) {
-        emissionN++;
-        if (emissionN <= 3) {
-          debugPrint(
-            'DIAG_HANG chatMessages emission #$emissionN baseId=$baseId '
-            'count=${list.length} isFromCache=${snap.metadata.isFromCache} '
-            'hasPendingWrites=${snap.metadata.hasPendingWrites} '
-            'elapsedMs=${sw.elapsedMilliseconds}',
-          );
-        }
-      }
-      yield list;
-    }
+      return ChatMessageBatch(
+        messages: list,
+        fromCache: snap.metadata.isFromCache,
+      );
+    });
   }
 
   @override
