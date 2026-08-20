@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+devtools_options.yaml
 
 # Symbolication related
 app.*.symbols
@@ -43,4 +44,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-pubspec.lock
+
+# Gradle build outputs (Phase 3: image_picker pulls these in on first build).
+/android/build/
+/android/.gradle/
+
+# Local SDK pin and emulator install
+.fvm/
+firestore/tests/node_modules/
