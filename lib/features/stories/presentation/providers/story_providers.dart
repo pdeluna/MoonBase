@@ -20,15 +20,15 @@ final storyRepositoryProvider = Provider<StoryRepository>((ref) {
 
 //provider scheme/pathway to usecase files
 // included as each use case lands
-final publishStoryUsecaseProvider = Provider((ref) => PublishStory(ref.read(storyRepositoryProvider)));
-final listActiveStoriesProvider = Provider((ref) => ListActiveStories(ref.read(storyRepositoryProvider)));
-final listArchiveProvider = Provider((ref) => ListArchive(ref.read(storyRepositoryProvider)));
+final publishStoryProvider = Provider((ref) => PublishStory(ref.watch(storyRepositoryProvider)));
+final listActiveStoriesProvider = Provider((ref) => ListActiveStories(ref.watch(storyRepositoryProvider)));
+final listArchiveProvider = Provider((ref) => ListArchive(ref.watch(storyRepositoryProvider)));
 
 // TODO(angelo): uncomment when the use case lands (Assignment 3 / 4).
-// final streamActiveStoriesProvider = Provider((ref) => StreamActiveStories(ref.read(storyRepositoryProvider)));
+// final streamActiveStoriesProvider = Provider((ref) => StreamActiveStories(ref.watch(storyRepositoryProvider)));
 
 // TODO(angelo): uncomment when the use case lands (Assignment 3 / 4).
-// final deleteStoryProvider = Provider((ref) => DeleteStory(ref.read(storyRepositoryProvider)));
+// final deleteStoryProvider = Provider((ref) => DeleteStory(ref.watch(storyRepositoryProvider)));
 
 // Expiry runs server-side (scheduled Cloud Function). No client use case.
-// final expireAndArchiveProvider = Provider((ref) => ExpireAndArchive(ref.read(storyRepositoryProvider)));
+// final expireAndArchiveProvider = Provider((ref) => ExpireAndArchive(ref.watch(storyRepositoryProvider)));
