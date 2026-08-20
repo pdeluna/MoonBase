@@ -1,0 +1,48 @@
+---
+description: Split Code vs Doc line counts; teaching assignment files stay self-contained.
+alwaysApply: true
+---
+
+# Line counts — split, never totalled
+
+Manifests and size claims must use this table:
+
+| File | Code | Doc/comment | Total |
+
+- **Code** = non-blank lines that are not comments (`//`, `///`, `/* */`).
+- **Doc/comment** = everything else non-blank.
+- **Total** = all lines, including blanks.
+
+Compute **Code** with (report the command output; do not estimate):
+
+```powershell
+(Get-Content <file>) | Where-Object { $_ -notmatch '^\s*(//|$)' } | Measure-Object -Line
+```
+
+Doc/comment = non-blank minus Code. Total = `(Get-Content <file>).Count`.
+
+In teaching scaffolds the Doc column is expected to dominate — that is the deliverable, not bloat. **The review signal is the Code column.** If Code is over ~25 for a stub, something got implemented that shouldn't have.
+
+## Diffs — added code lines only
+
+Do not cite `git diff --stat` as size. Count added code lines:
+
+```powershell
+git diff -U0 | Where-Object { $_ -match '^\+' -and $_ -notmatch '^\+\+\+' -and $_ -notmatch '^\+\s*(//|$)' } | Measure-Object -Line
+```
+
+Caveat: `^\s*//` catches `//` and `///` but not `/* */` blocks, and it would miscount a `//` inside a string literal. Prefer `scc` / `cloc` when installed (`scc lib/features/stories`, `cloc --diff`); they parse Dart natively.
+
+# Teaching files are self-contained
+
+Each assignment `.dart` file is a standalone unit of work. Reference another file
+ONLY when the learner must open it to finish the task — the test file they edit,
+or the worked example they pattern from. Name it under PROVIDED or PREREQS.
+
+Cut everything else: comparisons to other use cases, "same idea as X", design
+rationale, and course-position statements outside the header. That material is
+pair-session content, not file content.
+
+State any fact once. Assignment numbering lives in the header only, never in a
+dartdoc or an inline comment.
+
