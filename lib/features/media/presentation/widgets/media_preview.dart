@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
+import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 
 /// Full-screen viewer for a single `MediaRef`.
@@ -14,9 +16,17 @@ import 'package:moonbase_skeleton/features/media/presentation/providers/media_pr
 /// - Videos: `video_player` with play/pause + scrubber.
 ///
 /// Scheme-agnostic: delegates URI resolution to `MediaStorage.resolveUri`,
-/// then dispatches to `Image.file`/`Image.network` or `VideoPlayerController.file`
-/// /`VideoPlayerController.networkUrl` based on the resolved scheme.
-class MediaPreview extends ConsumerWidget {
+/// then dispatches to file / cached-network image or
+/// `VideoPlayerController.file` / `networkUrl` based on the resolved scheme.
+///
+/// Network images use [CachedNetworkImage] with [cacheKey] =
+/// [MediaRef.storageKey] (stable Storage path), never the tokenized download
+/// URL. Resolve/download failures fall to a broken-image icon — not an
+/// indefinite spinner.
+///
+/// The resolve [Future] is held in [State] and reused across rebuilds (same
+/// anti-pattern fix as [MediaTile]).
+class MediaPreview extends ConsumerStatefulWidget {
   const MediaPreview({super.key, required this.media});
 
   final MediaRef media;
@@ -34,8 +44,32 @@ class MediaPreview extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MediaPreview> createState() => _MediaPreviewState();
+}
+
+class _MediaPreviewState extends ConsumerState<MediaPreview> {
+  Future<String>? _uriFuture;
+  String? _boundKey;
+  MediaStorage? _boundStorage;
+
+  void _ensureUriFuture(MediaStorage storage) {
+    final key = widget.media.storageKey;
+    if (_uriFuture != null &&
+        _boundKey == key &&
+        identical(_boundStorage, storage)) {
+      return;
+    }
+    _boundKey = key;
+    _boundStorage = storage;
+    _uriFuture = storage.resolveUri(key);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final storage = ref.watch(mediaStorageProvider);
+    _ensureUriFuture(storage);
+    final uriFuture = _uriFuture!;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -44,23 +78,32 @@ class MediaPreview extends ConsumerWidget {
         elevation: 0,
       ),
       body: FutureBuilder<String>(
-        future: storage.resolveUri(media.storageKey),
+        future: uriFuture,
         builder: (context, snap) {
+          if (snap.hasError) {
+            return const Center(
+              child: Icon(Icons.broken_image_outlined,
+                  color: Colors.white, size: 48),
+            );
+          }
           if (snap.connectionState != ConnectionState.done) {
             return const Center(
               child: CircularProgressIndicator(color: Colors.white),
             );
           }
-          if (snap.hasError || snap.data == null) {
+          if (snap.data == null) {
             return const Center(
               child: Icon(Icons.broken_image_outlined,
                   color: Colors.white, size: 48),
             );
           }
           final uri = snap.data!;
-          switch (media.type) {
+          switch (widget.media.type) {
             case MediaType.image:
-              return _ImagePreview(uri: uri);
+              return _ImagePreview(
+                uri: uri,
+                cacheKey: widget.media.storageKey,
+              );
             case MediaType.video:
               return _VideoPreview(uri: uri);
           }
@@ -71,27 +114,44 @@ class MediaPreview extends ConsumerWidget {
 }
 
 class _ImagePreview extends StatelessWidget {
-  const _ImagePreview({required this.uri});
+  const _ImagePreview({required this.uri, required this.cacheKey});
 
   final String uri;
+  final String cacheKey;
 
   @override
   Widget build(BuildContext context) {
     final parsed = Uri.tryParse(uri);
     final scheme = parsed?.scheme ?? '';
-    final ImageProvider provider;
     if (scheme == 'http' || scheme == 'https') {
-      provider = NetworkImage(uri);
-    } else {
-      final path = scheme == 'file' ? Uri.parse(uri).toFilePath() : uri;
-      provider = FileImage(File(path));
+      return InteractiveViewer(
+        minScale: 1,
+        maxScale: 5,
+        child: Center(
+          child: CachedNetworkImage(
+            imageUrl: uri,
+            cacheKey: cacheKey,
+            fit: BoxFit.contain,
+            placeholder: (_, __) => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+            errorWidget: (_, __, ___) => const Icon(
+              Icons.broken_image_outlined,
+              color: Colors.white,
+              size: 48,
+            ),
+          ),
+        ),
+      );
     }
+
+    final path = scheme == 'file' ? Uri.parse(uri).toFilePath() : uri;
     return InteractiveViewer(
       minScale: 1,
       maxScale: 5,
       child: Center(
         child: Image(
-          image: provider,
+          image: FileImage(File(path)),
           fit: BoxFit.contain,
           errorBuilder: (_, __, ___) => const Icon(
             Icons.broken_image_outlined,

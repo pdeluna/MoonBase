@@ -8,28 +8,32 @@ import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_
 /// Provider for chat screen view model
 final chatScreenVmProvider = Provider<ChatScreenVM>((ref) {
   final selectedBase = ref.watch(effectiveSelectedBaseProvider);
-  final currentUser = ref.watch(currentUserProvider);
+  final currentUser = ref.watch(currentUserProvider).valueOrNull;
   final chatState = ref.watch(chatControllerProvider);
-  
+
   // Log base selection for debugging
-  developer.log('ChatScreenVM: selectedBase = ${selectedBase?.name} (${selectedBase?.id})');
-  developer.log('ChatScreenVM: currentUser = ${currentUser?.nickname} (${currentUser?.id})');
-  
+  developer.log(
+      'ChatScreenVM: selectedBase = ${selectedBase?.name} (${selectedBase?.id})');
+  developer.log(
+      'ChatScreenVM: currentUser = ${currentUser?.nickname} (${currentUser?.id})');
+
   // selectedBase is already a Base entity from the new architecture
   final baseEntity = selectedBase;
 
   // canSendMessage should only depend on having a base and user, not chat state
   final canSend = baseEntity != null && currentUser != null;
-  developer.log('ChatScreenVM: canSend = $canSend (baseEntity: ${baseEntity != null}, currentUser: ${currentUser != null})');
+  developer.log(
+      'ChatScreenVM: canSend = $canSend (baseEntity: ${baseEntity != null}, currentUser: ${currentUser != null})');
 
-  return chatState.messages.when(
-    data: (messages) => ChatScreenVM(
+  return chatState.feed.when(
+    data: (feed) => ChatScreenVM(
       selectedBase: baseEntity,
       currentUser: currentUser,
-      messages: messages,
+      messages: feed.messages,
       isLoading: false,
       error: null,
       canSendMessage: canSend,
+      freshness: feed.freshness,
     ),
     loading: () => ChatScreenVM(
       selectedBase: baseEntity,

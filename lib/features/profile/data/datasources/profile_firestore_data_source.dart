@@ -40,7 +40,10 @@ class ProfileFirestoreDataSource implements ProfileLocalDataSource {
 
     final nickname = _nicknameFromAuth(authUser);
 
-    // Create-only-if-absent: concurrent readers share one write via transaction.
+    // Create-or-return write (txn set + follow-up get) is unbounded.
+    // Parked until "when we bound writes" — see FIRESTORE_SCHEMA.md
+    // Decisions (R3 create-or-return write gap). Interacts with the
+    // known send-hang (Firestore writes wait on server ack).
     await _db.runTransaction((txn) async {
       final snap = await txn.get(ref);
       if (snap.exists) return;
@@ -53,7 +56,9 @@ class ProfileFirestoreDataSource implements ProfileLocalDataSource {
     });
 
     final after = await ref.get();
-    if (!after.exists || after.data() == null) return null;
+    if (!after.exists || after.data() == null) {
+      return null;
+    }
     return ProfileModel.fromFirestore(userId, after.data()!);
   }
 

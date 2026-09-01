@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_screen_vm_provider.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/controllers/chat_controller.dart';
+import 'package:moonbase_skeleton/features/chat/presentation/widgets/cached_messages_banner.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/widgets/message_composer.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/widgets/message_bubble.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
@@ -29,6 +31,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// successful send; preserved on failure so the user can retry.
   List<MediaRef> _stagedMedia = const <MediaRef>[];
 
+  /// True while a send (compress + upload + create, Week 5 task 3 pass 2) is
+  /// in flight. Feeds the composer's existing `canSend` disable so the send
+  /// button greys out for the duration, and guards `_sendMessage` against
+  /// re-entry — a slow upload makes double-tap reachable for the first time.
+  bool _isSending = false;
+
+  /// Gates the one-shot basesList refresh on screen entry (not every rebuild).
+  bool _didRefreshBasesOnEntry = false;
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -54,13 +65,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       (failure) {
         // Best-effort delete failure is non-fatal — the file may be GC'd
         // by a future sweep. Log via snackbar so the dev sees it in debug.
-        if (mounted) _showErrorSnackBar('Could not remove attachment: ${failure.message}');
+        if (mounted) {
+          _showErrorSnackBar('Could not remove attachment: ${failure.message}');
+        }
       },
       (_) {},
     );
   }
 
   Future<void> _sendMessage() async {
+    if (_isSending) return;
+
     final text = _messageController.text.trim();
     if (!isValidMessageInput(text: text, mediaCount: _stagedMedia.length)) {
       _showErrorSnackBar(
@@ -80,6 +95,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     final mediaToSend = _stagedMedia;
+    setState(() {
+      _isSending = true;
+    });
     try {
       final chatController = ref.read(chatControllerProvider.notifier);
       await chatController.send(
@@ -96,6 +114,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       // Keep _stagedMedia intact so the user can retry without re-picking.
       _showErrorSnackBar('Failed to send message: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
     }
   }
 
@@ -137,10 +161,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _loadedBaseId = null;
     }
 
-    // Force refresh bases list when chat screen loads to ensure we have latest data
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(basesListProvider);
-    });
+    // One-shot on screen entry only — do NOT invalidate every rebuild
+    // (that caused an infinite basesList refetch / log-flood loop).
+    if (!_didRefreshBasesOnEntry) {
+      _didRefreshBasesOnEntry = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.invalidate(basesListProvider);
+      });
+    }
 
     if (!vm.hasSelectedBase) {
       return Scaffold(
@@ -181,9 +209,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ),
       body: Column(
         children: [
+          CachedMessagesBanner(
+            freshness: vm.freshness,
+            hasMessages: vm.hasMessages,
+          ),
           Expanded(
             child: _ChatBody(
-              messagesAsync: chatState.messages,
+              feedAsync: chatState.feed,
               baseId: baseId,
               currentUser: vm.currentUser,
             ),
@@ -192,6 +224,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             messageController: _messageController,
             onSendMessage: _sendMessage,
             canSend: vm.canSendMessage,
+            // Existing disable affordance doubles as the in-flight state:
+            // while a send (upload + create) runs, the button greys out.
+            isSending: _isSending,
             baseId: vm.selectedBase!.id,
             stagedMedia: _stagedMedia,
             onStage: _stageMedia,
@@ -207,18 +242,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 /// Uses AsyncValue.when at screen level.
 class _ChatBody extends ConsumerWidget {
   const _ChatBody({
-    required this.messagesAsync,
+    required this.feedAsync,
     required this.baseId,
     required this.currentUser,
   });
 
-  final AsyncValue<List<Message>> messagesAsync;
+  final AsyncValue<ChatFeed> feedAsync;
   final String baseId;
   final User? currentUser;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return messagesAsync.when(
+    return feedAsync.when(
       loading: () => const _ChatStateContent(
         kind: _ChatStateKind.loading,
       ),
@@ -227,12 +262,12 @@ class _ChatBody extends ConsumerWidget {
         errorMessage: error.toString(),
         onRetry: () => ref.read(chatControllerProvider.notifier).load(baseId),
       ),
-      data: (List<Message> messages) {
-        if (messages.isEmpty) {
+      data: (ChatFeed feed) {
+        if (feed.messages.isEmpty) {
           return const _ChatStateContent(kind: _ChatStateKind.empty);
         }
         return _ChatMessageList(
-          messages: messages,
+          messages: feed.messages,
           currentUserId: currentUser?.id.value,
         );
       },
@@ -368,7 +403,8 @@ class _ChatMessageListState extends ConsumerState<_ChatMessageList> {
         itemCount: widget.messages.length,
         itemBuilder: (context, index) {
           final message = widget.messages[index];
-          final member = ref.watch(memberPresentationProvider(message.userId.value));
+          final member =
+              ref.watch(memberPresentationProvider(message.userId.value));
           return MessageBubble(
             key: ValueKey(message.id.value),
             message: message,

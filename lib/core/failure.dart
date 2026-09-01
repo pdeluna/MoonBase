@@ -6,10 +6,28 @@ abstract class Failure {
   @override
   String toString() => '$runtimeType($message)';
 }
-class NetworkFailure extends Failure { const NetworkFailure([super.message = 'Network error']); }
-class CacheFailure   extends Failure { const CacheFailure([super.message = 'Cache error']); }
-class UnknownFailure extends Failure { const UnknownFailure([super.message = 'Unknown error']); }
-class ValidationFailure extends Failure { const ValidationFailure([super.message = 'Validation error']);
+
+class NetworkFailure extends Failure {
+  const NetworkFailure([super.message = 'Network error']);
+}
+
+/// Guarded I/O waited past the helper timeout with no result.
+/// Distinct from [NetworkFailure]: a refused connection is not the same
+/// event as a Future that never completed.
+class NetworkTimeoutFailure extends Failure {
+  const NetworkTimeoutFailure([super.message = 'Network timeout']);
+}
+
+class CacheFailure extends Failure {
+  const CacheFailure([super.message = 'Cache error']);
+}
+
+class UnknownFailure extends Failure {
+  const UnknownFailure([super.message = 'Unknown error']);
+}
+
+class ValidationFailure extends Failure {
+  const ValidationFailure([super.message = 'Validation error']);
 }
 
 // ---------------------------------------------------------------------------
@@ -19,12 +37,14 @@ class ValidationFailure extends Failure { const ValidationFailure([super.message
 
 /// Picked media exceeds the byte cap from `MediaConstraints`.
 class MediaTooLargeFailure extends Failure {
-  const MediaTooLargeFailure([super.message = 'Media exceeds the maximum size.']);
+  const MediaTooLargeFailure(
+      [super.message = 'Media exceeds the maximum size.']);
 }
 
 /// Picked video exceeds the duration cap from `MediaConstraints`.
 class MediaTooLongFailure extends Failure {
-  const MediaTooLongFailure([super.message = 'Video exceeds the maximum length.']);
+  const MediaTooLongFailure(
+      [super.message = 'Video exceeds the maximum length.']);
 }
 
 /// Picked media is of a type the app does not handle this phase

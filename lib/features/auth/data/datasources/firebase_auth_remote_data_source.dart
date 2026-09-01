@@ -62,7 +62,8 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       );
       final user = cred.user;
       if (user == null) {
-        throw const UnknownFailure('Sign-up succeeded but no user was returned.');
+        throw const UnknownFailure(
+            'Sign-up succeeded but no user was returned.');
       }
       final trimmed = nickname.trim();
       await user.updateDisplayName(trimmed);
@@ -86,7 +87,8 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       );
       final user = cred.user;
       if (user == null) {
-        throw const UnknownFailure('Sign-in succeeded but no user was returned.');
+        throw const UnknownFailure(
+            'Sign-in succeeded but no user was returned.');
       }
       return _toModel(user);
     } on fb.FirebaseAuthException catch (e) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -52,7 +54,8 @@ void main() {
     repo = AuthRepositoryImpl(local: local, remote: remote, profiles: profiles);
   });
 
-  test('signUp writes remote user into local cache and ensures profile read', () async {
+  test('signUp writes remote user into local cache and ensures profile read',
+      () async {
     when(() => remote.signUp(
           email: 'owner@example.com',
           password: 'secret1',
@@ -75,7 +78,8 @@ void main() {
     verify(() => profiles.readProfile('firebase-uid-2')).called(1);
   });
 
-  test('signIn writes remote user into local cache and ensures profile read', () async {
+  test('signIn writes remote user into local cache and ensures profile read',
+      () async {
     when(() => remote.signIn(
           email: 'owner@example.com',
           password: 'secret1',
@@ -93,7 +97,9 @@ void main() {
     verify(() => profiles.readProfile('firebase-uid-1')).called(1);
   });
 
-  test('getCurrentUser syncs remote session into local and ensures profile read', () async {
+  test(
+      'getCurrentUser syncs remote session into local and ensures profile read',
+      () async {
     when(() => remote.getCurrentUser()).thenAnswer((_) async => model);
 
     final result = await repo.getCurrentUser();
@@ -124,6 +130,100 @@ void main() {
     );
     expect(await local.readCurrentUser(), isNull);
     verifyNever(() => profiles.readProfile(any()));
+  });
+
+  test('getCurrentUser returns User without waiting for readProfile', () async {
+    final releaseProfile = Completer<ProfileModel?>();
+    when(() => remote.getCurrentUser()).thenAnswer((_) async => model);
+    when(() => profiles.readProfile(any()))
+        .thenAnswer((_) => releaseProfile.future);
+
+    final result = await repo.getCurrentUser();
+
+    expect(result, isA<Right<Failure, dynamic>>());
+    result.match(
+      (_) => fail('expected user'),
+      (user) {
+        expect(user?.id.value, 'firebase-uid-1');
+        expect(user?.nickname, 'owner');
+      },
+    );
+    expect(releaseProfile.isCompleted, isFalse);
+    verify(() => profiles.readProfile('firebase-uid-1')).called(1);
+
+    releaseProfile.complete(
+      ProfileModel(
+        userId: 'firebase-uid-1',
+        nickname: 'owner',
+        updatedAt: DateTime.utc(2024),
+        themeMode: 'light',
+        createdAt: DateTime.utc(2024),
+      ),
+    );
+    await releaseProfile.future;
+  });
+
+  test('getCurrentUser returns Right(User) when readProfile throws', () async {
+    when(() => remote.getCurrentUser()).thenAnswer((_) async => model);
+    when(() => profiles.readProfile(any())).thenAnswer(
+      (_) async => throw Exception('unavailable'),
+    );
+
+    final result = await repo.getCurrentUser();
+
+    expect(result, isA<Right<Failure, dynamic>>());
+    result.match(
+      (_) => fail('expected user'),
+      (user) => expect(user?.id.value, 'firebase-uid-1'),
+    );
+    await Future<void>.delayed(Duration.zero);
+  });
+
+  test('signIn returns Right(User) when readProfile throws', () async {
+    when(() => remote.signIn(
+          email: 'owner@example.com',
+          password: 'secret1',
+        )).thenAnswer((_) async => model);
+    when(() => profiles.readProfile(any())).thenAnswer(
+      (_) async => throw Exception('unavailable'),
+    );
+
+    final result = await repo.signIn(
+      email: 'owner@example.com',
+      password: 'secret1',
+    );
+
+    expect(result, isA<Right<Failure, dynamic>>());
+    result.match(
+      (_) => fail('expected user'),
+      (user) => expect(user.id.value, 'firebase-uid-1'),
+    );
+  });
+
+  test('signUp returns Right(User) when readProfile throws', () async {
+    when(() => remote.signUp(
+          email: 'owner@example.com',
+          password: 'secret1',
+          nickname: 'MoonOwner',
+        )).thenAnswer((_) async => const UserModel(
+          id: 'firebase-uid-2',
+          nickname: 'MoonOwner',
+        ));
+    when(() => profiles.readProfile(any())).thenAnswer(
+      (_) async => throw Exception('unavailable'),
+    );
+
+    final result = await repo.signUp(
+      email: 'owner@example.com',
+      password: 'secret1',
+      nickname: 'MoonOwner',
+    );
+
+    expect(result, isA<Right<Failure, dynamic>>());
+    result.match(
+      (_) => fail('expected user'),
+      (user) => expect(user.id.value, 'firebase-uid-2'),
+    );
   });
 
   test('signOut clears remote and local', () async {

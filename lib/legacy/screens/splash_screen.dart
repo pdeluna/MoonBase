@@ -1,8 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:moonbase_skeleton/legacy/widgets/moon_spinner.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
+import 'package:moonbase_skeleton/legacy/widgets/moon_spinner.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -13,6 +13,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _canNavigate = false;
+  bool _didNavigate = false;
 
   @override
   void initState() {
@@ -25,34 +26,51 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           _canNavigate = true;
         });
         debugPrint('SplashScreen: _canNavigate set to true');
-        
-        // Navigate after minimum display time
-        final user = ref.read(currentUserProvider);
-        final signedIn = user != null;
-        debugPrint('SplashScreen: Navigating to ${signedIn ? '/home' : '/login'}');
-        context.go(signedIn ? '/home' : '/login');
+        _tryNavigate();
       }
     });
   }
 
+  void _tryNavigate() {
+    if (!_canNavigate || _didNavigate || !mounted) return;
+    final session = ref.read(currentUserProvider);
+    if (session.isLoading) return;
+
+    final signedIn = session.maybeWhen(
+      data: (u) => u != null,
+      orElse: () => false,
+    );
+
+    debugPrint('SplashScreen: Navigating to ${signedIn ? '/home' : '/login'}');
+    _didNavigate = true;
+    context.go(signedIn ? '/home' : '/login');
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProvider);
+    final session = ref.watch(currentUserProvider);
     final scheme = Theme.of(context).colorScheme;
-    
-    debugPrint('SplashScreen: Building with user: $user, _canNavigate: $_canNavigate');
-    
+
+    debugPrint(
+      'SplashScreen: Building with session: $session, '
+      '_canNavigate: $_canNavigate',
+    );
+
+    if (_canNavigate && !session.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _tryNavigate();
+      });
+    }
+
     return Scaffold(
       backgroundColor: scheme.primaryContainer.withValues(alpha: 0.2),
-      body: Center(
-        child: _canNavigate 
-          ? const SizedBox.shrink() // Let navigation happen
-          : const MoonSpinner( // Beautiful moon spinner
-              size: 72,
-              orbit: 18,
-              duration: Duration(seconds: 1),
-              assetPath: 'assets/images/logo.png',
-            ),
+      body: const Center(
+        child: MoonSpinner(
+          size: 72,
+          orbit: 18,
+          duration: Duration(seconds: 1),
+          assetPath: 'assets/images/logo.png',
+        ),
       ),
     );
   }

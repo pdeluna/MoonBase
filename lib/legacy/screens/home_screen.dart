@@ -1,16 +1,16 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/screens/chat_screen.dart';
 import 'package:moonbase_skeleton/legacy/screens/profile_screen.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart' as refactored;
+import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart'
+    as refactored;
 import 'package:moonbase_skeleton/legacy/widgets/primary_button.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/refactored_swipable_sidebar.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/join_base_dialog.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/create_base_dialog.dart';
-
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -29,11 +29,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProvider);
+    final user = ref.watch(currentUserProvider).valueOrNull;
     final selectedBase = ref.watch(refactored.effectiveSelectedBaseProvider);
     final nickname = user?.nickname ?? 'Guest';
     final baseName = selectedBase?.name ?? 'No Base Selected';
-    
+
     return RefactoredSwipableBaseSidebar(
       child: Scaffold(
         appBar: AppBar(
@@ -55,7 +55,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               : Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: Icon(
                       Icons.home_work_outlined,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -71,8 +72,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Text(
                   baseName,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                 ),
             ],
           ),
@@ -110,9 +111,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           selectedIndex: _tab,
           onDestinationSelected: (i) => setState(() => _tab = i),
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'Chats'),
-            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+            NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: 'Home'),
+            NavigationDestination(
+                icon: Icon(Icons.chat_bubble_outline),
+                selectedIcon: Icon(Icons.chat_bubble),
+                label: 'Chats'),
+            NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Profile'),
           ],
         ),
         floatingActionButton: _tab == 0
@@ -136,7 +146,7 @@ class _FeedPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedBase = ref.watch(refactored.effectiveSelectedBaseProvider);
-    
+
     if (selectedBase == null) {
       return Center(
         child: Padding(
@@ -153,16 +163,16 @@ class _FeedPage extends ConsumerWidget {
               Text(
                 'No Base Available',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 12),
               Text(
                 'Create your first base to start sharing with your circle',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
               ),
               const SizedBox(height: 32),
               PrimaryButton(
@@ -239,5 +249,3 @@ class _Card extends StatelessWidget {
     );
   }
 }
-
-

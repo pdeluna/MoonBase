@@ -4,6 +4,8 @@ import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_remote_data_source.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/chat_freshness.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
@@ -37,7 +39,7 @@ class ChatRepositoryImpl implements ChatRepository {
     DateTime? before,
     int limit = 50,
   }) =>
-      guard(() async {
+      guardWithTimeout(() async {
         final ms = await local.listMessages(
           baseId: baseId.value,
           before: before,
@@ -47,7 +49,12 @@ class ChatRepositoryImpl implements ChatRepository {
       });
 
   @override
-  Stream<List<Message>> streamMessages(BaseId baseId) => local
-      .streamMessages(baseId.value)
-      .map((ms) => ms.map((m) => m.toEntity()).toList());
+  Stream<ChatFeed> streamMessages(BaseId baseId) =>
+      local.streamMessages(baseId.value).map(
+            (batch) => ChatFeed(
+              messages: batch.messages.map((m) => m.toEntity()).toList(),
+              freshness:
+                  batch.fromCache ? ChatFreshness.cached : ChatFreshness.live,
+            ),
+          );
 }

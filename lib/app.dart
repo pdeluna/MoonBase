@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/core/debug/firebase_debug_harness.dart';
 import 'package:moonbase_skeleton/features/theme/presentation/providers/theme_providers.dart';
 import 'package:moonbase_skeleton/router.dart';
 
@@ -190,6 +191,44 @@ class App extends ConsumerWidget {
       theme: _lightTheme,
       darkTheme: _darkTheme,
       themeMode: themeMode,
+      builder: (context, child) {
+        final label = moonbaseNetworkDebugBannerLabel;
+        final content = child ?? const SizedBox.shrink();
+        if (label == null) return content;
+        return Column(
+          children: [
+            Material(
+              color: moonbaseNetworkDebugMode ==
+                      MoonbaseNetworkDebugMode.conflict
+                  ? const Color(0xFFB71C1C)
+                  : const Color(0xFFE65100),
+              child: SafeArea(
+                bottom: false,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(child: content),
+          ],
+        );
+      },
     );
   }
 }

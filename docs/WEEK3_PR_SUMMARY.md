@@ -115,7 +115,7 @@ firebase deploy --only firestore:indexes --project moonbase-aaff7
 | Owner leave / ownership transfer | Deferred (no last-owner-leave) |
 | Stories collections + rules | Deferred (comments only) |
 | Profile reads limited to shared-base | Post-MVP candidate |
-| Message `SendMessage` 4000 cap in Dart | Mirror rules when chat swaps (`text` length 1–4000) |
+| Message `SendMessage` 4000 cap in Dart | Done — `kMessageMaxLen` matches rules (1–4000) |
 
 ---
 

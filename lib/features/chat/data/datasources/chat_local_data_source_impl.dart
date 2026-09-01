@@ -1,37 +1,46 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:moonbase_skeleton/features/chat/data/models/chat_message_batch.dart';
 import 'package:moonbase_skeleton/features/chat/data/models/message_model.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 
 /// DEV-ONLY in-memory messages; resets on hot restart.
 class InMemoryChatLocalDataSource implements ChatLocalDataSource {
-  final Map<String, List<MessageModel>> _byBase = {}; // baseId -> messages (newest last)
-  final Map<String, StreamController<List<MessageModel>>> _controllers = {};
+  final Map<String, List<MessageModel>> _byBase =
+      {}; // baseId -> messages (newest last)
+  final Map<String, StreamController<ChatMessageBatch>> _controllers = {};
 
   String _genId() {
     final r = Random();
     return 'm_${DateTime.now().microsecondsSinceEpoch}_${r.nextInt(1 << 32)}';
   }
 
-  StreamController<List<MessageModel>> _ctrl(String baseId) {
+  StreamController<ChatMessageBatch> _ctrl(String baseId) {
     return _controllers.putIfAbsent(
       baseId,
-      () => StreamController<List<MessageModel>>.broadcast(onListen: () {
+      () => StreamController<ChatMessageBatch>.broadcast(onListen: () {
         // seed with current list
-        _controllers[baseId]!.add(List<MessageModel>.unmodifiable(_byBase[baseId] ?? const <MessageModel>[]));
+        _controllers[baseId]!.add(_batchFor(baseId));
       }),
     );
   }
 
+  ChatMessageBatch _batchFor(String baseId) => ChatMessageBatch(
+        messages: List<MessageModel>.unmodifiable(
+          _byBase[baseId] ?? const <MessageModel>[],
+        ),
+        fromCache: false,
+      );
+
   void _emit(String baseId) {
-    final list = List<MessageModel>.unmodifiable(_byBase[baseId] ?? const <MessageModel>[]);
     final c = _controllers[baseId];
-    if (c != null && !c.isClosed) c.add(list);
+    if (c != null && !c.isClosed) c.add(_batchFor(baseId));
   }
 
   @override
-  Stream<List<MessageModel>> streamMessages(String baseId) => _ctrl(baseId).stream;
+  Stream<ChatMessageBatch> streamMessages(String baseId) =>
+      _ctrl(baseId).stream;
 
   @override
   Future<MessageModel> sendMessage({

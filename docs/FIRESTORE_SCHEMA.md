@@ -1,10 +1,10 @@
 # Firestore Schema — Week 3
 
-**Status:** Profiles → Firestore wired. Bases/members/invites/leave on Firestore. Last-accessed is device-local SharedPreferences (keyed by uid), not a Firestore field.  
+**Status:** Profiles, bases/members/invites/leave, and chat messages → Firestore. Last-accessed is device-local SharedPreferences (keyed by uid).  
 **Source of truth for document shape:** this file + checked-in [`firestore.rules`](../firestore.rules).  
 **Current schema version:** `1` on every product document.
 
-Write this shape down before any repository swap. Thursday’s membership rules and the bases/members/invites migration depend on it.
+**Week 4 Tuesday stopping point:** single-device send / persist / relaunch. **Thursday deliverable:** two-device live-sync verification.
 
 ---
 
@@ -155,25 +155,41 @@ Doc id is the same 6-char **code** as `bases/{baseId}/invites/{code}`.
 
 ---
 
-### `bases/{baseId}/messages/{messageId}` — chat (later this week / Thursday)
+### `bases/{baseId}/messages/{messageId}` — chat
 
 | Field | Type | Notes |
 |-------|------|--------|
 | `authorUid` | string | Auth UID of sender |
-| `text` | string | Message body; **non-empty**, max **4000** chars (enforced in rules; mirror in `SendMessage` when chat swaps) |
-| `createdAt` | timestamp | |
+| `text` | string | Message body; **non-empty**, max **4000** chars (rules + Dart `kMessageMaxLen`) |
+| `createdAt` | timestamp | Write via `serverTimestamp()`; pending local null maps to newest-end `DateTime.now()` in the client DS |
 | `schemaVersion` | number | `1` |
+| `mediaPaths` | string[] | Always present (use `[]` for text-only). 0–4 Storage paths for **this** base: `bases/{baseId}/media/{uuid}.jpg`. Paths only — never download URLs. |
 
-Keep this collection in the schema now so rules and indexes land with bases; repository swap can follow profiles.
+Doc id is **client-generated** (UUID). Stream: `orderBy('createdAt')` + post-map re-sort so pending nulls do not leap from oldest→newest.
 
-**Example**
+**Example (text-only)**
 
 ```json
 {
   "authorUid": "uid_bob",
   "text": "Hello base",
   "createdAt": "<timestamp>",
-  "schemaVersion": 1
+  "schemaVersion": 1,
+  "mediaPaths": []
+}
+```
+
+**Example (with media)**
+
+```json
+{
+  "authorUid": "uid_bob",
+  "text": "Look",
+  "createdAt": "<timestamp>",
+  "schemaVersion": 1,
+  "mediaPaths": [
+    "bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg"
+  ]
 }
 ```
 
@@ -246,6 +262,26 @@ Locked Week 3 choices — do not re-open without a new ADR.
 
 **When a decision un-parks:** see [`FIRESTORE_UPDATE_TRIGGERS.md`](FIRESTORE_UPDATE_TRIGGERS.md) (precise rule/test change per trigger).
 
+**Hang / transport measurements, red herrings, network posture:** [`RESILIENCE_DECISIONS.md`](RESILIENCE_DECISIONS.md). This section stays document-shape ADRs.
+
+### Android Wi‑Fi Auth hang — dual-stack IPv6 (SDK bump)
+
+**Root cause (confirmed):** Fresh-install email/password sign-in hung on some dual-stack Wi‑Fi networks (immediate on cellular; Wi‑Fi worked after a successful cellular login). Not SHA/Play Integrity, not emulator wiring, not an app architecture bug. Matches Firebase Android Auth release notes: long IPv6 timeouts blocked IPv4 fallback.
+
+**Fix:** Lockstep FlutterFire bump so Android BoM pulls Auth **24.2.0** — `firebase_core ^4.13.0` (BoM **34.17.0**), `firebase_auth ^6.5.7`, `cloud_firestore ^6.8.0`, `firebase_storage ^13.4.6`. No REST Auth client, Cloud Function broker, or custom-token fallback.
+
+**Verification obligation:** Cold sign-in on the **home** dual-stack Wi‑Fi is the Auth proof (see [`RESILIENCE_DECISIONS.md`](RESILIENCE_DECISIONS.md) § Network posture). Firestore **26.5.0** and Storage **22.0.1** (same BoM) do **not** carry an equivalent explicit dual-stack IPv6 fix — also verify chat sync and media load on that same Wi‑Fi after the bump. A clean run on an IPv4-only network is not that proof.
+
+### R3 — create-or-return write stays unbounded
+
+**Parked as:** R3 Pass 2 wraps **get-only** Firestore reads with `guardWithTimeout` (20s, sized from cache-fallback `readProfile` gets). First-sign-in / new-device `readProfile` create-or-return (`runTransaction` set + follow-up get) is a **write**. It stays unbounded.
+
+That is the accepted new-device limitation: a missing `users/{uid}` doc still waits on server ack for the create. Same class of hang as chat send (Firestore write future does not complete until the server acknowledges).
+
+**Un-park trigger:** when we bound writes. A write-sized budget is a different constant and a different task. Do not reuse `kGuardTimeout` (20s, get-sized) on writes — it would interact with the known send-hang and with Storage upload (native 60s).
+
+**Not a rules change.** Dart I/O helper only.
+
 ### Membership `get()` cost (option A)
 
 `isMember(baseId)` / `isOwner(baseId)` use `get()` on the base doc. Nested reads (`members/*`, `messages/*`) therefore bill **one extra base-doc read per matched document**, not once per query. Accepted MVP cost. No custom claims; no Cloud Functions for this.
@@ -272,7 +308,13 @@ Non-transactional partial writes can orphan. Emulator suite includes a contentio
 
 ### Message text cap
 
-Rules: `text.size() > 0 && text.size() <= 4000`. Empty text denied (media-only messages come later). When `SendMessage` gains Firestore validation, mirror **4000** there — do not diverge.
+Rules: `text.size() > 0 && text.size() <= 4000`. Empty text denied (media-only messages come later — separate feature decision). Dart `kMessageMaxLen` / `SendMessage` mirror **4000** — do not diverge. Empty-text-with-media stays denied.
+
+### Message `mediaPaths` (Storage path refs)
+
+**ADR:** Message docs store **Storage object paths** in `mediaPaths: string[]`, not download URLs. Client derives a download reference via the SDK (`ref(storage, path)`) at render time so access still flows through Storage rules. Always write `mediaPaths` (use `[]` for text-only). Rules: list, size ≤ 4, each entry a whole-string match of `bases/{baseId}/media/{uuid}.jpg` (UUID v4 leaf + `.jpg` — Option B + tight leaf). Path builder: Dart `storagePathFor` in `lib/features/media/data/firebase_storage_path.dart` — sole constructor for cloud paths. Picker stays format-open; task 3 compresses diverse image picks to JPEG before upload.
+
+Domain `Message.media` / `MediaRef` round-trip is **lossy** on Firestore: only the path is persisted; width/height/mimeType/sizeBytes/thumbnailKey/duration are not. `fromFirestore` rebuilds image `MediaRef`s with those fields null and `syncStatus: synced`.
 
 ### Nickname copy — advisory
 
@@ -286,6 +328,53 @@ Rules: `text.size() > 0 && text.size() <= 4000`. Empty text denied (media-only m
 
 No ownership transfer; no last-owner-leave. Owner cannot use the self-remove branch to abandon a base without orphaning. Out of scope for MVP — do not build.
 
+### Storage access (MVP openness)
+
+**ADR:** Storage reads/writes are gated by `request.auth != null` + object path + size/type only — **not** by base membership. Storage security rules cannot read Firestore documents, so `isMember(baseId)` is impossible here (unlike [`firestore.rules`](../firestore.rules)).
+
+Checked-in rules: [`storage.rules`](../storage.rules). Emulator suite: [`storage/tests/`](../storage/tests/).
+
+**Revisit trigger:** move to custom-claims-based membership gating if media privacy across bases ever becomes a hard requirement. Mirrors the open `users` read ADR above.
+
+### Storage size / compression (10 MB per attachment)
+
+**ADR:** Per-attachment ceiling is **10 MB** against **post-compression** bytes. `storage.rules` uses `request.resource.size < 10 * 1024 * 1024`; Dart `MediaConstraints.imageMaxBytesDefault` mirrors **10 MB** — do not diverge.
+
+Client-side compress/resize before upload is required in MediaRepository (Week 5 task 3); **not** implemented in the rules/path groundwork. The cap is **per attachment**: Storage rules evaluate one object per request and cannot see the message group.
+
+**Message envelope:** `maxMediaPerMessageDefault = 4`, enforced in Firestore rules (`mediaPaths.size() <= 4`) **and** client-side (`SendMessage` / picker) — theoretical put volume ≈ **4 × 10 MB = 40 MB** per message.
+### Storage delete denied at MVP
+
+**ADR:** No client `allow delete` on Storage objects. Default-deny. Orphaned media after message delete is a **cleanup** problem (Admin SDK / Cloud Function later), not data loss. Any-auth delete would let any signed-in user wipe media in any base — unscoped and unacceptable for a children's app.
+
+`FirebaseMediaStorage.delete` throws [UnimplementedError] permanently (not a pass-3 stub) — client delete is not part of the pipeline.
+
+**Revisit:** author-scoped delete (uploader identity in metadata) or Admin/CF cleanup when product needs it.
+
+### Storage Content-Type trust
+
+**ADR:** `request.resource.contentType.matches('image/.*')` trusts the **client-supplied** `Content-Type` header; it is not magic-byte / real content validation. Acceptable for MVP.
+
+---
+
+## Storage media path
+
+**Locked shape:** `bases/{baseId}/media/{uuid}.jpg` via Dart `storagePathFor(baseId, uuid)`. Matches [`storage.rules`](../storage.rules) (`bases/{baseId}/media/{fileName}`). Fresh v4 UUID per attachment; leaf always `.jpg`.
+
+Firestorestore message docs store those paths in `mediaPaths` (never bytes, never `https://` download URLs).
+
+### Images-only MVP; video deferred
+
+**ADR:** MVP is images-only (`image/.*`, `.jpg` leaf, 10 MB). Video deferred — would require an extension-aware path builder, `video/.*` Storage rules with a separate cap, and a transcode/thumbnail pipeline; domain model retains video fields (`MediaType.video`, `duration`, `thumbnailKey`) as headroom. Video is also a child-safety decision that deserves its own consideration, not a ride-along on path-format work.
+
+**Task 3 notes:**
+
+- Pass 1 (`FirebaseMediaStorage.putBytes`): always JPEG-compress (1920 long edge, quality 80 + ladder), set `SettableMetadata(contentType: 'image/jpeg')`, upload at `storagePathFor`. Key parse: local `<baseId>/<uuid>.<ext>` or already-canonical cloud path → otherwise `ValidationFailure` (loud; never a malformed path).
+- **Pass-2 obligation:** `putBytes` returns `Future` and **throws** typed `Failure`s — it does not return `Either`. Send orchestration **must** wrap every cloud `putBytes` in `guard(...)`. An unguarded call will throw raw and crash the send.
+- Pass 3: `resolveUri` for download/render of `bases/...` keys.
+- **HEIC:** JPEG normalization + `MediaUnsupportedFailure` fallback is built, but **HEIC is unverified until iOS build day** (Android test device cannot produce HEIC) — test deliberately on iOS.
+- **StagedBytesReader (`dart:io` / `file://`):** Pass 2 `SendMessage` reads staged picker bytes via the default `File.fromUri` path. Works on Android; **iOS file-path / staging behavior differs and is unverified until iOS build day** — test deliberately alongside HEIC (send with attachments on a real iOS device).
+
 ---
 
 ## Indexes (expected)
@@ -294,7 +383,7 @@ No ownership transfer; no last-owner-leave. Owner cannot use the self-remove bra
 |-------|--------|
 | List my bases | Composite: `memberUids` **CONTAINS** + `createdAt` **DESC** — checked in [`firestore.indexes.json`](../firestore.indexes.json) |
 | Redeem by code (if collection-group) | Collection group `invites` — confirm fields once redeem path is chosen |
-| Messages by time | `messages` orderBy `createdAt` under a base (single-field; usually auto) |
+| Messages by time | `messages` orderBy `createdAt` under a base — **single-field auto index**; no composite entry required for Tuesday stream/list |
 
 Deploy indexes with: `firebase deploy --only firestore:indexes --project moonbase-aaff7`
 
@@ -302,7 +391,7 @@ Deploy indexes with: `firebase deploy --only firestore:indexes --project moonbas
 
 ## Non-goals for this doc
 
-- No repository / codec implementation (Tuesday step 3).
 - No stories collection or rules.
-- No Storage object paths (media remains Phase 3 / later cloud media).
 - No uniqueness enforcement on `nickname` at the Firestore layer (Auth UID is identity).
+- No membership verification inside Storage rules (requires custom claims + Cloud Function — deferred).
+- No signed-URL / Function-mediated Storage access; no per-file uploader tracking yet.

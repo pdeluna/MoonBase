@@ -1,0 +1,16 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Media objects only. Default-deny everywhere else (including all deletes).
+    match /bases/{baseId}/media/{fileName} {
+      // MVP: signed-in only. No Firestore membership check (impossible from Storage rules).
+      allow read: if request.auth != null;
+
+      allow create, update: if request.auth != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+
+      // No allow delete — default-deny. See ADR: Storage delete denied at MVP.
+    }
+  }
+}

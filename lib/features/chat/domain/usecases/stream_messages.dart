@@ -1,5 +1,5 @@
 import 'package:moonbase_skeleton/core/ids.dart';
-import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
 import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
 
 class StreamMessages {
@@ -7,5 +7,5 @@ class StreamMessages {
 
   final ChatRepository repo;
 
-  Stream<List<Message>> call(BaseId baseId) => repo.streamMessages(baseId);
+  Stream<ChatFeed> call(BaseId baseId) => repo.streamMessages(baseId);
 }

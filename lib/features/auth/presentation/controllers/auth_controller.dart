@@ -35,7 +35,8 @@ class AuthController extends StateNotifier<AuthState> {
     );
   }
 
-  Future<void> signUp(String email, String password, {required String nickname}) async {
+  Future<void> signUp(String email, String password,
+      {required String nickname}) async {
     state = state.copyWith(current: const AsyncValue.loading());
     final res = await _signUp(SignUpParams(
       email: email,

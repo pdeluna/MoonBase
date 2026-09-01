@@ -1,6 +1,7 @@
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 
@@ -18,8 +19,8 @@ abstract class ChatRepository {
     List<MediaRef> media = const [],
   });
 
-  /// Live updates for a base's messages (newest last).
-  Stream<List<Message>> streamMessages(BaseId baseId);
+  /// Live updates for a base's messages (newest last) plus cache-vs-live.
+  Stream<ChatFeed> streamMessages(BaseId baseId);
 
   /// For initial load or pagination.
   Future<Either<Failure, List<Message>>> listMessages({

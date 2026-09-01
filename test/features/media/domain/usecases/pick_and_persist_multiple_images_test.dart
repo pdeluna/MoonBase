@@ -40,8 +40,8 @@ void main() {
     ).thenAnswer((_) async => [imageRef('m1'), imageRef('m2')]);
 
     final res = await useCase(
-      PickMultipleImagesParams(
-        request: const MediaPickRequest(
+      const PickMultipleImagesParams(
+        request: MediaPickRequest(
           baseId: baseId,
           kind: MediaType.image,
           source: MediaSource.gallery,
@@ -65,8 +65,8 @@ void main() {
     ).thenAnswer((_) async => []);
 
     final res = await useCase(
-      PickMultipleImagesParams(
-        request: const MediaPickRequest(
+      const PickMultipleImagesParams(
+        request: MediaPickRequest(
           baseId: baseId,
           kind: MediaType.image,
           source: MediaSource.gallery,
@@ -86,8 +86,8 @@ void main() {
     ).thenThrow(const MediaTooLargeFailure());
 
     final res = await useCase(
-      PickMultipleImagesParams(
-        request: const MediaPickRequest(
+      const PickMultipleImagesParams(
+        request: MediaPickRequest(
           baseId: baseId,
           kind: MediaType.image,
           source: MediaSource.gallery,

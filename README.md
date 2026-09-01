@@ -21,7 +21,8 @@ A Flutter app for closed-circle chat and content sharing. Built on a **3-layer C
 |-------|--------|
 | Phase 2 — 3-layer architecture | **Complete** |
 | Phase 3 — media / chat attachments | **In progress** (Foundation + Slice A device-verified on Android) |
-| Phase 4 — Firebase | **Auth live**; Firestore/Storage SDKs initialized; product collections **not** cloud-backed yet |
+| Phase 4 — Firebase | **Auth + Firestore product data live** (profiles, bases, chat); Storage upload + resolve live |
+| Hang Phase 1 (R2–R5) | **Code-complete 2026-08-13** — see [`docs/RESILIENCE_DECISIONS.md`](docs/RESILIENCE_DECISIONS.md) |
 
 Active code lives under `lib/features/` and `lib/core/`. Pre-refactor code is quarantined under `lib/legacy/` (and `test/legacy/`) for reference until screens are fully rebuilt.
 
@@ -34,12 +35,12 @@ Active code lives under `lib/features/` and `lib/core/`. Pre-refactor code is qu
 - Session mirrored locally (`AuthRepositoryImpl` + SharedPreferences); Firebase Auth is source of truth for identity
 - Sign-up / login UI under `lib/legacy/screens/` wired to `AuthController`
 
-### Bases, invites, chat, profile (local persistence)
+### Bases, invites, chat, profile (Firestore)
 
-- **Bases**: create/join via invites, sidebar rename/delete, last-accessed base, clear selection on logout
-- **Invites**: create, list, redeem (device-local; not yet synced across devices)
-- **Chat**: `ChatController` single source of truth; text + media attachments; nicknames/colors via `memberPresentationProvider`
-- **Profile**: view current user, dark mode; theme persisted locally
+- **Bases**: create/join via invites, sidebar rename/delete, last-accessed base (device-local prefs), clear selection on logout
+- **Invites**: create, list, redeem (cloud; `inviteCodes/{code}` lookup)
+- **Chat**: `ChatController` single source of truth; text + cloud image attachments; cache-vs-live freshness banner
+- **Profile**: view current user; `themeMode` on the profile doc is not yet live theming (prefs still)
 - **Cross-platform**: Android, iOS, Web, Windows, macOS, Linux
 
 ### Media (Phase 3)
@@ -49,8 +50,6 @@ Active code lives under `lib/features/` and `lib/core/`. Pre-refactor code is qu
 
 ### Planned
 
-- Profiles / bases / members / chat → **Firestore**
-- Membership **security rules** and true multi-device sync
 - Stories, posts, reactions (Phase 3 slices B/C)
 - Live streaming, push, analytics, anonymous/child accounts (post-MVP backlog)
 
@@ -60,10 +59,10 @@ Active code lives under `lib/features/` and `lib/core/`. Pre-refactor code is qu
 
 | Product | Status |
 |---------|--------|
-| **Firebase Core** | Initialized at startup in `lib/main.dart` (`Firebase.initializeApp` + `DefaultFirebaseOptions`) |
-| **Firebase Auth** | Live — email/password owners/members; nickname via `updateDisplayName` |
-| **Cloud Firestore** | SDK ready; **debug smoke probe only** (`_smoke_tests` from Profile in debug builds). No product `bases` / `messages` / `profiles` collections yet |
-| **Firebase Storage** | SDK ready; media still uses `LocalFileMediaStorage` |
+| **Firebase Core** | Initialized at startup in `lib/main.dart` (`Firebase.initializeApp` + `DefaultFirebaseOptions`). Android BoM **34.17.0** |
+| **Firebase Auth** | Live — email/password; nickname via `updateDisplayName`. Native **24.2.0** (dual-stack Wi-Fi timeout fix) |
+| **Cloud Firestore** | Live — `users`, `bases` / members / invites, `messages`. Native **26.5.0** (no equivalent dual-stack fix) |
+| **Firebase Storage** | Live — chat image upload + `getDownloadURL`. Native **22.0.1** (no equivalent dual-stack fix) |
 
 Config (FlutterFire-generated, checked in):
 
@@ -77,7 +76,9 @@ Regenerate against your own project with `flutterfire configure`. These files ho
 
 ### What is still local
 
-Bases, invites, membership lists, chat messages, and profile documents use **SharedPreferences** (and local files for media). Two devices do **not** share the same base/chat until Firestore persistence lands. See [docs/CLOUD_FIRESTORE_TEST_EXPANSION.md](docs/CLOUD_FIRESTORE_TEST_EXPANSION.md).
+Last-accessed base is device-local SharedPreferences (keyed by uid). Picker staging uses local files before cloud upload. Stories / posts / reactions are not in this build.
+
+See [docs/FIRESTORE_SCHEMA.md](docs/FIRESTORE_SCHEMA.md) and [docs/RESILIENCE_DECISIONS.md](docs/RESILIENCE_DECISIONS.md).
 
 ## Architecture
 
@@ -88,9 +89,9 @@ lib/
 ├── core/                     # either, failure, ids, validators, Firebase smoke probe, …
 ├── features/
 │   ├── auth/                 # Firebase Auth remote + local session mirror
-│   ├── bases/                # bases, invites (local data sources)
+│   ├── bases/                # bases, invites (Firestore)
 │   ├── chat/                 # controller, screen, composer, bubbles
-│   ├── media/                # picker + local storage ports
+│   ├── media/                # picker + local staging + cloud Storage
 │   ├── profile/
 │   └── theme/
 ├── legacy/                   # quarantined pre-3-layer screens/services/providers
@@ -100,8 +101,6 @@ lib/
 ```
 
 Each feature: **domain** (entities, repos, use cases) → **data** (impls, models, data sources) → **presentation** (controllers, providers, UI).
-
-Repositories that will gain cloud later already accept an optional `remote` (e.g. `ChatRepositoryImpl`, `BaseRepositoryImpl`); today `remote` is null / unused for product writes.
 
 See [docs/phase2/REFACTOR_ARCHITECTURE.md](docs/phase2/REFACTOR_ARCHITECTURE.md).
 
@@ -120,6 +119,32 @@ cd MoonBase   # or your clone path
 fvm flutter pub get   # or: flutter pub get
 fvm flutter run -d windows   # or an authorized Android device
 ```
+
+### Debug network harness
+
+Deterministic Firestore/Storage degradation for reproducing Android gRPC /
+transport hangs. **Physical Android device only** — Windows desktop uses a
+different Firestore implementation, and emulator networking is NATed through
+the host (neither matches real Wi-Fi association failure shapes).
+
+Flags are compile-time (`--dart-define`) and hard-disabled outside debug
+(`kDebugMode`). They are **mutually exclusive**.
+
+```powershell
+# List devices; use a physical Android id (not windows, not an emulator).
+fvm flutter devices
+
+# Offline-with-cache (Firestore disableNetwork — local cache still serves reads)
+fvm flutter run -d <device-id> --dart-define=MOONBASE_FORCE_OFFLINE=true
+
+# Connect hang (TEST-NET-1 192.0.2.1:443 — Firestore Settings.host + Storage
+# useStorageEmulator; packets dropped, not refused)
+fvm flutter run -d <device-id> --dart-define=MOONBASE_BLACKHOLE=true
+```
+
+When armed, a top-of-screen banner shows the active mode. Implementation:
+`lib/core/debug/firebase_debug_harness.dart` (bootstrap applies it from
+`lib/main.dart` — single `Settings` assignment site).
 
 ### Quick start
 
@@ -163,11 +188,9 @@ Cloud/Firestore expansion checklist: [docs/CLOUD_FIRESTORE_TEST_EXPANSION.md](do
 | Data | Backend today |
 |------|----------------|
 | Auth identity (`uid`, email, `displayName`) | **Firebase Auth** |
-| Session / profile cache, bases, invites, members, chat | **SharedPreferences** |
-| Media bytes | **Local files** (`LocalFileMediaStorage`) |
-| Firestore | Smoke collection `_smoke_tests` only |
-
-Base isolation still applies locally: each base has its own chat history on device.
+| Profiles, bases, members, invites, chat messages | **Cloud Firestore** (`schemaVersion: 1`) |
+| Session mirror / last-accessed base | **SharedPreferences** |
+| Chat image bytes | **Firebase Storage** (picker staging is local files) |
 
 ## Development
 
@@ -234,8 +257,8 @@ Legacy PoC → 3-layer refactor, feature modules, local persistence, chat archit
 
 ### Phase 4 / Week 3+ — Firebase product data
 
-- **Done:** Core init; **Auth** email/password + nickname; Firestore/Storage plugins; smoke probe
-- **Next:** Profiles → Firestore, then bases/members/invites/chat; checked-in `firestore.rules`; two-device shared base + chat
+- **Done:** Core init; **Auth** email/password + nickname; Firestore profiles / bases / chat; Storage upload + resolve; hang Phase 1 (R2–R5) 2026-08-13
+- **Parked:** Firestore/Storage dual-stack SDK fix (Auth-only today); first-sign-in create-or-return write unbounded — [docs/FIRESTORE_UPDATE_TRIGGERS.md](docs/FIRESTORE_UPDATE_TRIGGERS.md)
 - Later: Storage-backed media, live streaming, push, analytics
 - Post-MVP backlog: anonymous/child accounts (owner-tied verification)
 

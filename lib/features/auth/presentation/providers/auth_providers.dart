@@ -23,12 +23,11 @@ final signOutUseCaseProvider =
 final getCurrentUserProvider =
     Provider((ref) => GetCurrentUser(ref.read(authRepositoryProvider)));
 
-/// Convenience provider for accessing the current user
-final currentUserProvider = Provider<User?>((ref) {
-  final authState = ref.watch(authControllerProvider);
-  return authState.current.when(
-    data: (user) => user,
-    loading: () => null,
-    error: (_, __) => null,
-  );
+/// Session for the gate: pass-through of [AuthController.current].
+///
+/// Does not flatten loading or error to `null`. Only [AsyncValue.data] with a
+/// null user is signed out. Consumers that need a [User]? (chrome, ids) use
+/// [AsyncValue.valueOrNull].
+final currentUserProvider = Provider<AsyncValue<User?>>((ref) {
+  return ref.watch(authControllerProvider).current;
 });

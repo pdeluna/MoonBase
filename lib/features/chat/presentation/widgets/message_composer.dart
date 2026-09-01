@@ -36,6 +36,7 @@ class MessageComposer extends ConsumerStatefulWidget {
     required this.stagedMedia,
     required this.onStage,
     required this.onUnstage,
+    this.isSending = false,
     this.maxMedia = MediaConstraints.maxMediaPerMessageDefault,
   });
 
@@ -45,6 +46,12 @@ class MessageComposer extends ConsumerStatefulWidget {
   /// External "is the user authenticated and a base selected" predicate.
   /// Internal text+media validity is checked on top of this.
   final bool canSend;
+
+  /// True while a send (compress + upload + create) is in flight. Disables
+  /// the send and attach affordances — the existing greyed-out state, no new
+  /// UI — so a slow upload can't look frozen or accept a double-tap. The
+  /// text field stays enabled so typing isn't interrupted.
+  final bool isSending;
 
   final BaseId baseId;
   final List<MediaRef> stagedMedia;
@@ -88,7 +95,9 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
       );
 
   bool get _attachEnabled =>
-      widget.canSend && widget.stagedMedia.length < widget.maxMedia;
+      widget.canSend &&
+      !widget.isSending &&
+      widget.stagedMedia.length < widget.maxMedia;
 
   Future<void> _openPicker() async {
     final remaining = widget.maxMedia - widget.stagedMedia.length;
@@ -110,7 +119,7 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final canSend = widget.canSend && _hasValidInput;
+    final canSend = widget.canSend && !widget.isSending && _hasValidInput;
     final fillColor = widget.canSend
         ? theme.colorScheme.surfaceContainerHighest
         : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);

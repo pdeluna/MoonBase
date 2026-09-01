@@ -1,26 +1,53 @@
 # Runs the Firestore rules suite with a Java runtime on PATH.
-# Prefers an existing `java`, else Android Studio's bundled JBR (common on Flutter machines).
+# Prefers JDK 23+, then Android Studio JBR, then whatever is on PATH.
 
 $ErrorActionPreference = "Stop"
 
-function Test-Java {
+function Test-JavaExe([string]$javaExe) {
+  if (-not (Test-Path $javaExe)) { return $false }
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
   try {
-    & java -version 2>&1 | Out-Null
+    $null = & $javaExe -version 2>&1
     return $LASTEXITCODE -eq 0
   } catch {
     return $false
+  } finally {
+    $ErrorActionPreference = $prev
   }
 }
 
-if (-not (Test-Java)) {
-  $jbr = "C:\Program Files\Android\Android Studio\jbr"
-  if (Test-Path "$jbr\bin\java.exe") {
-    $env:JAVA_HOME = $jbr
-    $env:Path = "$jbr\bin;$env:Path"
-    Write-Host "Using JAVA_HOME=$jbr"
-  } else {
-    Write-Error "Java not found. Install a JDK 21+ or Android Studio, then re-run."
+function Set-JavaHome([string]$javaHome) {
+  $env:JAVA_HOME = $javaHome
+  $env:Path = "$javaHome\bin;$env:Path"
+  Write-Host "Using JAVA_HOME=$javaHome"
+}
+
+$candidates = @(
+  "C:\Program Files\Java\jdk-23",
+  "C:\Program Files\Android\Android Studio\jbr"
+)
+
+$resolved = $false
+foreach ($jdkHome in $candidates) {
+  $exe = Join-Path $jdkHome "bin\java.exe"
+  if (Test-JavaExe $exe) {
+    Set-JavaHome $jdkHome
+    $resolved = $true
+    break
   }
+}
+
+if (-not $resolved) {
+  $javaCmd = Get-Command java -ErrorAction SilentlyContinue
+  if ($javaCmd -and (Test-JavaExe $javaCmd.Source)) {
+    Write-Host "Using java on PATH: $($javaCmd.Source)"
+    $resolved = $true
+  }
+}
+
+if (-not $resolved) {
+  Write-Error "Java not found. Install a JDK 21+ or Android Studio, then re-run."
 }
 
 Set-Location $PSScriptRoot
