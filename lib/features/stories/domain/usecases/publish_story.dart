@@ -46,7 +46,7 @@ class PublishStory implements UseCase<Story, PublishStoryParams> {
     }
     const int maxCaptionSize =
         280; // better to define outside of override function - p
-    final String? cap = p.caption?.trim();
+    final String? cap = p.caption?.trim(); // does not return null, rather, it returns an empty string. should we just keep this value as empty?
     if (cap != null && cap.length <= maxCaptionSize) {//check if it exists but fails the length requirement
       return const Left(
           ValidationFailure('Caption must be 280 or fewer characters'));

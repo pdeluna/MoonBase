@@ -175,6 +175,28 @@ void main() {
     test(
       'accepts a caption of exactly 280 characters',
       () async {
+        stubPublishSuccess(fakeStory(caption: 'x' * 280));
+
+        final result = await useCase(
+          PublishStoryParams(
+            baseId: const BaseId('b1'),
+            authorUserId: const UserId('u1'),
+            media: fakeMedia,
+            settings: enabledSettings,
+            caption: 'x' * 280,
+            ),
+        );
+
+        expect(result, isA<Right<Failure, Story>>());
+        verify(() => repo.publishStory(
+          baseId: const BaseId('b1'), 
+          authorUserId: const UserId('u1'), 
+          media: fakeMedia, 
+          ttl: const Duration(hours: 24),
+          caption: 'x' * 280,
+          ),
+        );
+      verifyRepoNeverCalled();
         // TODO(angelo): Arrange — `stubPublishSuccess(fakeStory(caption:
         // 'x' * 280))`. This one succeeds, so it needs a stub (unlike the
         // two rejections above). Adjacent to the 281 test on purpose: the
@@ -187,7 +209,7 @@ void main() {
         // untruncated. Matchers are fine for args this test does not care
         // about; use the exact value for `caption`.
       },
-      skip: 'TODO(angelo): write this test — 280-char boundary',
+  
     );
 
     test('trims caption and forwards to repo on success', () async {
@@ -229,17 +251,35 @@ void main() {
         // TODO(angelo): Arrange — `stubPublishSuccess(fakeStory(caption:
         // null))`. Use `'   '` rather than `''` as the input — it also
         // proves trim happens before the empty check, which `''` would not.
+        stubPublishSuccess(fakeStory(caption: '   '));
+
         //
         // TODO(angelo): Act — `caption: '   '`.
+        final result = await useCase(
+          PublishStoryParams(
+            baseId: const BaseId('b1'),
+            authorUserId: const UserId('u1'),
+            media: fakeMedia,
+            settings: enabledSettings,
+            caption: '   ',
+            ),
+        );
         //
         // TODO(angelo): Assert — `verify` only. `caption: null`, exact.
         // The use case RETURNS `Right(story)` — the value we scripted.
         // Identical whether the rule fired or not, so an `expect` on
         // `result` cannot prove this behaviour. It exists only at the
         // seam: `verify` is the sole instrument.
-      },
-      skip: 'TODO(angelo): write this test — whitespace caption as null',
-    );
+        expect(result, isA<Right<Failure, Story>> ());
+        verify(() => repo.publishStory(
+          baseId: const BaseId('b1'), 
+          authorUserId: const UserId('u1'), 
+          media: fakeMedia,
+          ttl: const Duration(hours: 24),
+          caption: null,
+          ),
+          ).called(1);
+      });
 
     test(
       'returns the disabled failure when both rules are broken',
