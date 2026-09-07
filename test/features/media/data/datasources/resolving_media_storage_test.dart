@@ -9,9 +9,8 @@ import 'package:moonbase_skeleton/features/media/data/firebase_storage_path.dart
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
 
 class _FakeCloudStorage implements MediaStorage {
-  _FakeCloudStorage({this.downloadUrl = 'https://example.com/tokenized.jpg'});
+  static const downloadUrl = 'https://example.com/tokenized.jpg';
 
-  final String downloadUrl;
   final List<String> resolveCalls = <String>[];
   Object? resolveError;
 
@@ -97,14 +96,14 @@ void main() {
 
       final uri = await storage.resolveUri(cloudPath);
 
-      expect(uri, 'https://example.com/tokenized.jpg');
+      expect(uri, _FakeCloudStorage.downloadUrl);
       expect(cloud.resolveCalls, [cloudPath]);
     });
 
     test('cloud key with no local sibling uses cloud resolveUri', () async {
       final uri = await storage.resolveUri(cloudPath);
 
-      expect(uri, 'https://example.com/tokenized.jpg');
+      expect(uri, _FakeCloudStorage.downloadUrl);
       expect(cloud.resolveCalls, [cloudPath]);
     });
 

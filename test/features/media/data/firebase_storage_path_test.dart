@@ -55,7 +55,7 @@ void main() {
     });
 
     test('accepts already-canonical cloud path', () {
-      final cloud = 'bases/base1/media/$uuid.jpg';
+      const cloud = 'bases/base1/media/$uuid.jpg';
       expect(cloudStoragePathFromKey(cloud), cloud);
     });
 
