@@ -277,6 +277,7 @@ If you finish through Step 6 by end of week one, you're on track. If you're bloc
 ## Related documents
 
 - [`STORIES_FEATURE_REQUEST.md`](STORIES_FEATURE_REQUEST.md) — the full ticket. Read first if you haven't.
+- [`STORIES_SECOND_STEPS.md`](STORIES_SECOND_STEPS.md) — week two reference (remaining use cases, data layer, feed controller).
 - [`STORIES_FIRST_STEPS_REFERENCE.md`](STORIES_FIRST_STEPS_REFERENCE.md) — worked Dart for each step. Use sparingly; the value of this assignment comes from producing the code yourself.
 - [`../docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md`](../docs/PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) — architectural blueprint.
 - [`../docs/PHASE3_DOD_ACTION_LIST.md`](../docs/PHASE3_DOD_ACTION_LIST.md) — slice-level DoD.

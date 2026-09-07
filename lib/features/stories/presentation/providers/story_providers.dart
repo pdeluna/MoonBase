@@ -9,26 +9,30 @@ import 'package:moonbase_skeleton/features/stories/domain/repositories/story_rep
 import 'package:moonbase_skeleton/features/stories/domain/usecases/publish_story.dart';
 import 'package:moonbase_skeleton/features/stories/domain/usecases/list_active_stories.dart';
 import 'package:moonbase_skeleton/features/stories/domain/usecases/list_archive.dart';
-//import 'package:moonbase_skeleton/features/stories/domain/usecases/stream_active_stories.dart';
-//import 'package:moonbase_skeleton/features/stories/domain/usecases/delete_story.dart';
-//import 'package:moonbase_skeleton/features/stories/domain/usecases/expire_and_archive.dart';
+import 'package:moonbase_skeleton/features/stories/domain/usecases/stream_active_stories.dart';
+import 'package:moonbase_skeleton/features/stories/domain/usecases/delete_story.dart';
+import 'package:moonbase_skeleton/features/stories/domain/usecases/expire_and_archive.dart';
 
 final storyRepositoryProvider = Provider<StoryRepository>((ref) {
-  throw UnimplementedError('Provide StoryRepository in app wiring (lib/main.dart). ''See assignments/STORIES_FIRST_STEPS.md Section 5.',
+  throw UnimplementedError(
+    'Provide StoryRepository in app wiring (lib/main.dart). '
+    'See assignments/STORIES_FIRST_STEPS.md Section 5.',
   );
 });
 
 //provider scheme/pathway to usecase files
 // included as each use case lands
-final publishStoryProvider = Provider((ref) => PublishStory(ref.watch(storyRepositoryProvider)));
-final listActiveStoriesProvider = Provider((ref) => ListActiveStories(ref.watch(storyRepositoryProvider)));
-final listArchiveProvider = Provider((ref) => ListArchive(ref.watch(storyRepositoryProvider)));
+final publishStoryProvider =
+    Provider((ref) => PublishStory(ref.watch(storyRepositoryProvider)));
+final listActiveStoriesProvider =
+    Provider((ref) => ListActiveStories(ref.watch(storyRepositoryProvider)));
+final listArchiveProvider =
+    Provider((ref) => ListArchive(ref.watch(storyRepositoryProvider)));
+final streamActiveStoriesProvider =
+    Provider((ref) => StreamActiveStories(ref.watch(storyRepositoryProvider)));
+final deleteStoryProvider =
+    Provider((ref) => DeleteStory(ref.watch(storyRepositoryProvider)));
 
-// TODO(angelo): uncomment when the use case lands (Assignment 3 / 4).
-// final streamActiveStoriesProvider = Provider((ref) => StreamActiveStories(ref.watch(storyRepositoryProvider)));
-
-// TODO(angelo): uncomment when the use case lands (Assignment 3 / 4).
-// final deleteStoryProvider = Provider((ref) => DeleteStory(ref.watch(storyRepositoryProvider)));
-
-// Expiry runs server-side (scheduled Cloud Function). No client use case.
-// final expireAndArchiveProvider = Provider((ref) => ExpireAndArchive(ref.watch(storyRepositoryProvider)));
+// Phase 3: local sweep on StoryRepositoryImpl (DoD §2.2.5). Not a Cloud Function.
+final expireAndArchiveStoriesProvider = Provider(
+    (ref) => ExpireAndArchiveStories(ref.watch(storyRepositoryProvider)));
