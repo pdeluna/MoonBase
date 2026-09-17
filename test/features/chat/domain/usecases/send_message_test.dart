@@ -26,6 +26,13 @@ MediaRef _mediaRef([int i = 0]) => MediaRef(
       storageKey: 'b1/media_$i.jpg',
     );
 
+MediaRef _videoRef() => const MediaRef(
+      id: MediaId('video_0'),
+      type: MediaType.video,
+      storageKey: 'b1/video_0.mp4',
+      mimeType: 'video/mp4',
+    );
+
 /// Cloud path the mock cloud storage "returns" for a staged local key.
 String _cloudPathFor(String localKey) =>
     'bases/b1/media/${localKey.split('/').last}';
@@ -70,8 +77,8 @@ void main() {
     /// Happy-path stubs: staging resolves to a file URI, cloud upload
     /// succeeds and returns the canonical cloud path for the key.
     void stubUploadsSucceed() {
-      when(() => staging.resolveUri(any()))
-          .thenAnswer((inv) async => 'file:///staged/${inv.positionalArguments[0]}');
+      when(() => staging.resolveUri(any())).thenAnswer(
+          (inv) async => 'file:///staged/${inv.positionalArguments[0]}');
       when(() => cloud.putBytes(
             key: any(named: 'key'),
             bytes: any(named: 'bytes'),
@@ -135,8 +142,7 @@ void main() {
           )).called(1);
     });
 
-    test('rejects when both text and media are empty (no repo call)',
-        () async {
+    test('rejects when both text and media are empty (no repo call)', () async {
       final result = await useCase(params(content: '   ', media: const []));
 
       expect(result, isA<Left<Failure, Message>>());
@@ -177,6 +183,18 @@ void main() {
       verifyZeroInteractions(repo);
       // Validation runs before any upload — no orphan on a rejected payload.
       verifyZeroInteractions(cloud);
+    });
+
+    test('rejects video before staging reads or cloud upload', () async {
+      final result = await useCase(params(media: [_videoRef()]));
+
+      expect(result, isA<Left<Failure, Message>>());
+      final failure = (result as Left<Failure, Message>).value;
+      expect(failure, isA<MediaUnsupportedFailure>());
+      expect(failure.message, contains('Video attachments'));
+      verifyZeroInteractions(staging);
+      verifyZeroInteractions(cloud);
+      verifyZeroInteractions(repo);
     });
 
     test(
@@ -260,8 +278,8 @@ void main() {
       // Same MediaRef instances the UI would retain across failure → retry
       // (ChatScreen keeps _stagedMedia; use case must not mutate them).
       final media = [_mediaRef(0), _mediaRef(1)];
-      when(() => staging.resolveUri(any()))
-          .thenAnswer((inv) async => 'file:///staged/${inv.positionalArguments[0]}');
+      when(() => staging.resolveUri(any())).thenAnswer(
+          (inv) async => 'file:///staged/${inv.positionalArguments[0]}');
 
       var media1Attempts = 0;
       when(() => cloud.putBytes(

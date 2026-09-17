@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
+import 'package:moonbase_skeleton/features/chat/domain/chat_media_policy.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_constraints.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/presentation/widgets/media_picker_sheet.dart';
@@ -107,6 +108,7 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
       context,
       widget.baseId,
       remainingSlots: remaining,
+      allowedTypes: ChatMediaPolicy.allowedTypes,
     );
     if (!mounted || picked.isEmpty) return;
 

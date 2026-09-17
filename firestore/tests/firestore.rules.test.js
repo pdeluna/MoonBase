@@ -727,9 +727,9 @@ describe('messages text cap', () => {
     );
   });
 
-  test('empty text with mediaPaths is still rejected (media-only deferred)', async () => {
+  test('empty text with a valid mediaPath succeeds', async () => {
     await seedOwnerBaseWithMemberRow();
-    await assertFails(
+    await assertSucceeds(
       setDoc(
         doc(aliceDb(), 'bases', BASE, 'messages', 'mediaOnly'),
         messageDoc(ALICE, '', [`bases/${BASE}/media/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.jpg`]),

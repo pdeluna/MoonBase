@@ -17,7 +17,7 @@ Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisio
 | 1 | Membership via `get(base)` | Hot read path multiplies base reads | Rules + claims CF + tests |
 | 2 | Invite over-admit allowed by rules | “Never exceed `maxUses`” is hard | Rules + CF redeem + invert test |
 | 3 | Open `users` read | Sensitive profiles / shared-base privacy | Rules + new deny test |
-| 4 | Message `text` 1–4000 (empty text denied; media-only deferred) | Media-only messages become a product need | Rules allow empty text when `mediaPaths` non-empty; flip empty-text test |
+| 4 | **Resolved:** message text-or-image contract | Fired when cloud chat attachments landed | Rules allow empty text when `mediaPaths` is non-empty; emulator test flipped |
 | 5 | Advisory nickname copy | Stale names hurt UX | Fan-out or stricter rules + test |
 | 6 | Owner leave / transfer | Handoff/abandon is a feature | Rules transfer branch + tests |
 | 7 | `schemaVersion == 1` only | First post-MVP reshape | Rules accept `[1,2]` + coexistence tests |
@@ -77,17 +77,21 @@ Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisio
 
 ---
 
-## 4 — Message cap 4000 + non-empty
+## 4 — Message cap 4000 + text-or-image
 
-**Parked as:** rules enforce `text.size() > 0 && text.size() <= 4000`; empty text denied until media-in-messages. Dart `kMessageMaxLen` / `SendMessage` now mirror **4000**.
+**Trigger fired 2026-09-17:** cloud chat images are live and the Dart
+validator already permits media-only messages. Firestore rules now require
+`text.size() <= 4000` and `(text non-empty OR mediaPaths non-empty)`.
 
-**Rules (today):** messages create (~260–262).
+**Rules (today):** messages create (~299–312).
 
-**Test (today):** `"messages text cap"` — empty and `4001` rejected; `4000` allowed.
+**Tests (today):** empty text plus an empty path list and `4001` characters are
+rejected; `4000` characters and empty text plus a valid same-base image path
+are allowed.
 
-**Trigger (a):** Week 4 chat — `SendMessage` validation must mirror **4000 + non-empty** or they drift.
-
-**Trigger (b):** media-in-messages later — empty text must become allowed when a media ref is present, so `text.size() > 0` becomes “text non-empty **OR** media present,” and the “empty text rejected” test **flips**.
+**Next trigger:** adding video or richer media metadata. The current cloud
+contract remains JPEG image paths only; video needs a schema/path/rules change,
+not another text-predicate exception.
 
 ---
 

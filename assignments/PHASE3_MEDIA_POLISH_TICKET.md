@@ -12,6 +12,11 @@
 | **Blocks Slice B?** | **P1 only** (Stories reuses `MediaPickerSheet`). P2–P3 do not block junior Stories work. |
 
 > **Scope:** Android-focused implementation and re-test. **iOS device verification is explicitly out of scope** for this ticket (deferred to a separate pass).
+>
+> **Historical scope note:** this ticket predates Firestore chat/cloud Storage.
+> The current Firebase MVP is JPEG images-only; its Android revalidation gate
+> is in [`CHAT_MEDIA_DEVICE_TESTS.md`](CHAT_MEDIA_DEVICE_TESTS.md#current-firebase-android-revalidation-gate).
+> POL-4 video remains local-code evidence, not a cloud-video acceptance case.
 
 ---
 

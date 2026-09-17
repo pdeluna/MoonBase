@@ -12,7 +12,7 @@ import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart
 import 'package:moonbase_skeleton/features/media/domain/usecases/pick_and_persist_multiple_images.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 
-/// Modal bottom sheet that offers the four OS-mediated capture/pick paths:
+/// Modal bottom sheet for the allowed OS-mediated capture/pick paths:
 ///
 /// 1. Camera (Photo)
 /// 2. Camera (Video)
@@ -21,6 +21,7 @@ import 'package:moonbase_skeleton/features/media/presentation/providers/media_pr
 ///
 /// Each option drives the appropriate pick use case, then pops the sheet with
 /// the resulting refs. Returns an empty list on cancel or pick failure.
+/// Callers restrict [allowedTypes] to match their persistence contract.
 ///
 /// Pick failures dismiss the sheet first, then show a [SnackBar] on
 /// [hostContext]'s scaffold so the message is not hidden behind the modal
@@ -32,6 +33,7 @@ class MediaPickerSheet extends ConsumerWidget {
     required this.baseId,
     required this.hostContext,
     required this.remainingSlots,
+    required this.allowedTypes,
   });
 
   final BaseId baseId;
@@ -43,6 +45,9 @@ class MediaPickerSheet extends ConsumerWidget {
   /// How many more attachments the caller can stage (caps gallery multi-pick).
   final int remainingSlots;
 
+  /// Product media capabilities supplied by the caller.
+  final Set<MediaType> allowedTypes;
+
   /// Convenience entrypoint. Returns picked refs (empty on cancel / failure).
   ///
   /// [remainingSlots] limits gallery multi-select (POL-3). Camera and video
@@ -51,6 +56,10 @@ class MediaPickerSheet extends ConsumerWidget {
     BuildContext context,
     BaseId baseId, {
     int remainingSlots = MediaConstraints.maxMediaPerMessageDefault,
+    Set<MediaType> allowedTypes = const <MediaType>{
+      MediaType.image,
+      MediaType.video,
+    },
   }) async {
     final hostContext = context;
     final result = await showModalBottomSheet<List<MediaRef>?>(
@@ -61,6 +70,7 @@ class MediaPickerSheet extends ConsumerWidget {
         baseId: baseId,
         hostContext: hostContext,
         remainingSlots: remainingSlots,
+        allowedTypes: allowedTypes,
       ),
     );
     return result ?? const [];
@@ -74,42 +84,46 @@ class MediaPickerSheet extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _PickerOption(
-              icon: Icons.photo_camera_outlined,
-              label: 'Camera (Photo)',
-              onTap: () => _runPick(
-                context,
-                ref,
-                source: MediaSource.camera,
-                kind: MediaType.image,
+            if (allowedTypes.contains(MediaType.image))
+              _PickerOption(
+                icon: Icons.photo_camera_outlined,
+                label: 'Camera (Photo)',
+                onTap: () => _runPick(
+                  context,
+                  ref,
+                  source: MediaSource.camera,
+                  kind: MediaType.image,
+                ),
               ),
-            ),
-            _PickerOption(
-              icon: Icons.videocam_outlined,
-              label: 'Camera (Video)',
-              onTap: () => _runPick(
-                context,
-                ref,
-                source: MediaSource.camera,
-                kind: MediaType.video,
+            if (allowedTypes.contains(MediaType.video))
+              _PickerOption(
+                icon: Icons.videocam_outlined,
+                label: 'Camera (Video)',
+                onTap: () => _runPick(
+                  context,
+                  ref,
+                  source: MediaSource.camera,
+                  kind: MediaType.video,
+                ),
               ),
-            ),
-            const Divider(height: 8),
-            _PickerOption(
-              icon: Icons.photo_library_outlined,
-              label: 'Photo Library',
-              onTap: () => _runGalleryImages(sheetContext: context, ref: ref),
-            ),
-            _PickerOption(
-              icon: Icons.video_library_outlined,
-              label: 'Video Library',
-              onTap: () => _runPick(
-                context,
-                ref,
-                source: MediaSource.gallery,
-                kind: MediaType.video,
+            if (allowedTypes.isNotEmpty) const Divider(height: 8),
+            if (allowedTypes.contains(MediaType.image))
+              _PickerOption(
+                icon: Icons.photo_library_outlined,
+                label: 'Photo Library',
+                onTap: () => _runGalleryImages(sheetContext: context, ref: ref),
               ),
-            ),
+            if (allowedTypes.contains(MediaType.video))
+              _PickerOption(
+                icon: Icons.video_library_outlined,
+                label: 'Video Library',
+                onTap: () => _runPick(
+                  context,
+                  ref,
+                  source: MediaSource.gallery,
+                  kind: MediaType.video,
+                ),
+              ),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -125,6 +139,7 @@ class MediaPickerSheet extends ConsumerWidget {
     required BuildContext sheetContext,
     required WidgetRef ref,
   }) async {
+    assert(allowedTypes.contains(MediaType.image));
     if (remainingSlots <= 0) {
       Navigator.of(sheetContext).pop(const <MediaRef>[]);
       return;
@@ -154,6 +169,7 @@ class MediaPickerSheet extends ConsumerWidget {
     required MediaSource source,
     required MediaType kind,
   }) async {
+    assert(allowedTypes.contains(kind));
     final useCase = ref.read(pickAndPersistMediaUseCaseProvider);
     final request = MediaPickRequest(
       baseId: baseId,
