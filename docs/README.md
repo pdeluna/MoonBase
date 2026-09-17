@@ -40,7 +40,7 @@ Git-workflow docs, deferred so they do not block Phase 1 merge:
 |----------|-------------|
 | [MODEL_ARCHITECTURE.md](MODEL_ARCHITECTURE.md) | Data/domain model overview. Domain entities live under `lib/features/<feature>/domain/entities/`. |
 | [PROFILE_PERSISTENCE.md](PROFILE_PERSISTENCE.md) | Profile storage and auth flow (UUID, nickname, theme). Still relevant to the auth feature. |
-| [README-ios.md](README-ios.md) | iOS-specific notes. |
+| [README-ios.md](README-ios.md) | Gated Firebase/iOS handoff, free-signing Mac device procedure, and physical-device acceptance checklist. |
 | [phase2/REFACTOR_ARCHITECTURE.md](phase2/REFACTOR_ARCHITECTURE.md) | 3-layer Clean Architecture overview (Phase 2 archive; still the primary architecture reference). |
 
 ---
