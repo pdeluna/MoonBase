@@ -465,10 +465,10 @@ bool _runnerResourcesContainGoogleServicePlist(String project) {
 
   final buildFile = RegExp(
     '${RegExp.escape(buildFileId)} '
-    '/\\* GoogleService-Info\\.plist in Resources \\*/ = \\{\\s*'
-    'isa = PBXBuildFile;\\s*'
-    'fileRef = ([A-Fa-f0-9]{24}) '
-    '/\\* GoogleService-Info\\.plist \\*/;\\s*\\};',
+    r'/\* GoogleService-Info\.plist in Resources \*/ = \{\s*'
+    r'isa = PBXBuildFile;\s*'
+    r'fileRef = ([A-Fa-f0-9]{24}) '
+    r'/\* GoogleService-Info\.plist \*/;\s*\};',
   ).firstMatch(project);
   final fileReferenceId = buildFile?.group(1);
   if (fileReferenceId == null) {
@@ -477,8 +477,8 @@ bool _runnerResourcesContainGoogleServicePlist(String project) {
 
   final fileReference = RegExp(
     '${RegExp.escape(fileReferenceId)} '
-    '/\\* GoogleService-Info\\.plist \\*/ = \\{\\s*'
-    'isa = PBXFileReference;(.*?)\\};',
+    r'/\* GoogleService-Info\.plist \*/ = \{\s*'
+    r'isa = PBXFileReference;(.*?)\};',
     dotAll: true,
   ).firstMatch(project)?.group(1);
   final rawPath = fileReference == null
