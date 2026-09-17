@@ -230,12 +230,20 @@ fvm flutter test --reporter expanded
 cd ios
 pod install --repo-update
 cd ..
+git status --short ios/Podfile.lock
 fvm flutter build ios --debug --no-codesign
 ```
 
 Expected toolchain output is Flutter 3.29.2 / Dart 3.7.2, and analysis must
 exit with no findings. The three findings recorded by the stacked handoff
 were removed so the repaired macOS workflow has a deterministic gate.
+
+The first successful CocoaPods resolution is expected to create
+`ios/Podfile.lock`. Because this Linux worker cannot run CocoaPods, that lock
+is an explicit Mac boundary. If it is new or changed, stop before device
+acceptance, commit and push it without any Personal Team setting, check out
+the resulting clean SHA, and rerun the unsigned preflight. The final device
+record must not depend on an unpushed pod resolution.
 
 Run both rules suites and record their totals:
 
