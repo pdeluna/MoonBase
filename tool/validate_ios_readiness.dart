@@ -111,6 +111,16 @@ class _IosReadinessValidator {
           '$_expectedBundleId.RunnerTests.',
     );
 
+    final assetSymbolSettings = RegExp(
+      r'ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;',
+    ).allMatches(project).length;
+    _expect(
+      assetSymbolSettings == 3,
+      'Asset-symbol generation uses valid boolean settings.',
+      'Every Xcode project configuration must set asset-symbol generation '
+          'to YES.',
+    );
+
     final automaticSigningCount =
         RegExp(r'CODE_SIGN_STYLE = Automatic;').allMatches(project).length;
     _expect(
