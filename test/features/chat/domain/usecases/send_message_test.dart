@@ -26,6 +26,13 @@ MediaRef _mediaRef([int i = 0]) => MediaRef(
       storageKey: 'b1/media_$i.jpg',
     );
 
+MediaRef _videoRef() => const MediaRef(
+      id: MediaId('video_0'),
+      type: MediaType.video,
+      storageKey: 'b1/video_0.mp4',
+      mimeType: 'video/mp4',
+    );
+
 /// Cloud path the mock cloud storage "returns" for a staged local key.
 String _cloudPathFor(String localKey) =>
     'bases/b1/media/${localKey.split('/').last}';
@@ -177,6 +184,18 @@ void main() {
       verifyZeroInteractions(repo);
       // Validation runs before any upload — no orphan on a rejected payload.
       verifyZeroInteractions(cloud);
+    });
+
+    test('rejects video before staging reads or cloud upload', () async {
+      final result = await useCase(params(media: [_videoRef()]));
+
+      expect(result, isA<Left<Failure, Message>>());
+      final failure = (result as Left<Failure, Message>).value;
+      expect(failure, isA<MediaUnsupportedFailure>());
+      expect(failure.message, contains('Video attachments'));
+      verifyZeroInteractions(staging);
+      verifyZeroInteractions(cloud);
+      verifyZeroInteractions(repo);
     });
 
     test(

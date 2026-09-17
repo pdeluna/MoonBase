@@ -8,6 +8,7 @@ import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/platform_settings.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_pick_request.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_picker.dart';
 import 'package:moonbase_skeleton/features/media/domain/usecases/pick_and_persist_media.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
@@ -127,4 +128,33 @@ void main() {
       expect(find.text('That file is too large to attach.'), findsOneWidget);
     },
   );
+
+  testWidgets('allowedTypes hides unsupported video choices', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => MediaPickerSheet.show(
+                  context,
+                  baseId,
+                  allowedTypes: const <MediaType>{MediaType.image},
+                ),
+                child: const Text('Attach'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Attach'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Camera (Photo)'), findsOneWidget);
+    expect(find.text('Photo Library'), findsOneWidget);
+    expect(find.text('Camera (Video)'), findsNothing);
+    expect(find.text('Video Library'), findsNothing);
+  });
 }

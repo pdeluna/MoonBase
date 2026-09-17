@@ -22,26 +22,36 @@ Audit baseline (**2026-09-17**):
 - `.github/workflows/ios.yml` does not parse as YAML, so its failed workflow
   records are not iOS build evidence. TestFlight also requires paid Apple
   Developer Program access; it is not part of the free-signing device check.
+- The current Firebase media contract is JPEG images only. The older Phase 3
+  local-media video checklist is historical evidence, not a cloud-video
+  acceptance test. Video remains deferred by
+  [`FIRESTORE_SCHEMA.md`](FIRESTORE_SCHEMA.md#images-only-mvp-video-deferred).
 - No self-hosted user Mac is connected to the Cursor project. Changes,
   branches, or test results present only on Philip's or his sister's machine
   are therefore unverified until pushed or recorded against a commit SHA.
 
 The sequence is locked:
 
-1. **Android gate (current stop):** on a physical Android device, test exactly
-   the intended remote revision. Re-run
-   [`CHAT_MEDIA_DEVICE_TESTS.md`](../assignments/CHAT_MEDIA_DEVICE_TESTS.md)
-   T1.2 step 4 (a sent video shows a poster and still opens playback), then
-   T1.3 (force-stop/relaunch still resolves the media). Record device, Android
-   version, commit SHA, and result. Use a full stop and re-run, not hot
-   reload/restart, when the Firebase debug harness is involved.
-2. **Philip approval:** after that evidence is recorded, Philip explicitly
+1. **Android contract preflight:** the checked-in Firestore rule and Dart
+   validator must both allow text-only and image-only messages while rejecting
+   an empty message. Chat must expose only image choices and reject a
+   programmatic video payload before upload. Deploy the reviewed rule to
+   `moonbase-aaff7` before testing the live project.
+2. **Android device gate (current stop after preflight):** test exactly the
+   pushed candidate SHA on a physical Android device. Cover cold and returning
+   sign-in, text-only send, image-only send with no caption, multi-image send,
+   two-device receive, permission denial/Open Settings, and force-stop/relaunch
+   media resolution. On the home dual-stack network, also confirm cache-to-live
+   state and the bounded blackhole media failure. Record device, Android
+   version, network, SHA, and each result. Fully stop and re-run between debug
+   harness modes; do not use hot reload/restart.
+3. **Philip approval:** after that evidence is recorded, Philip explicitly
    approves starting/completing the iOS Firebase pass. Until then, do not
    register the production iOS Firebase app, choose the final bundle ID,
    change signing, configure deployment credentials, or claim iOS complete.
-3. **iOS implementation:** generate the iOS Firebase configuration, reconcile
+4. **iOS implementation:** generate the iOS Firebase configuration, reconcile
    deployment targets, make the app build, and run non-device checks.
-4. **iOS physical-device gate:** run the checklist below. Simulator or CI
+5. **iOS physical-device gate:** run the checklist below. Simulator or CI
    compilation is useful preflight, but does not prove camera, photo-library,
    HEIC, free provisioning, or physical-device behavior.
 

@@ -4,6 +4,12 @@
 > **Device sign-off:** Android physical device, **2026-06-22** — principal engineer.
 > **Follow-up UX fixes:** [`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md).
 
+> **Scope warning (Firebase era):** this sign-off predates Firestore chat and
+> cloud Storage. It proves the former local file/SharedPreferences flow only.
+> The current cloud contract is JPEG images-only; video is deferred by
+> [`FIRESTORE_SCHEMA.md`](../docs/FIRESTORE_SCHEMA.md#images-only-mvp-video-deferred).
+> Do not use the historical video steps below as a Firebase release gate.
+
 Phase 3 ships two classes of tests:
 
 | Class | Where it runs | What it proves |
@@ -13,6 +19,32 @@ Phase 3 ships two classes of tests:
 
 The four checks correspond to DoD items **T0.2**, **T0.3** (foundation
 device tests), **T1.2**, and **T1.3** (Slice A device tests).
+
+---
+
+## Current Firebase Android revalidation gate
+
+Run this against one exact pushed SHA after the matching `firestore.rules` is
+deployed to `moonbase-aaff7`:
+
+1. Cold sign-in and returning cached session both reach the signed-in shell.
+2. Send text-only.
+3. Send one image with an empty caption; it must be accepted by Firestore.
+4. Send up to four images in one message.
+5. Receive text and images on a second signed-in device in the same base.
+6. Deny camera/photo permission and verify snackbar + **Open Settings**.
+7. Force-stop/relaunch; chat and image media resolve again.
+8. On the home dual-stack network, verify cache-to-live state. Run the
+   blackhole mode separately and confirm media resolution fails within the
+   documented cap instead of spinning indefinitely.
+
+Record candidate SHA, deployed-rules SHA, device/Android version, network, and
+each result. Fully stop and re-run between debug harness modes.
+
+Video capture, video upload, and POL-4 poster playback are not current
+expected-pass cases. Re-enable them only with an extension-aware Storage path,
+video Storage rules/caps, clip + poster upload, and non-lossy Firestore media
+metadata.
 
 ---
 
@@ -167,9 +199,10 @@ Run each of the following in order:
 
 ## Known not-blocking items
 
-Tracked in [`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md): all POL items **done** pending POL-4 device retest on video poster.
-
-**Done on `phase3-media-polish`:** POL-1 ✅ · POL-2 ✅ · POL-3 ✅ · POL-4 (video poster) — device retest pending.
+Historical local-media status in
+[`PHASE3_MEDIA_POLISH_TICKET.md`](PHASE3_MEDIA_POLISH_TICKET.md):
+POL-1 ✅ · POL-2 ✅ · POL-3 ✅ · POL-4 code complete, device retest pending.
+POL-4 is not part of the Firebase images-only gate above.
 
 Other:
 
