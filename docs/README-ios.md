@@ -234,9 +234,10 @@ cd ..
 fvm flutter build ios --debug --no-codesign
 ```
 
-Expected toolchain output is Flutter 3.29.2 / Dart 3.7.2. Compare analysis
-with the three baseline infos recorded by the stacked base; any additional
-finding fails the gate.
+Expected toolchain output is Flutter 3.29.2 / Dart 3.7.2, and analysis must
+exit with no findings. The stacked handoff recorded three pre-existing
+findings, but only two reproduced on this candidate's Linux verification;
+both were removed so the repaired macOS workflow has a deterministic gate.
 
 Run both rules suites and record their totals:
 

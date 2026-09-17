@@ -63,8 +63,8 @@ jobs:
         if: ${{ hashFiles('ios/Runner/GoogleService-Info.plist') != '' }}
         run: fvm dart run tool/validate_ios_readiness.dart
 
-      - name: Analyze without promoting known lint infos
-        run: fvm flutter analyze --no-fatal-infos
+      - name: Analyze
+        run: fvm flutter analyze
 
       - name: Run Flutter tests
         run: fvm flutter test
