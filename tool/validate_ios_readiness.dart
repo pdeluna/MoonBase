@@ -224,7 +224,7 @@ class _IosReadinessValidator {
       xcodeConfigured,
     ];
     if (firebaseSurfaces.every((configured) => !configured)) {
-      final boundary =
+      const boundary =
           'Firebase iOS app registration is pending. Authenticate an owner of '
           '$_expectedProjectId, run the documented FlutterFire command, commit '
           'firebase_options.dart, firebase.json, GoogleService-Info.plist, and '
