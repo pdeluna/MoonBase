@@ -278,7 +278,7 @@ Junior developers coming from JavaScript or TypeScript projects often ask where 
 | **ESLint** | `dart analyze` driven by `package:flutter_lints` | Configured in [`analysis_options.yaml`](../analysis_options.yaml) |
 | **`.eslintrc`** | [`analysis_options.yaml`](../analysis_options.yaml) | Already in the repo with strict-casts, strict-inference, strict-raw-types, and ~25 additional lints enabled |
 | **`tsconfig.json`** strict flags | The `analyzer.language.strict-*` block | Same file |
-| **Husky / lint-staged pre-commit hooks** | Optional `.git/hooks/pre-commit` running `dart format --set-exit-if-changed` + `flutter analyze` + `flutter test` | Suggested but not required; the `Pre-push: full gate` VS Code task is the cross-platform substitute |
+| **Husky / lint-staged pre-commit hooks** | Optional `.git/hooks/pre-commit` running `fvm dart format --set-exit-if-changed` + `fvm flutter analyze` + `fvm flutter test` | Suggested but not required; the `Pre-push: full gate` VS Code task is the cross-platform substitute |
 
 Do not install Prettier, ESLint, or any Node-based formatting tool inside this repository. They will silently fight the Dart formatter.
 
@@ -685,13 +685,13 @@ git push --force-with-lease   # only --force-with-lease, never plain --force
 | --- | --- | --- |
 | `flutter: command not found` after FVM install | FVM bin not on PATH | Add `$HOME/fvm/default/bin` (or Windows equivalent) to PATH; restart shell |
 | Analyzer complains about strict-cast on existing code | Editor is using system Dart SDK, not the FVM-pinned one | Verify `.vscode/settings.json` has `dart.flutterSdkPath: ".fvm/flutter_sdk"`; restart the Dart Analysis Server (`Ctrl+Shift+P` → "Dart: Restart Analysis Server") |
-| `flutter pub get` hangs on Windows | Antivirus scanning `.pub-cache` | Exclude `%LOCALAPPDATA%\Pub\Cache` from real-time scanning |
+| `fvm flutter pub get` hangs on Windows | Antivirus scanning `.pub-cache` | Exclude `%LOCALAPPDATA%\Pub\Cache` from real-time scanning |
 | Tests pass locally but fail in CI | Different SDK version | Run `fvm install`, then confirm Flutter 3.29.2 / Dart 3.7.2 from `.fvmrc`; do not rewrite the pin |
 | Media files vanish after app reinstall | Storage key was absolute instead of relative | See [`PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md`](PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) Section 2.4 cache-key invariants; the key must be `<baseId>/<uuid>.<ext>` |
 | Rebase produces hundreds of conflicts | You merged `main` into your branch at some point | Re-author the change on top of a fresh branch off `main` (see Section 4.5) |
 | `git push --force-with-lease` rejected | Someone else pushed to your branch (or you pulled and forgot) | `git pull --rebase` first, then push again |
 | VS Code does not auto-format on save | Default formatter not set to Dart | Re-check the `[dart]` block in `.vscode/settings.json` (Section 2.3) |
-| `dart format --set-exit-if-changed .` fails in CI but works locally | Line-ending mismatch (CRLF on Windows vs LF on Linux CI) | Confirm `.editorconfig` and `files.eol: "\n"` in settings; run `git config core.autocrlf false` |
+| `fvm dart format --set-exit-if-changed .` fails in CI but works locally | Line-ending mismatch (CRLF on Windows vs LF on Linux CI) | Confirm `.editorconfig` and `files.eol: "\n"` in settings; run `git config core.autocrlf false` |
 
 If a problem is not in this table, search closed issues on the repository, then ask in the team channel with: the exact command run, the full error output, your OS and Flutter version (`fvm flutter --version`), and a link to the branch.
 

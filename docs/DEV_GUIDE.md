@@ -47,7 +47,8 @@ This document summarizes the core Git/GitHub workflow, Flutter practices, and pr
   - `r` → hot reload
   - `R` → hot restart
   - `q` → quit
-- Run `flutter pub get` only after dependency changes (`pubspec.yaml` edits).
+- Run `fvm flutter pub get` only after dependency changes (`pubspec.yaml`
+  edits).
 - Daily dev flow:
   1. Sync main (`git checkout main && git pull --rebase origin main`)
   2. Create a feature branch
@@ -68,16 +69,16 @@ This document summarizes the core Git/GitHub workflow, Flutter practices, and pr
 ### Running Tests
 ```bash
 # Run all tests
-flutter test
+fvm flutter test
 
 # Run specific test file
-flutter test test/functional_test.dart
+fvm flutter test test/functional_test.dart
 
 # Run with verbose output
-flutter test --verbose
+fvm flutter test --verbose
 
 # Run with coverage
-flutter test --coverage
+fvm flutter test --coverage
 ```
 
 ### Functional Testing Approach
@@ -158,7 +159,7 @@ mb.users       : { username : <User JSON> }
 1. Add temporary debug prints to trace data flow
 2. Check SharedPreferences content during tests
 3. Verify JSON structure matches expected format
-4. Use `flutter test --verbose` for detailed output
+4. Use `fvm flutter test --verbose` for detailed output
 
 ### Performance Considerations
 - Avoid excessive JSON encoding/decoding in loops
