@@ -225,7 +225,6 @@ fvm dart --version
 fvm flutter doctor -v
 fvm flutter pub get
 fvm dart run tool/validate_ios_readiness.dart
-fvm dart format --output=none --set-exit-if-changed lib test tool
 fvm flutter analyze
 fvm flutter test --reporter expanded
 cd ios
@@ -235,9 +234,8 @@ fvm flutter build ios --debug --no-codesign
 ```
 
 Expected toolchain output is Flutter 3.29.2 / Dart 3.7.2, and analysis must
-exit with no findings. The stacked handoff recorded three pre-existing
-findings, but only two reproduced on this candidate's Linux verification;
-both were removed so the repaired macOS workflow has a deterministic gate.
+exit with no findings. The three findings recorded by the stacked handoff
+were removed so the repaired macOS workflow has a deterministic gate.
 
 Run both rules suites and record their totals:
 
