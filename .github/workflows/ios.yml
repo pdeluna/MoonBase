@@ -6,6 +6,9 @@ on:
     paths:
       - ".fvmrc"
       - ".github/workflows/ios.yml"
+      - "android/app/build.gradle.kts"
+      - "android/app/google-services.json"
+      - "firebase.json"
       - "ios/**"
       - "lib/**"
       - "pubspec.lock"
@@ -18,6 +21,9 @@ on:
     paths:
       - ".fvmrc"
       - ".github/workflows/ios.yml"
+      - "android/app/build.gradle.kts"
+      - "android/app/google-services.json"
+      - "firebase.json"
       - "ios/**"
       - "lib/**"
       - "pubspec.lock"
@@ -75,3 +81,22 @@ jobs:
 
       - name: Build unsigned debug app
         run: fvm flutter build ios --debug --no-codesign
+
+      - name: Require committed CocoaPods integration
+        shell: bash
+        run: |
+          if [[ ! -f ios/Podfile.lock ]] ||
+             ! git ls-files --error-unmatch ios/Podfile.lock >/dev/null 2>&1; then
+            echo "::error::pod install created or requires an uncommitted ios/Podfile.lock."
+            echo "Run the documented Mac integration loop and commit every intended tracked iOS change."
+            git status --short --untracked-files=all -- ios
+            exit 1
+          fi
+
+          ios_status="$(git status --porcelain=v1 --untracked-files=all -- ios)"
+          if [[ -n "$ios_status" ]]; then
+            echo "::error::CocoaPods or the iOS build left uncommitted tracked/trackable iOS changes."
+            echo "$ios_status"
+            git diff -- ios
+            exit 1
+          fi
