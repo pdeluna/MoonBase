@@ -37,14 +37,16 @@ The sequence is locked:
    an empty message. Chat must expose only image choices and reject a
    programmatic video payload before upload. Deploy the reviewed rule to
    `moonbase-aaff7` before testing the live project.
-2. **Android device gate (current stop after preflight):** test exactly the
-   pushed candidate SHA on a physical Android device. Cover cold and returning
-   sign-in, text-only send, image-only send with no caption, multi-image send,
-   two-device receive, permission denial/Open Settings, and force-stop/relaunch
-   media resolution. On the home dual-stack network, also confirm cache-to-live
-   state and the bounded blackhole media failure. Record device, Android
-   version, network, SHA, and each result. Fully stop and re-run between debug
-   harness modes; do not use hot reload/restart.
+2. **Android device gate (current stop after preflight):** after this change
+   merges, test exactly the resulting `main` SHA on a physical Android device.
+   Cover cold and returning sign-in, text-only send, image-only send with no
+   caption, multi-image send, two-device receive, permission denial/Open
+   Settings, and force-stop/relaunch media resolution. On the home dual-stack
+   network, also confirm cache-to-live state and the bounded blackhole media
+   failure. Record device, Android version, network, resulting `main` SHA, and
+   each result. Fully stop and re-run between debug harness modes; do not use
+   hot reload/restart. The branch verification record is in
+   [`CHAT_MEDIA_DEVICE_TESTS.md`](../assignments/CHAT_MEDIA_DEVICE_TESTS.md#current-firebase-android-revalidation-gate).
 3. **Philip approval:** after that evidence is recorded, Philip explicitly
    approves starting/completing the iOS Firebase pass. Until then, do not
    register the production iOS Firebase app, choose the final bundle ID,

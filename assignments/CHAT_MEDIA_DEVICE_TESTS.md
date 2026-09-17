@@ -14,7 +14,7 @@ Phase 3 ships two classes of tests:
 
 | Class | Where it runs | What it proves |
 | ----- | ------------- | -------------- |
-| Unit | `fvm flutter test test/features/` | Logic, serialization, validation, controller wiring. **Green** (106/106 on `main`). |
+| Unit | `fvm flutter test test/features/` | Historical local-media snapshot: 106/106. Current Firebase candidate verification is below. |
 | Manual device | Physical Android (iOS deferred) | OS-mediated camera/gallery, in-install persistence, permission denial UX. **Four checks below.** |
 
 The four checks correspond to DoD items **T0.2**, **T0.3** (foundation
@@ -24,8 +24,17 @@ device tests), **T1.2**, and **T1.3** (Slice A device tests).
 
 ## Current Firebase Android revalidation gate
 
-Run this against one exact pushed SHA after the matching `firestore.rules` is
-deployed to `moonbase-aaff7`:
+Non-device verification at `7a76bcd` (2026-09-17):
+
+- `7a76bcd` is formatting-only; behavior is from `bab3062`.
+- Flutter feature/core tests: **225/225**.
+- Firestore emulator rules: **48/48**.
+- Storage emulator rules: **8/8**.
+- Changed Dart files: analysis and format checks clean.
+
+These checks do not satisfy the physical-device gate. After PR merge and
+deployment of the matching `firestore.rules` to `moonbase-aaff7`, run the
+following against the resulting `main` SHA:
 
 1. Cold sign-in and returning cached session both reach the signed-in shell.
 2. Send text-only.
@@ -38,8 +47,8 @@ deployed to `moonbase-aaff7`:
    blackhole mode separately and confirm media resolution fails within the
    documented cap instead of spinning indefinitely.
 
-Record candidate SHA, deployed-rules SHA, device/Android version, network, and
-each result. Fully stop and re-run between debug harness modes.
+Record the resulting `main` SHA, deployed-rules SHA, device/Android version,
+network, and each result. Fully stop and re-run between debug harness modes.
 
 Video capture, video upload, and POL-4 poster playback are not current
 expected-pass cases. Re-enable them only with an extension-aware Storage path,
