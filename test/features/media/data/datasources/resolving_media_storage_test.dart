@@ -108,7 +108,8 @@ void main() {
       expect(cloud.resolveCalls, [cloudPath]);
     });
 
-    test('cloud resolve failures throw (widgets map to broken image)', () async {
+    test('cloud resolve failures throw (widgets map to broken image)',
+        () async {
       cloud.resolveError = StateError('permission-denied');
 
       expect(
