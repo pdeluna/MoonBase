@@ -91,7 +91,8 @@ void main() {
 
       expect(find.byType(MediaPickerSheet), findsNothing);
       expect(
-        find.text('Permission required. Enable camera or photo access in Settings.'),
+        find.text(
+            'Permission required. Enable camera or photo access in Settings.'),
         findsOneWidget,
       );
       expect(find.text('Open Settings'), findsOneWidget);

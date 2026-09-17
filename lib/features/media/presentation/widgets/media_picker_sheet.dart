@@ -111,8 +111,7 @@ class MediaPickerSheet extends ConsumerWidget {
               _PickerOption(
                 icon: Icons.photo_library_outlined,
                 label: 'Photo Library',
-                onTap: () =>
-                    _runGalleryImages(sheetContext: context, ref: ref),
+                onTap: () => _runGalleryImages(sheetContext: context, ref: ref),
               ),
             if (allowedTypes.contains(MediaType.video))
               _PickerOption(
