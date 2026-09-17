@@ -207,8 +207,7 @@ class _IosReadinessValidator {
     final dartConfigurations = _mapValue(dartOptions?['configurations']);
 
     final options = _firebaseIosOptions(optionsSource);
-    final optionsConfigured =
-        RegExp(r'case TargetPlatform\.iOS:\s+return ios;')
+    final optionsConfigured = RegExp(r'case TargetPlatform\.iOS:\s+return ios;')
             .hasMatch(optionsSource) &&
         options.isNotEmpty;
     final jsonAppId = _stringValue(iosDefault?['appId']);
