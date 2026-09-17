@@ -23,7 +23,8 @@ gate is **not closed**:
   caption optional, empty message denied, and video choices hidden/rejected.
 - `.github/workflows/ios.yml` is now an unsigned macOS preflight. It does not
   import certificates, download profiles, call Fastlane, or upload to
-  TestFlight.
+  TestFlight. GitHub workflow `185513668` remains manually disabled until an
+  authorized repository owner re-enables it.
 - Firebase CLI authentication was unavailable on the implementation worker
   (`Failed to authenticate, have you run firebase login?`). Therefore no iOS
   app was guessed or created and no fake Firebase values were committed.
@@ -106,11 +107,104 @@ device because the simulator cannot provide equivalent evidence.
 No current UI reaches video capture, and no microphone permission should
 appear. Video upload/playback is not an acceptance case.
 
-## One-time Firebase owner step
+## 1. Mac pre-registration and bundle-ID proof
+
+Do not create the Firebase iOS app yet. First prove the repository integrates
+cleanly with CocoaPods and that the intended Personal Team can provision
+`com.deluna.moonbase`.
+
+### Prepare the unsigned Xcode workspace
+
+On Philip's sister's Mac, install/open Xcode, accept its license and platform
+components, then install FVM and CocoaPods:
+
+```bash
+brew install fvm cocoapods
+git clone https://github.com/pdeluna/MoonBase.git
+cd MoonBase
+git fetch origin
+git checkout <candidate-branch>
+git pull --ff-only origin <candidate-branch>
+git rev-parse HEAD
+git status --short
+fvm install
+fvm flutter --version
+fvm dart --version
+fvm flutter doctor -v
+fvm flutter pub get
+fvm dart run tool/validate_ios_readiness.dart \
+  --allow-pending-firebase-registration
+cd ios
+pod install --repo-update
+cd ..
+fvm flutter build ios --debug --no-codesign
+git status --short
+git diff -- ios
+```
+
+The first CocoaPods/Flutter integration may create or change trackable files
+beyond `ios/Podfile.lock`, including the Xcode project, workspace, or xcconfig
+integration. Review the complete `ios/` result:
+
+1. Commit every intended deterministic tracked/trackable iOS integration
+   change, not only the lockfile.
+2. Never commit `Pods/`, `.symlinks/`, generated Flutter artifacts,
+   `xcuserdata`, or a Personal Team ID.
+3. Push, check out the resulting exact SHA, and repeat `pod install`, the
+   unsigned build, full `git status --short`, and `git diff -- ios`.
+4. Continue only when `ios/Podfile.lock` is tracked and the entire
+   pre-signing tree remains clean after the repeated integration/build.
+
+The macOS workflow applies the same clean-tree gate and intentionally fails
+when a lockfile or any other trackable CocoaPods/Xcode integration change is
+missing from the commit.
+
+### Prove Personal Team provisionability
+
+From that clean pushed SHA:
+
+1. Open `ios/Runner.xcworkspace`.
+2. Add the intended Apple Account under **Xcode → Settings → Accounts** and
+   verify Xcode labels it **Personal Team**.
+3. Connect/unlock the physical device, complete trust and Developer Mode
+   prompts, and select it as the destination.
+4. Under **Runner → Signing & Capabilities**, keep automatic signing enabled,
+   select the Personal Team, and leave the bundle ID exactly
+   `com.deluna.moonbase`.
+5. Use **Product → Build** for the physical device. Record Xcode's successful
+   managed-profile/signing result. This proves only identifier provisionability;
+   it is not Firebase runtime or device acceptance.
+
+If Xcode cannot register/provision the identifier, stop before Firebase
+registration. Philip must approve one replacement development identifier;
+then update all Runner/test configurations and validator expectations in one
+commit, push it, and repeat the clean CocoaPods and signing precheck.
+
+After successful proof, close Xcode and inspect:
+
+```bash
+git status --short
+git diff -- ios/Runner.xcodeproj/project.pbxproj
+```
+
+Preserve the signing evidence, but do not commit `DEVELOPMENT_TEAM`. If that
+is the only tracked change, restore the team-neutral project file, confirm the
+whole tree is clean, and re-select the same proved team only for the final run:
+
+```bash
+git restore --source=HEAD -- ios/Runner.xcodeproj/project.pbxproj
+git status --short
+```
+
+Only after this proof and clean-tree restoration may the Firebase owner step
+run.
+
+## 2. One-time Firebase owner step
 
 Do this on a trusted Mac while signed into an account that can modify
 `moonbase-aaff7`. Complete it before treating any device result as acceptance.
-The generated client files are not server secrets and must be committed.
+The generated client files are not server secrets and must be committed. The
+Personal Team provisionability proof above is a mandatory precondition.
 
 1. Start from the candidate branch and confirm the intended identity:
 
@@ -158,15 +252,18 @@ The generated client files are not server secrets and must be committed.
 
 5. Inspect generated changes. Confirm `PROJECT_ID=moonbase-aaff7`,
    `BUNDLE_ID=com.deluna.moonbase`, and one `GOOGLE_APP_ID` agree across
-   Xcode, `firebase_options.dart`, `firebase.json`, and the plist. Commit and
-   push them before the physical-device test.
+   Xcode, `firebase_options.dart`, `firebase.json`, and the plist. The strict
+   validator also proves that the established Android app ID, API key,
+   package, project, Storage bucket, generated options, and Dart mapping did
+   not drift. Commit and push all generated iOS surfaces before the
+   physical-device test.
 
 6. In Firebase Console, record App Check enforcement for Authentication,
    Firestore, and Storage. This repository has no App Check provider, so
    affected products must not enforce App Check for this test unless a
    separately approved provider/debug-token setup is committed and evidenced.
 
-## Backend deployment gate
+## 3. Backend deployment gate
 
 The candidate includes the reviewed Firestore contract that allows text or
 one-to-four same-base JPEG paths, including a captionless image, while denying
@@ -186,7 +283,20 @@ firebase deploy \
 Record that SHA as the deployed-rules SHA. If production rules cannot be
 deployed, the live image-only cases remain blocked.
 
-## Philip's sister's Mac procedure
+## 4. Re-enable and run the macOS workflow
+
+The workflow definition is repaired and validates every code-controlled
+preflight, but GitHub workflow `185513668` is manually disabled. Repository
+code cannot re-enable an externally disabled workflow.
+
+An authorized repository owner must open **Actions → iOS repository
+preflight**, choose **Enable workflow**, and run/re-run it against the final
+candidate after Firebase and CocoaPods integration changes are pushed. A
+successful run is required. The workflow watches `firebase.json`, both
+established Android Firebase inputs, all iOS/lib/test changes, and the
+validator; it fails if CocoaPods/build leaves any trackable `ios/` change.
+
+## 5. Final post-registration Mac/device procedure
 
 ### 1. Prepare and record the host
 
@@ -230,20 +340,21 @@ fvm flutter test --reporter expanded
 cd ios
 pod install --repo-update
 cd ..
-git status --short ios/Podfile.lock
 fvm flutter build ios --debug --no-codesign
+git status --short
+git diff -- ios
 ```
 
 Expected toolchain output is Flutter 3.29.2 / Dart 3.7.2, and analysis must
 exit with no findings. The three findings recorded by the stacked handoff
 were removed so the repaired macOS workflow has a deterministic gate.
 
-The first successful CocoaPods resolution is expected to create
-`ios/Podfile.lock`. Because this Linux worker cannot run CocoaPods, that lock
-is an explicit Mac boundary. If it is new or changed, stop before device
-acceptance, commit and push it without any Personal Team setting, check out
-the resulting clean SHA, and rerun the unsigned preflight. The final device
-record must not depend on an unpushed pod resolution.
+This is the post-registration repeat of the earlier integration loop.
+`ios/Podfile.lock` must already be tracked, and both status and the iOS diff
+must remain empty after CocoaPods and the unsigned build. If any trackable
+file changes, stop, review and commit every intended deterministic change,
+push, check out the resulting SHA, and rerun. The final device record must
+not depend on any unpushed CocoaPods/Xcode integration.
 
 Run both rules suites and record their totals:
 
@@ -267,10 +378,11 @@ Open the CocoaPods workspace, never the project:
 open ios/Runner.xcworkspace
 ```
 
-### 3. Configure the Personal Team
+### 3. Re-select the proved Personal Team
 
-1. In **Xcode → Settings → Accounts**, add the Apple Account that will sign
-   this direct device build. Xcode must label it **Personal Team**.
+1. In **Xcode → Settings → Accounts**, select the Apple Account already proved
+   during the pre-registration signing check. Xcode must label it
+   **Personal Team**.
 2. Select **Runner → Signing & Capabilities**.
 3. Keep **Automatically manage signing** enabled.
 4. Select the Personal Team and confirm the bundle identifier remains exactly

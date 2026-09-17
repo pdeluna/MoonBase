@@ -686,7 +686,7 @@ git push --force-with-lease   # only --force-with-lease, never plain --force
 | `flutter: command not found` after FVM install | FVM bin not on PATH | Add `$HOME/fvm/default/bin` (or Windows equivalent) to PATH; restart shell |
 | Analyzer complains about strict-cast on existing code | Editor is using system Dart SDK, not the FVM-pinned one | Verify `.vscode/settings.json` has `dart.flutterSdkPath: ".fvm/flutter_sdk"`; restart the Dart Analysis Server (`Ctrl+Shift+P` → "Dart: Restart Analysis Server") |
 | `flutter pub get` hangs on Windows | Antivirus scanning `.pub-cache` | Exclude `%LOCALAPPDATA%\Pub\Cache` from real-time scanning |
-| Tests pass locally but fail in CI | Different SDK version | Ensure FVM is pinned (`fvm use stable --pin`) and that CI uses the same pin |
+| Tests pass locally but fail in CI | Different SDK version | Run `fvm install`, then confirm Flutter 3.29.2 / Dart 3.7.2 from `.fvmrc`; do not rewrite the pin |
 | Media files vanish after app reinstall | Storage key was absolute instead of relative | See [`PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md`](PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) Section 2.4 cache-key invariants; the key must be `<baseId>/<uuid>.<ext>` |
 | Rebase produces hundreds of conflicts | You merged `main` into your branch at some point | Re-author the change on top of a fresh branch off `main` (see Section 4.5) |
 | `git push --force-with-lease` rejected | Someone else pushed to your branch (or you pulled and forgot) | `git pull --rebase` first, then push again |

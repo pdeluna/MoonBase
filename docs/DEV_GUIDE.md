@@ -16,12 +16,17 @@ This document summarizes the core Git/GitHub workflow, Flutter practices, and pr
 
 ## FVM (Flutter Version Management)
 
-- Install via Dart pub. Add FVM bin folder to Windows PATH.
-- Pin SDK per project with:
+- Install FVM with its official platform installer. Add the FVM bin folder to
+  Windows PATH.
+- Install the exact SDK already pinned by `.fvmrc`:
   ```powershell
-  fvm install stable
-  fvm use stable --pin
+  fvm install
+  fvm flutter --version
+  fvm dart --version
   ```
+- Expected versions are Flutter **3.29.2** and Dart **3.7.2**. Do not run
+  `fvm use stable --pin`; it rewrites the repository pin and makes builds
+  drift.
 - Run commands prefixed with `fvm` (e.g., `fvm flutter run`).
 - Configure Cursor/VS Code settings:
   ```json
