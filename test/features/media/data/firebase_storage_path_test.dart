@@ -20,13 +20,16 @@ void main() {
       final path = storagePathFor(baseId: 'base1'.bid, uuid: uuid);
       expect(isFirebaseStoragePathForBase(path, 'base1'.bid), isTrue);
       expect(isFirebaseStoragePathForBase(path, 'other'.bid), isFalse);
-      expect(isFirebaseStoragePathForBase('base1/$uuid.jpg', 'base1'.bid), isFalse);
+      expect(isFirebaseStoragePathForBase('base1/$uuid.jpg', 'base1'.bid),
+          isFalse);
       expect(
-        isFirebaseStoragePathForBase('bases/base1/media/not-a-uuid.jpg', 'base1'.bid),
+        isFirebaseStoragePathForBase(
+            'bases/base1/media/not-a-uuid.jpg', 'base1'.bid),
         isFalse,
       );
       expect(
-        isFirebaseStoragePathForBase('bases/base1/media/$uuid.png', 'base1'.bid),
+        isFirebaseStoragePathForBase(
+            'bases/base1/media/$uuid.png', 'base1'.bid),
         isFalse,
       );
     });
@@ -34,7 +37,8 @@ void main() {
     test('mediaUuidFromStoragePath reads leaf uuid', () {
       final path = storagePathFor(baseId: 'base1'.bid, uuid: uuid);
       expect(mediaUuidFromStoragePath(path), uuid);
-      expect(mediaUuidFromStoragePath('bases/base1/media/not-a-uuid.jpg'), isNull);
+      expect(
+          mediaUuidFromStoragePath('bases/base1/media/not-a-uuid.jpg'), isNull);
     });
   });
 
@@ -55,7 +59,7 @@ void main() {
     });
 
     test('accepts already-canonical cloud path', () {
-      final cloud = 'bases/base1/media/$uuid.jpg';
+      const cloud = 'bases/base1/media/$uuid.jpg';
       expect(cloudStoragePathFromKey(cloud), cloud);
     });
 

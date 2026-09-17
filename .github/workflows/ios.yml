@@ -1,62 +1,102 @@
-name: iOS TestFlight
+name: iOS repository preflight
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".fvmrc"
+      - ".github/workflows/ios.yml"
+      - "android/app/build.gradle.kts"
+      - "android/app/google-services.json"
+      - "firebase.json"
+      - "ios/**"
+      - "lib/**"
+      - "pubspec.lock"
+      - "pubspec.yaml"
+      - "test/**"
+      - "tool/validate_ios_readiness.dart"
   push:
-    tags:
-      - 'ios-*'
+    branches:
+      - main
+    paths:
+      - ".fvmrc"
+      - ".github/workflows/ios.yml"
+      - "android/app/build.gradle.kts"
+      - "android/app/google-services.json"
+      - "firebase.json"
+      - "ios/**"
+      - "lib/**"
+      - "pubspec.lock"
+      - "pubspec.yaml"
+      - "test/**"
+      - "tool/validate_ios_readiness.dart"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-preflight-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  preflight:
     runs-on: macos-14
+    timeout-minutes: 45
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
+      - name: Install FVM
+        run: brew install fvm
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
+      - name: Install pinned Flutter SDK
+        run: fvm install
 
-      - name: Flutter packages
-        run: flutter pub get
-
-      - name: Install CocoaPods
-        run: sudo gem install cocoapods
-
-      - name: Pod install
-        working-directory: ios
+      - name: Verify pinned toolchain
         run: |
-          pod repo update
-          pod install
+          fvm flutter --version
+          fvm dart --version
 
-             - name: Install fastlane
-         run: sudo gem install fastlane
+      - name: Resolve Flutter packages
+        run: fvm flutter pub get
 
-       - name: Setup iOS certificates
-         uses: apple-actions/import-codesigning-certs@v1
-         with:
-           p12-file-base64: ${{ secrets.IOS_P12_BASE64 }}
-           p12-password: ${{ secrets.IOS_P12_PASSWORD }}
+      - name: Validate repository-side iOS configuration
+        run: >-
+          fvm dart run tool/validate_ios_readiness.dart
+          --allow-pending-firebase-registration
 
-       - name: Setup provisioning profile
-         uses: apple-actions/download-provisioning-profiles@v1
-         with:
-           bundle-id: ${{ secrets.IOS_BUNDLE_ID }}
-           profile-type: IOS_APP_STORE
-           issuer-id: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-           api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-           api-private-key: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      - name: Validate committed Firebase iOS configuration
+        if: ${{ hashFiles('ios/Runner/GoogleService-Info.plist') != '' }}
+        run: fvm dart run tool/validate_ios_readiness.dart
 
-       - name: Fastlane beta
+      - name: Analyze
+        run: fvm flutter analyze
+
+      - name: Run Flutter tests
+        run: fvm flutter test
+
+      - name: Resolve CocoaPods
         working-directory: ios
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
-          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-        run: fastlane beta
+        run: pod install --repo-update
+
+      - name: Build unsigned debug app
+        run: fvm flutter build ios --debug --no-codesign
+
+      - name: Require committed CocoaPods integration
+        shell: bash
+        run: |
+          if [[ ! -f ios/Podfile.lock ]] ||
+             ! git ls-files --error-unmatch ios/Podfile.lock >/dev/null 2>&1; then
+            echo "::error::pod install created or requires an uncommitted ios/Podfile.lock."
+            echo "Run the documented Mac integration loop and commit every intended tracked iOS change."
+            git status --short --untracked-files=all -- ios
+            exit 1
+          fi
+
+          ios_status="$(git status --porcelain=v1 --untracked-files=all -- ios)"
+          if [[ -n "$ios_status" ]]; then
+            echo "::error::CocoaPods or the iOS build left uncommitted tracked/trackable iOS changes."
+            echo "$ios_status"
+            git diff -- ios
+            exit 1
+          fi
