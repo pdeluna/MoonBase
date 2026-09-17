@@ -5,6 +5,11 @@ const String _expectedFlutterVersion = '3.29.2';
 const String _expectedBundleId = 'com.deluna.moonbase';
 const String _expectedProjectId = 'moonbase-aaff7';
 const String _expectedSenderId = '137107376205';
+const String _expectedStorageBucket = 'moonbase-aaff7.firebasestorage.app';
+const String _expectedAndroidAppId =
+    '1:137107376205:android:f74e18c46e57a45b9bf404';
+const String _expectedAndroidApiKey = 'AIzaSyAididoK_KvnH0a9Oukiyu2dte4-f4pzVA';
+const String _expectedAndroidConfigPath = 'android/app/google-services.json';
 const String _expectedDeploymentTarget = '15.0';
 const String _expectedPlistPath = 'ios/Runner/GoogleService-Info.plist';
 
@@ -20,7 +25,7 @@ void main(List<String> arguments) {
   }
 
   final root = File.fromUri(Platform.script).parent.parent;
-  final validator = _IosReadinessValidator(
+  final validator = IosReadinessValidator(
     root: root,
     allowPendingFirebaseRegistration: arguments.contains(pendingFlag),
   )..validate();
@@ -55,8 +60,8 @@ void main(List<String> arguments) {
   stdout.writeln('Strict iOS repository readiness validation passed.');
 }
 
-class _IosReadinessValidator {
-  _IosReadinessValidator({
+class IosReadinessValidator {
+  IosReadinessValidator({
     required this.root,
     required this.allowPendingFirebaseRegistration,
   });
@@ -205,18 +210,106 @@ class _IosReadinessValidator {
     );
   }
 
+  void _validateAndroidFirebase({
+    required String optionsSource,
+    required Map<String, Object?>? androidDefault,
+    required Map<String, Object?>? dartOptions,
+    required Map<String, Object?>? dartConfigurations,
+  }) {
+    final options = _firebaseOptions(optionsSource, 'android');
+    final googleServices = _decodeJsonObject(
+      _read(_expectedAndroidConfigPath),
+    );
+    final projectInfo = _mapValue(googleServices['project_info']);
+    final clients = _listValue(googleServices['client']);
+
+    Map<String, Object?>? matchingClient;
+    for (final value in clients ?? const <Object?>[]) {
+      final client = _mapValue(value);
+      final clientInfo = _mapValue(client?['client_info']);
+      final androidInfo = _mapValue(clientInfo?['android_client_info']);
+      if (_stringValue(androidInfo?['package_name']) == _expectedBundleId) {
+        matchingClient = client;
+        break;
+      }
+    }
+
+    final clientInfo = _mapValue(matchingClient?['client_info']);
+    final apiKeys = _listValue(matchingClient?['api_key']);
+    final firstApiKey =
+        apiKeys == null || apiKeys.isEmpty ? null : _mapValue(apiKeys.first);
+
+    _expect(
+      _stringValue(androidDefault?['projectId']) == _expectedProjectId &&
+          _stringValue(androidDefault?['appId']) == _expectedAndroidAppId &&
+          _stringValue(androidDefault?['fileOutput']) ==
+              _expectedAndroidConfigPath,
+      'firebase.json preserves the established Android app mapping.',
+      'firebase.json must preserve the established Android project, app ID, '
+          'and google-services.json path.',
+    );
+    _expect(
+      _stringValue(dartOptions?['projectId']) == _expectedProjectId &&
+          _stringValue(dartConfigurations?['android']) == _expectedAndroidAppId,
+      'FlutterFire Dart mapping preserves Android project and app IDs.',
+      'firebase.json Dart mapping must preserve Android project '
+          '$_expectedProjectId and app $_expectedAndroidAppId.',
+    );
+    _expect(
+      RegExp(r'case TargetPlatform\.android:\s+return android;')
+              .hasMatch(optionsSource) &&
+          options['apiKey'] == _expectedAndroidApiKey &&
+          options['appId'] == _expectedAndroidAppId &&
+          options['messagingSenderId'] == _expectedSenderId &&
+          options['projectId'] == _expectedProjectId &&
+          options['storageBucket'] == _expectedStorageBucket,
+      'firebase_options.dart preserves established Android options.',
+      'firebase_options.dart Android options drifted from the established '
+          'moonbase-aaff7 app.',
+    );
+    _expect(
+      _stringValue(projectInfo?['project_number']) == _expectedSenderId &&
+          _stringValue(projectInfo?['project_id']) == _expectedProjectId &&
+          _stringValue(projectInfo?['storage_bucket']) ==
+              _expectedStorageBucket &&
+          _stringValue(clientInfo?['mobilesdk_app_id']) ==
+              _expectedAndroidAppId &&
+          _stringValue(firstApiKey?['current_key']) == _expectedAndroidApiKey,
+      'google-services.json preserves the established Android client.',
+      'android/app/google-services.json drifted from the established '
+          'moonbase-aaff7 Android client.',
+    );
+
+    final androidGradle = _read('android/app/build.gradle.kts');
+    _expect(
+      androidGradle.contains('namespace = "$_expectedBundleId"') &&
+          androidGradle.contains('applicationId = "$_expectedBundleId"'),
+      'Android Gradle identity remains $_expectedBundleId.',
+      'Android namespace and applicationId must remain $_expectedBundleId.',
+    );
+  }
+
   void _validateFirebase(String xcodeProject) {
     final optionsSource = _read('lib/firebase_options.dart');
     final firebaseJson = _decodeJsonObject(_read('firebase.json'));
     final flutterConfig = _mapValue(firebaseJson['flutter']);
     final platforms = _mapValue(flutterConfig?['platforms']);
+    final androidPlatform = _mapValue(platforms?['android']);
+    final androidDefault = _mapValue(androidPlatform?['default']);
     final iosPlatform = _mapValue(platforms?['ios']);
     final iosDefault = _mapValue(iosPlatform?['default']);
     final dartPlatform = _mapValue(platforms?['dart']);
     final dartOptions = _mapValue(dartPlatform?['lib/firebase_options.dart']);
     final dartConfigurations = _mapValue(dartOptions?['configurations']);
 
-    final options = _firebaseIosOptions(optionsSource);
+    _validateAndroidFirebase(
+      optionsSource: optionsSource,
+      androidDefault: androidDefault,
+      dartOptions: dartOptions,
+      dartConfigurations: dartConfigurations,
+    );
+
+    final options = _firebaseOptions(optionsSource, 'ios');
     final optionsConfigured = RegExp(r'case TargetPlatform\.iOS:\s+return ios;')
             .hasMatch(optionsSource) &&
         options.isNotEmpty;
@@ -225,7 +318,7 @@ class _IosReadinessValidator {
     final plistFile = File(_path(_expectedPlistPath));
     final plistConfigured = plistFile.existsSync();
     final xcodeConfigured =
-        xcodeProject.contains('GoogleService-Info.plist in Resources');
+        _runnerResourcesContainGoogleServicePlist(xcodeProject);
 
     final firebaseSurfaces = <bool>[
       optionsConfigured,
@@ -330,6 +423,113 @@ class _IosReadinessValidator {
   }
 }
 
+bool _runnerResourcesContainGoogleServicePlist(String project) {
+  final runnerTarget = RegExp(
+    r'([A-Fa-f0-9]{24}) /\* Runner \*/ = \{\s*'
+    r'isa = PBXNativeTarget;',
+  ).firstMatch(project);
+  if (runnerTarget == null) {
+    return false;
+  }
+
+  final targetBlock = _pbxObjectBlock(project, runnerTarget.start);
+  final resourcesPhaseId = RegExp(
+    r'([A-Fa-f0-9]{24}) /\* Resources \*/,',
+  ).firstMatch(targetBlock)?.group(1);
+  if (resourcesPhaseId == null) {
+    return false;
+  }
+
+  final phaseDeclaration = RegExp(
+    '${RegExp.escape(resourcesPhaseId)} /\\* Resources \\*/ = \\{\\s*'
+    'isa = PBXResourcesBuildPhase;',
+  ).firstMatch(project);
+  if (phaseDeclaration == null) {
+    return false;
+  }
+
+  final phaseBlock = _pbxObjectBlock(project, phaseDeclaration.start);
+  final files = RegExp(
+    r'files = \((.*?)\);',
+    dotAll: true,
+  ).firstMatch(phaseBlock)?.group(1);
+  final buildFileId = files == null
+      ? null
+      : RegExp(
+          r'([A-Fa-f0-9]{24}) '
+          r'/\* GoogleService-Info\.plist in Resources \*/,',
+        ).firstMatch(files)?.group(1);
+  if (buildFileId == null) {
+    return false;
+  }
+
+  final buildFile = RegExp(
+    '${RegExp.escape(buildFileId)} '
+    '/\\* GoogleService-Info\\.plist in Resources \\*/ = \\{\\s*'
+    'isa = PBXBuildFile;\\s*'
+    'fileRef = ([A-Fa-f0-9]{24}) '
+    '/\\* GoogleService-Info\\.plist \\*/;\\s*\\};',
+  ).firstMatch(project);
+  final fileReferenceId = buildFile?.group(1);
+  if (fileReferenceId == null) {
+    return false;
+  }
+
+  final fileReference = RegExp(
+    '${RegExp.escape(fileReferenceId)} '
+    '/\\* GoogleService-Info\\.plist \\*/ = \\{\\s*'
+    'isa = PBXFileReference;(.*?)\\};',
+    dotAll: true,
+  ).firstMatch(project)?.group(1);
+  final rawPath = fileReference == null
+      ? null
+      : RegExp(r'path = ([^;]+);').firstMatch(fileReference)?.group(1);
+  final path = rawPath == null ? null : _unquotePbxValue(rawPath.trim());
+  if (path == 'Runner/GoogleService-Info.plist') {
+    return true;
+  }
+  if (path != 'GoogleService-Info.plist') {
+    return false;
+  }
+
+  final runnerGroup = RegExp(
+    r'([A-Fa-f0-9]{24}) /\* Runner \*/ = \{\s*isa = PBXGroup;',
+  ).firstMatch(project);
+  if (runnerGroup == null) {
+    return false;
+  }
+  return _pbxObjectBlock(project, runnerGroup.start)
+      .contains('$fileReferenceId /* GoogleService-Info.plist */');
+}
+
+String _pbxObjectBlock(String source, int objectStart) {
+  final openingBrace = source.indexOf('{', objectStart);
+  if (openingBrace == -1) {
+    return '';
+  }
+
+  var depth = 0;
+  for (var index = openingBrace; index < source.length; index++) {
+    final character = source[index];
+    if (character == '{') {
+      depth++;
+    } else if (character == '}') {
+      depth--;
+      if (depth == 0) {
+        return source.substring(objectStart, index + 1);
+      }
+    }
+  }
+  return '';
+}
+
+String _unquotePbxValue(String value) {
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+    return value.substring(1, value.length - 1);
+  }
+  return value;
+}
+
 Map<String, Object?> _decodeJsonObject(String source) {
   final Object? decoded = jsonDecode(source);
   if (decoded is! Map<String, dynamic>) {
@@ -345,6 +545,13 @@ Map<String, Object?>? _mapValue(Object? value) {
   return value.cast<String, Object?>();
 }
 
+List<Object?>? _listValue(Object? value) {
+  if (value is! List<dynamic>) {
+    return null;
+  }
+  return value.cast<Object?>();
+}
+
 String? _stringValue(Object? value) => value is String ? value : null;
 
 String? _plistValue(String source, String key) {
@@ -355,9 +562,10 @@ String? _plistValue(String source, String key) {
   return match?.group(1)?.trim();
 }
 
-Map<String, String> _firebaseIosOptions(String source) {
+Map<String, String> _firebaseOptions(String source, String platform) {
   final block = RegExp(
-    r'static const FirebaseOptions ios = FirebaseOptions\((.*?)\n\s*\);',
+    'static const FirebaseOptions ${RegExp.escape(platform)} = '
+    r'FirebaseOptions\((.*?)\n\s*\);',
     dotAll: true,
   ).firstMatch(source)?.group(1);
   if (block == null) {
