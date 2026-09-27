@@ -1,11 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_snackbar.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
+
+  static const fallbackCopy = 'Could not sign in. Try again.';
+
+  /// B-e login half: sign-in may block on the create-or-return profile write
+  /// (unbounded, trigger #12) or fail the 20s guard. Say so plainly instead
+  /// of the generic network copy.
+  static const kLoginNetworkCopy =
+      'MoonBase needs a connection to finish setting up your account. '
+      'Check Wi-Fi or mobile data and try again.';
+
+  /// Copy for a sign-in failure. [error] is the raw object from the auth
+  /// state (normally a `Failure`); null means the session ended up neither
+  /// signed in nor errored.
+  static String signInCopy(Object? error) {
+    if (error == null) return fallbackCopy;
+    if (error is NetworkFailure || error is NetworkTimeoutFailure) {
+      return kLoginNetworkCopy;
+    }
+    return userMessage(error);
+  }
+
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
@@ -21,15 +44,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return email.contains('@') && _password.text.length >= 6;
   }
 
-  static const _fallbackCopy = 'Could not sign in. Try again.';
-
-  String _messageFromAuthState() {
+  Object? _errorFromAuthState() {
     final current = ref.read(authControllerProvider).current;
-    return current.when(
-      data: (_) => _fallbackCopy,
-      loading: () => _fallbackCopy,
-      error: (e, _) => userMessage(e),
-    );
+    return current.whenOrNull(error: (e, _) => e);
+  }
+
+  /// Inline (persistent, up to 3 lines) **and** snackbar, same copy. Fields
+  /// are never cleared on failure — the form must survive the attempt.
+  void _showFailure(Object? error) {
+    final copy = LoginScreen.signInCopy(error);
+    setState(() => _error = copy);
+    showFailureSnackBar(context, error, message: copy);
   }
 
   Future<void> _submit() async {
@@ -48,12 +73,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (user != null) {
         context.go('/home');
       } else {
-        setState(() => _error = _messageFromAuthState());
+        _showFailure(_errorFromAuthState());
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _error = userMessage(e));
-      }
+      if (mounted) _showFailure(e);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
