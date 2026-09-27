@@ -7,11 +7,11 @@ import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 /// `runtimeType: message` and a long-press dialog with the full
 /// [debugDescription] (type, raw `toString()`, stack).
 ///
-/// [enabled] defaults to [kMoonbaseDebugUi] — a compile-time `const` that is
-/// `false` outside `kDebugMode`, so profile and release builds render
-/// [child] untouched. Tests pass `enabled: true/false` to exercise both
-/// branches. Wrap any error surface (snackbar body, inline error text,
-/// broken tile) with this; it never changes layout.
+/// [enabled] defaults to [kMoonbaseDebugUi]. [build] tests that const before
+/// [enabled], so profile and release builds tree-shake the tooltip and
+/// dialog; tests (where the const stays on) still pass `enabled: true/false`.
+/// Wrap any error surface (snackbar body, inline error text, broken tile)
+/// with this; it never changes layout.
 class DebugErrorDetails extends StatelessWidget {
   const DebugErrorDetails({
     super.key,
@@ -28,7 +28,7 @@ class DebugErrorDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled) return child;
+    if (!kMoonbaseDebugUi || !enabled) return child;
     return Tooltip(
       message: debugSummary(error),
       // Manual: hover shows the tooltip on desktop/web; long-press is
@@ -48,15 +48,16 @@ class DebugErrorDetails extends StatelessWidget {
   }
 }
 
-/// Opens the developer details dialog for [error]. No-op unless [enabled]
-/// (default [kMoonbaseDebugUi]).
+/// Opens the developer details dialog for [error]. No-op unless
+/// [kMoonbaseDebugUi] and [enabled] (default [kMoonbaseDebugUi]). The const
+/// is tested first so the dialog is absent from profile and release builds.
 Future<void> showDebugErrorDetails(
   BuildContext context,
   Object? error, {
   StackTrace? stackTrace,
   bool enabled = kMoonbaseDebugUi,
 }) {
-  if (!enabled) return Future<void>.value();
+  if (!kMoonbaseDebugUi || !enabled) return Future<void>.value();
   final description = debugDescription(error, stackTrace);
   return showDialog<void>(
     context: context,

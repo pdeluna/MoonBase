@@ -14,9 +14,10 @@ const Duration kFailureSnackBarDuration = Duration(seconds: 6);
 /// - [prefix] names the operation, e.g. `'Could not create base'` →
 ///   `Could not create base: <copy>`.
 /// - [onRetry] adds a **Retry** action.
-/// - When [showDebugDetails] (default [kMoonbaseDebugUi], `false` outside
-///   `kDebugMode`) the body is long-pressable for the raw details dialog and,
-///   if there is no retry action, a **Details** action is added.
+/// - When [kMoonbaseDebugUi] and [showDebugDetails] (default
+///   [kMoonbaseDebugUi]) the body is long-pressable for the raw details
+///   dialog and, if there is no retry action, a **Details** action is added.
+///   The const is tested first so that action is absent from release builds.
 ///
 /// Replaces any snackbar currently showing so errors never queue behind
 /// success toasts.
@@ -39,7 +40,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showFailureSnackBar(
       textColor: scheme.onError,
       onPressed: onRetry,
     );
-  } else if (showDebugDetails) {
+  } else if (kMoonbaseDebugUi && showDebugDetails) {
     action = SnackBarAction(
       label: 'Details',
       textColor: scheme.onError,

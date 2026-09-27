@@ -7,9 +7,11 @@ import 'package:moonbase_skeleton/core/failure.dart';
 ///
 /// `kDebugMode` only: profile and release builds are never "developer builds"
 /// (plan U-9). A debug build can opt out with
-/// `--dart-define=MOONBASE_DEBUG_UI=false`. This is a `const`, so release and
-/// profile builds tree-shake every branch guarded by it — same pattern as
-/// `firebase_debug_harness.dart`. Never a runtime toggle, never persisted.
+/// `--dart-define=MOONBASE_DEBUG_UI=false`. This is a `const`, but a default
+/// parameter is not enough to tree-shake: every debug-UI branch must test
+/// this const before the runtime flag (`if (!kMoonbaseDebugUi || !enabled)`),
+/// the same const-first pattern as `firebase_debug_harness.dart`. Never a
+/// runtime toggle, never persisted.
 const bool kMoonbaseDebugUi =
     kDebugMode && bool.fromEnvironment('MOONBASE_DEBUG_UI', defaultValue: true);
 
