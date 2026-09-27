@@ -41,12 +41,16 @@ Active code lives under `lib/features/` and `lib/core/`. Pre-refactor code is qu
 - **Invites**: create, list, redeem (cloud; `inviteCodes/{code}` lookup)
 - **Chat**: `ChatController` single source of truth; text + cloud image attachments; cache-vs-live freshness banner
 - **Profile**: view current user; `themeMode` on the profile doc is not yet live theming (prefs still)
-- **Cross-platform**: Android, iOS, Web, Windows, macOS, Linux
+- Flutter platform scaffolds exist for Android, iOS, Web, Windows, macOS, and
+  Linux. The Firebase runtime is currently configured for **Android only**;
+  see [`docs/README-ios.md`](docs/README-ios.md) for the gated iOS handoff.
 
 ### Media (Phase 3)
 
 - Shared `media` feature: pick/capture, local file storage, tiles/preview/picker sheet
-- Chat composer attach flow (images + short video)
+- Cloud chat composer attach flow: images only. Video domain/local code remains
+  as headroom, but the Firebase schema, rules, and upload path intentionally
+  defer cloud video.
 
 ### Planned
 
@@ -117,7 +121,7 @@ See [docs/phase2/REFACTOR_ARCHITECTURE.md](docs/phase2/REFACTOR_ARCHITECTURE.md)
 ```bash
 cd MoonBase   # or your clone path
 fvm flutter pub get   # or: flutter pub get
-fvm flutter run -d windows   # or an authorized Android device
+fvm flutter run -d <authorized-android-device-id>
 ```
 
 ### Debug network harness
@@ -252,7 +256,8 @@ Legacy PoC → 3-layer refactor, feature modules, local persistence, chat archit
 
 ### Phase 3 — In progress
 
-- Media foundation + chat media (Slice A) — complete / Android-verified
+- Local media foundation + chat media (Slice A) — Android-verified before the
+  Firebase migration; current cloud-chat revalidation is image-only
 - Stories (Slice B), posts + reactions (Slice C) — planned / in progress on feature branches
 
 ### Phase 4 / Week 3+ — Firebase product data

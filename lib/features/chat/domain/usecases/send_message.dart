@@ -8,6 +8,7 @@ import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/usecase.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
+import 'package:moonbase_skeleton/features/chat/domain/chat_media_policy.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_constraints.dart';
@@ -55,9 +56,11 @@ class SendMessageParams {
 ///    `kMessageMaxLen`.
 /// 3. **Media count cap.** `media.length` must not exceed
 ///    `MediaConstraints.maxMediaPerMessageDefault` (default 4).
+/// 4. **Media type policy.** Every attachment must be allowed by
+///    [ChatMediaPolicy]. The current Firebase contract is images-only.
 ///
-/// All three checks return `Left(ValidationFailure)` with a user-facing
-/// message. There is intentionally no `try`/`catch` here — repository
+/// Validation failures return `Left(Failure)` with a user-facing message.
+/// There is intentionally no `try`/`catch` here — repository
 /// failures already come back as `Left(Failure)` via `guard(...)`, and every
 /// staging-read / cloud-upload step below runs inside `guard(...)` too.
 ///
@@ -116,6 +119,12 @@ class SendMessage implements UseCase<Message, SendMessageParams> {
     if (media.length > MediaConstraints.maxMediaPerMessageDefault) {
       return const Left(ValidationFailure(
         'Too many attachments (max ${MediaConstraints.maxMediaPerMessageDefault}).',
+      ));
+    }
+
+    if (media.any((m) => !ChatMediaPolicy.allows(m.type))) {
+      return const Left(MediaUnsupportedFailure(
+        'Video attachments are not supported in cloud chat yet.',
       ));
     }
 

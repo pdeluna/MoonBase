@@ -160,12 +160,13 @@ Doc id is the same 6-char **code** as `bases/{baseId}/invites/{code}`.
 | Field | Type | Notes |
 |-------|------|--------|
 | `authorUid` | string | Auth UID of sender |
-| `text` | string | Message body; **non-empty**, max **4000** chars (rules + Dart `kMessageMaxLen`) |
+| `text` | string | Message body; max **4000** chars. May be empty only when `mediaPaths` is non-empty |
 | `createdAt` | timestamp | Write via `serverTimestamp()`; pending local null maps to newest-end `DateTime.now()` in the client DS |
 | `schemaVersion` | number | `1` |
 | `mediaPaths` | string[] | Always present (use `[]` for text-only). 0–4 Storage paths for **this** base: `bases/{baseId}/media/{uuid}.jpg`. Paths only — never download URLs. |
 
 Doc id is **client-generated** (UUID). Stream: `orderBy('createdAt')` + post-map re-sort so pending nulls do not leap from oldest→newest.
+At least one of trimmed `text` or `mediaPaths` must be non-empty.
 
 **Example (text-only)**
 
@@ -246,7 +247,7 @@ Full rules: [`firestore.rules`](../firestore.rules) (draft for review).
 | `members/{uid}` | base member | owner manage; self-create on join; self may update own nickname copy |
 | `invites/{code}` | signed-in (redeem) | create/delete: owner; `useCount` bump: signed-in under constraints |
 | `inviteCodes/{code}` | signed-in **get** only; **list denied** | create/delete: owner of mapped `baseId`; update denied |
-| `messages/{messageId}` | base member | create as self (`text` length 1–4000); author or owner may delete |
+| `messages/{messageId}` | base member | create as self (`text` length 0–4000; text or media required); author or owner may delete |
 | stories | — | not ruled / not shipped |
 | `_smoke_tests/**` | signed-in | signed-in (debug probe only) |
 
@@ -308,7 +309,10 @@ Non-transactional partial writes can orphan. Emulator suite includes a contentio
 
 ### Message text cap
 
-Rules: `text.size() > 0 && text.size() <= 4000`. Empty text denied (media-only messages come later — separate feature decision). Dart `kMessageMaxLen` / `SendMessage` mirror **4000** — do not diverge. Empty-text-with-media stays denied.
+Rules: `text.size() <= 4000` and at least one of text or `mediaPaths` must
+be non-empty. The media-only trigger fired when cloud chat attachments landed;
+rules now mirror Dart `isValidMessageInput` / `SendMessage`. Empty text with an
+empty path list remains denied.
 
 ### Message `mediaPaths` (Storage path refs)
 
