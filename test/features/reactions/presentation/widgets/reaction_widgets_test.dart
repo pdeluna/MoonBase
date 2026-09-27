@@ -25,6 +25,7 @@ void main() {
     testWidgets(
         'renders one chip per kind with counts, highlights mine, and '
         'emits the tapped kind', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
       const group = ReactionGroup(
         counts: {ReactionKind.heart: 2, ReactionKind.fire: 1},
         mine: ReactionKind.fire,
@@ -54,6 +55,7 @@ void main() {
 
       await tester.tap(find.byKey(ReactionChipRow.chipKey(ReactionKind.heart)));
       expect(tapped, ReactionKind.heart);
+      semanticsHandle.dispose();
     });
 
     testWidgets('empty group renders nothing', (tester) async {

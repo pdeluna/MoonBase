@@ -76,7 +76,35 @@ class ReactionState {
   }
 }
 
+/// What a toggle is waiting on. [expectedMine] is the projected kind for
+/// [userId] (`null` = toggled off). The stream is the source of truth once
+/// a snapshot already shows that outcome.
+class _ToggleInFlight {
+  const _ToggleInFlight({required this.userId, required this.expectedMine});
+
+  final UserId userId;
+  final ReactionKind? expectedMine;
+}
+
+/// Newest kind [userId] has on [targetId] in [feed], or null.
+ReactionKind? _kindForUser(ReactionFeed feed, String targetId, UserId userId) {
+  ReactionKind? kind;
+  DateTime? newest;
+  for (final r in feed.reactions) {
+    if (r.target.id != targetId || r.userId != userId) continue;
+    if (newest == null || r.createdAt.isAfter(newest)) {
+      newest = r.createdAt;
+      kind = r.kind;
+    }
+  }
+  return kind;
+}
+
 /// Single reactions listener per screen + optimistic toggle with rollback.
+///
+/// [load] takes any [ReactionTargetKind] so chat, stories, and comments
+/// share this controller; only one surface is subscribed at a time (a new
+/// `load` cancels the previous listener).
 class ReactionController extends StateNotifier<ReactionState> {
   ReactionController(this._toggle, this._watch) : super(const ReactionState());
 
@@ -84,8 +112,15 @@ class ReactionController extends StateNotifier<ReactionState> {
   final WatchReactions _watch;
 
   StreamSubscription<ReactionFeed>? _sub;
-  final Set<String> _inFlight = <String>{};
+  final Map<String, _ToggleInFlight> _inFlight = {};
+
+  /// Target ids whose latest in-flight snapshot already shows the projected
+  /// kind. Firestore often delivers that snapshot before `set()`/`delete()`
+  /// completes; dropping the projection then lets concurrent reactions in
+  /// the same snapshot through.
+  final Set<String> _reflected = <String>{};
   int _failureSeq = 0;
+  int _epoch = 0;
 
   @override
   void dispose() {
@@ -97,24 +132,35 @@ class ReactionController extends StateNotifier<ReactionState> {
     String baseId, {
     ReactionTargetKind targetKind = ReactionTargetKind.message,
   }) async {
+    final epoch = ++_epoch;
     _sub?.cancel();
+    _inFlight.clear();
+    _reflected.clear();
     state = state.copyWith(
       feed: const AsyncValue<ReactionFeed>.loading(),
       optimistic: const <String, ReactionGroup>{},
     );
     _sub = _watch(baseId.bid, targetKind).listen(
       (feed) {
-        if (!mounted) return;
+        if (!mounted || epoch != _epoch) return;
+        for (final e in _inFlight.entries) {
+          final actual = _kindForUser(feed, e.key, e.value.userId);
+          if (actual == e.value.expectedMine) {
+            _reflected.add(e.key);
+          } else {
+            _reflected.remove(e.key);
+          }
+        }
         // Settled toggles are now reflected by the feed — drop their
         // projections; keep the ones still in flight.
         final keep = <String, ReactionGroup>{
           for (final e in state.optimistic.entries)
-            if (_inFlight.contains(e.key)) e.key: e.value,
+            if (_inFlight.containsKey(e.key)) e.key: e.value,
         };
         state = state.copyWith(feed: AsyncValue.data(feed), optimistic: keep);
       },
       onError: (Object error, StackTrace st) {
-        if (!mounted) return;
+        if (!mounted || epoch != _epoch) return;
         developer.log('ReactionController: stream error - $error');
         state = state.copyWith(feed: AsyncValue.error(error, st));
       },
@@ -123,17 +169,23 @@ class ReactionController extends StateNotifier<ReactionState> {
 
   /// Apply the projected chip row at once, run the use case, roll back on
   /// `Left`. Never throws. A second tap on the same target while one is in
-  /// flight is ignored (keeps the projection coherent).
+  /// flight is ignored (keeps the projection coherent). A result that lands
+  /// after [load] switched bases is ignored.
   Future<void> toggle({
     required String baseId,
     required ReactionTarget target,
     required String userId,
     required ReactionKind kind,
   }) async {
-    if (!_inFlight.add(target.id)) return;
+    if (_inFlight.containsKey(target.id)) return;
+    final epoch = _epoch;
     final me = userId.uid;
     final before = state.groupFor(target.id, me);
     final projected = before.applyToggle(kind);
+    _inFlight[target.id] = _ToggleInFlight(
+      userId: me,
+      expectedMine: projected.mine,
+    );
     state = state.copyWith(
       optimistic: {...state.optimistic, target.id: projected},
     );
@@ -145,8 +197,9 @@ class ReactionController extends StateNotifier<ReactionState> {
       kind: kind,
       current: before.mine,
     ));
+    if (!mounted || epoch != _epoch) return;
     _inFlight.remove(target.id);
-    if (!mounted) return;
+    final reflected = _reflected.remove(target.id);
 
     res.match(
       (failure) {
@@ -163,8 +216,12 @@ class ReactionController extends StateNotifier<ReactionState> {
         );
       },
       (_) {
-        // Keep the projection until the feed catches up (next emission
-        // drops it because the target is no longer in flight).
+        if (!reflected) return;
+        // The feed already shows this outcome (and any concurrent
+        // reactions that landed in the same snapshot).
+        final next = Map<String, ReactionGroup>.from(state.optimistic)
+          ..remove(target.id);
+        state = state.copyWith(optimistic: next);
       },
     );
   }

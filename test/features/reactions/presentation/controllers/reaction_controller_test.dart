@@ -233,4 +233,99 @@ void main() {
     repo.gate!.complete();
     await t;
   });
+
+  test(
+      'a confirming snapshot during the write drops the projection so '
+      'concurrent reactions in that snapshot show', () async {
+    repo.gate = Completer<void>();
+    final pending = c.toggle(
+      baseId: 'b1',
+      target: _m1,
+      userId: 'me',
+      kind: ReactionKind.heart,
+    );
+    await _tick();
+
+    repo.feed.add(ReactionFeed(
+      reactions: [
+        _r('a', ReactionKind.heart),
+        _r('bob', ReactionKind.laugh),
+        _r('me', ReactionKind.heart),
+      ],
+      freshness: ReactionFreshness.live,
+    ));
+    await _tick();
+    // Still in flight: the projection hides Bob until the write settles.
+    expect(
+      c.state.groupFor('m1', 'me'.uid).counts.containsKey(ReactionKind.laugh),
+      isFalse,
+    );
+
+    repo.gate!.complete();
+    await pending;
+
+    expect(c.state.optimistic, isEmpty);
+    final g = c.state.groupFor('m1', 'me'.uid);
+    expect(g.counts, {ReactionKind.heart: 2, ReactionKind.laugh: 1});
+    expect(g.mine, ReactionKind.heart);
+  });
+
+  test('a snapshot that does not yet include the write keeps the projection',
+      () async {
+    repo.gate = Completer<void>();
+    final pending = c.toggle(
+      baseId: 'b1',
+      target: _m1,
+      userId: 'me',
+      kind: ReactionKind.wow,
+    );
+    await _tick();
+    repo.feed.add(ReactionFeed(
+      reactions: [
+        _r('a', ReactionKind.heart),
+        _r('bob', ReactionKind.laugh),
+      ],
+      freshness: ReactionFreshness.live,
+    ));
+    await _tick();
+    repo.gate!.complete();
+    await pending;
+
+    expect(c.state.optimistic.containsKey('m1'), isTrue);
+    final hidden = c.state.groupFor('m1', 'me'.uid);
+    expect(hidden.mine, ReactionKind.wow);
+    expect(hidden.counts.containsKey(ReactionKind.laugh), isFalse);
+
+    repo.feed.add(ReactionFeed(
+      reactions: [
+        _r('a', ReactionKind.heart),
+        _r('bob', ReactionKind.laugh),
+        _r('me', ReactionKind.wow),
+      ],
+      freshness: ReactionFreshness.live,
+    ));
+    await _tick();
+    expect(c.state.optimistic, isEmpty);
+    final shown = c.state.groupFor('m1', 'me'.uid);
+    expect(shown.mine, ReactionKind.wow);
+    expect(shown.counts[ReactionKind.laugh], 1);
+  });
+
+  test('a failure that lands after load() does not alert the new base',
+      () async {
+    repo.gate = Completer<void>();
+    repo.script.add(const NetworkFailure('offline'));
+    final t = c.toggle(
+      baseId: 'b1',
+      target: _m1,
+      userId: 'me',
+      kind: ReactionKind.sad,
+    );
+    await _tick();
+    await c.load('b2');
+    repo.gate!.complete();
+    await t;
+    expect(c.state.lastFailure, isNull);
+    expect(c.state.optimistic, isEmpty);
+  });
 }

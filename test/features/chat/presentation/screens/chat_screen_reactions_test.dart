@@ -121,6 +121,7 @@ void main() {
       'long-press → pick heart → chip appears (optimistic then live); same '
       'kind again removes; a failing write rolls back and alerts',
       (tester) async {
+    final semanticsHandle = tester.ensureSemantics();
     final base = Base(
       id: const BaseId('b1'),
       name: 'Base 1',
@@ -212,5 +213,6 @@ void main() {
     expect(find.textContaining('Exception'), findsNothing);
 
     await tester.pump(const Duration(seconds: 5));
+    semanticsHandle.dispose();
   });
 }
