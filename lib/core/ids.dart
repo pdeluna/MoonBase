@@ -5,9 +5,12 @@ class UserId {
   const UserId(this.value) : assert(value != '');
   final String value;
 
-  @override bool operator ==(Object other) => other is UserId && other.value == value;
-  @override int get hashCode => value.hashCode;
-  @override String toString() => value;
+  @override
+  bool operator ==(Object other) => other is UserId && other.value == value;
+  @override
+  int get hashCode => value.hashCode;
+  @override
+  String toString() => value;
 }
 
 @immutable
@@ -15,29 +18,38 @@ class BaseId {
   const BaseId(this.value) : assert(value != '');
   final String value;
 
-  @override bool operator ==(Object other) => other is BaseId && other.value == value;
-  @override int get hashCode => value.hashCode;
-  @override String toString() => value;
+  @override
+  bool operator ==(Object other) => other is BaseId && other.value == value;
+  @override
+  int get hashCode => value.hashCode;
+  @override
+  String toString() => value;
 }
 
 @immutable
 class MessageId {
   const MessageId(this.value) : assert(value != '');
   final String value;
-  
-  @override bool operator ==(Object other) => other is MessageId && other.value == value;
-  @override int get hashCode => value.hashCode;
-  @override String toString() => value;
+
+  @override
+  bool operator ==(Object other) => other is MessageId && other.value == value;
+  @override
+  int get hashCode => value.hashCode;
+  @override
+  String toString() => value;
 }
 
 @immutable
 class InviteId {
   const InviteId(this.value) : assert(value != '');
   final String value;
-  
-  @override bool operator ==(Object other) => other is InviteId && other.value == value;
-  @override int get hashCode => value.hashCode;
-  @override String toString() => value;
+
+  @override
+  bool operator ==(Object other) => other is InviteId && other.value == value;
+  @override
+  int get hashCode => value.hashCode;
+  @override
+  String toString() => value;
 }
 
 // ---------------------------------------------------------------------------
@@ -50,9 +62,12 @@ class MediaId {
   const MediaId(this.value) : assert(value != '');
   final String value;
 
-  @override bool operator ==(Object other) => other is MediaId && other.value == value;
-  @override int get hashCode => value.hashCode;
-  @override String toString() => value;
+  @override
+  bool operator ==(Object other) => other is MediaId && other.value == value;
+  @override
+  int get hashCode => value.hashCode;
+  @override
+  String toString() => value;
 }
 
 @immutable
@@ -60,9 +75,12 @@ class StoryId {
   const StoryId(this.value) : assert(value != '');
   final String value;
 
-  @override bool operator ==(Object other) => other is StoryId && other.value == value;
-  @override int get hashCode => value.hashCode;
-  @override String toString() => value;
+  @override
+  bool operator ==(Object other) => other is StoryId && other.value == value;
+  @override
+  int get hashCode => value.hashCode;
+  @override
+  String toString() => value;
 }
 
 @immutable
@@ -70,9 +88,12 @@ class PostId {
   const PostId(this.value) : assert(value != '');
   final String value;
 
-  @override bool operator ==(Object other) => other is PostId && other.value == value;
-  @override int get hashCode => value.hashCode;
-  @override String toString() => value;
+  @override
+  bool operator ==(Object other) => other is PostId && other.value == value;
+  @override
+  int get hashCode => value.hashCode;
+  @override
+  String toString() => value;
 }
 
 @immutable
@@ -80,9 +101,26 @@ class ReactionId {
   const ReactionId(this.value) : assert(value != '');
   final String value;
 
-  @override bool operator ==(Object other) => other is ReactionId && other.value == value;
-  @override int get hashCode => value.hashCode;
-  @override String toString() => value;
+  @override
+  bool operator ==(Object other) => other is ReactionId && other.value == value;
+  @override
+  int get hashCode => value.hashCode;
+  @override
+  String toString() => value;
+}
+
+/// Calendar event id — client-generated UUID v4 (as `MessageId`).
+@immutable
+class EventId {
+  const EventId(this.value) : assert(value != '');
+  final String value;
+
+  @override
+  bool operator ==(Object other) => other is EventId && other.value == value;
+  @override
+  int get hashCode => value.hashCode;
+  @override
+  String toString() => value;
 }
 
 /// Nice test/dev ergonomics.
@@ -97,4 +135,5 @@ extension IdShortcuts on String {
   StoryId get sid => StoryId(this);
   PostId get pid => PostId(this);
   ReactionId get rid => ReactionId(this);
+  EventId get eid => EventId(this);
 }

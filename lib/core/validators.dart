@@ -1,12 +1,31 @@
 const int kBaseNameMaxLen = 32;
-const int kMessageMaxLen  = 4000;
+const int kMessageMaxLen = 4000;
+
+/// Calendar caps — single constants mirrored by `firestore.rules`
+/// (`eventFieldsValid` / `isValidWindowDays`). Same discipline as the 4000
+/// message cap: change both sides in one PR (FIRESTORE_UPDATE_TRIGGERS #18).
+const int kEventTitleMaxLen = 80;
+const int kEventNotesMaxLen = 500;
+const int kCalendarWindowMaxDays = 365;
+
+bool isValidEventTitle(String s) {
+  final t = s.trim();
+  return t.isNotEmpty && t.length <= kEventTitleMaxLen;
+}
+
+/// Null / blank notes are valid (stored as null); otherwise ≤ 500 trimmed.
+bool isValidEventNotes(String? s) {
+  if (s == null) return true;
+  return s.trim().length <= kEventNotesMaxLen;
+}
 
 /// 6 chars, exclude easily-confused O/0/I/1
 final RegExp kInviteCode = RegExp(r'^[A-HJ-NP-Z2-9]{6}$');
 
 String normalizeInviteCode(String s) => s.trim().toUpperCase();
 
-bool isValidInviteCode(String s) => kInviteCode.hasMatch(normalizeInviteCode(s));
+bool isValidInviteCode(String s) =>
+    kInviteCode.hasMatch(normalizeInviteCode(s));
 
 bool isValidBaseName(String s) {
   final t = s.trim();
