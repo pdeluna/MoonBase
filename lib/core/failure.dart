@@ -60,6 +60,14 @@ class PermissionDeniedFailure extends Failure {
   const PermissionDeniedFailure([super.message = 'Permission denied.']);
 }
 
+/// The referenced media object does not exist in Storage (deleted, never
+/// uploaded, or a stale key). Not retryable — surfaces should show a
+/// broken-media state, not a spinner or a network hint.
+class MediaNotFoundFailure extends Failure {
+  const MediaNotFoundFailure(
+      [super.message = 'This media is no longer available.']);
+}
+
 /// The operation needs a signed-in user and there is none (session gate
 /// raced, token expired, or a provider ran while signed out). Distinct from
 /// [PermissionDeniedFailure]: the fix is to sign in, not to grant access.

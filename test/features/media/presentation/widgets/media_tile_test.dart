@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
@@ -20,9 +22,9 @@ class _StubMediaStorage implements MediaStorage {
     this.resolveDelay,
   });
 
-  final String uri;
+  String uri;
   final Map<String, String>? keyedUris;
-  final Object? resolveError;
+  Object? resolveError;
   final Duration? resolveDelay;
   int resolveCallCount = 0;
 
@@ -196,7 +198,8 @@ void main() {
       const media = MediaRef(
         id: MediaId('m-fail'),
         type: MediaType.image,
-        storageKey: 'bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg',
+        storageKey:
+            'bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg',
       );
 
       await tester.pumpWidget(ProviderScope(
@@ -217,6 +220,150 @@ void main() {
     },
   );
 
+  // -------------------------------------------------------------------------
+  // B-b: broken state varies by Failure type and retries on tap.
+  // -------------------------------------------------------------------------
+  group('MediaTile broken state per Failure', () {
+    const media = MediaRef(
+      id: MediaId('m-broken'),
+      type: MediaType.image,
+      storageKey: 'bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg',
+    );
+
+    Future<_StubMediaStorage> pumpBroken(
+      WidgetTester tester,
+      Object error, {
+      bool showDebugDetails = false,
+    }) async {
+      final storage = _StubMediaStorage(
+        'https://example.com/x.jpg',
+        resolveError: error,
+      );
+      await tester.pumpWidget(ProviderScope(
+        overrides: [mediaStorageProvider.overrideWithValue(storage)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: MediaTile(
+                media: media,
+                width: 120,
+                height: 120,
+                showDebugDetails: showDebugDetails,
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.pump();
+      return storage;
+    }
+
+    testWidgets('NetworkFailure → cloud_off with plain tooltip',
+        (tester) async {
+      await pumpBroken(tester, const NetworkFailure('retry-limit-exceeded'));
+      expect(find.byIcon(Icons.cloud_off_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.broken_image_outlined), findsNothing);
+      expect(
+        find.byTooltip('$kNetworkErrorCopy Tap to retry.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('NetworkTimeoutFailure → cloud_off', (tester) async {
+      await pumpBroken(tester, const NetworkTimeoutFailure());
+      expect(find.byIcon(Icons.cloud_off_outlined), findsOneWidget);
+    });
+
+    testWidgets('PermissionDeniedFailure → lock', (tester) async {
+      await pumpBroken(tester, const PermissionDeniedFailure());
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(
+          find.byTooltip('Permission denied. Tap to retry.'), findsOneWidget);
+    });
+
+    testWidgets('UnauthenticatedFailure → lock', (tester) async {
+      await pumpBroken(tester, const UnauthenticatedFailure());
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+    });
+
+    testWidgets('MediaNotFoundFailure → broken_image', (tester) async {
+      await pumpBroken(tester, const MediaNotFoundFailure());
+      expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+      expect(
+        find.byTooltip('This media is no longer available. Tap to retry.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('non-Failure error → broken_image, no Exception: in tooltip',
+        (tester) async {
+      await pumpBroken(tester, Exception('weird'));
+      expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+      expect(find.byTooltip('weird Tap to retry.'), findsOneWidget);
+    });
+
+    testWidgets('tap on the broken tile evicts the future and resolves again',
+        (tester) async {
+      final storage = await pumpBroken(tester, const NetworkFailure());
+      expect(storage.resolveCallCount, 1);
+      expect(find.byIcon(Icons.cloud_off_outlined), findsOneWidget);
+
+      // Network is back: the next resolve succeeds with a file:// URI so the
+      // test stays hermetic (no HTTP).
+      storage.resolveError = null;
+      storage.uri = 'file:///tmp/restored.jpg';
+      await tester.tap(find.byIcon(Icons.cloud_off_outlined));
+      await tester.pump();
+      await tester.pump();
+
+      expect(storage.resolveCallCount, 2);
+      expect(find.byIcon(Icons.cloud_off_outlined), findsNothing);
+      expect(find.byType(Image), findsOneWidget);
+    });
+
+    testWidgets('showDebugDetails: true → long-press opens raw details dialog',
+        (tester) async {
+      await pumpBroken(
+        tester,
+        const PermissionDeniedFailure(),
+        showDebugDetails: true,
+      );
+      // Debug builds drop the user Tooltip (long-press is taken by details).
+      expect(find.byTooltip('Permission denied. Tap to retry.'), findsNothing);
+      await tester.longPress(find.byIcon(Icons.lock_outline));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(
+        find.textContaining('type: PermissionDeniedFailure'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('showDebugDetails: false → long-press shows no dialog',
+        (tester) async {
+      await pumpBroken(tester, const PermissionDeniedFailure());
+      await tester.longPress(find.byIcon(Icons.lock_outline));
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    test('MediaBrokenTile.iconFor mapping table', () {
+      expect(MediaBrokenTile.iconFor(const NetworkFailure()),
+          Icons.cloud_off_outlined);
+      expect(MediaBrokenTile.iconFor(const NetworkTimeoutFailure()),
+          Icons.cloud_off_outlined);
+      expect(MediaBrokenTile.iconFor(const PermissionDeniedFailure()),
+          Icons.lock_outline);
+      expect(MediaBrokenTile.iconFor(const UnauthenticatedFailure()),
+          Icons.lock_outline);
+      expect(MediaBrokenTile.iconFor(const MediaNotFoundFailure()),
+          Icons.broken_image_outlined);
+      expect(MediaBrokenTile.iconFor(const UnknownFailure()),
+          Icons.broken_image_outlined);
+      expect(MediaBrokenTile.iconFor(null), Icons.broken_image_outlined);
+    });
+  });
+
   testWidgets(
     'parent rebuilds do not restart resolveUri (stable Future)',
     (tester) async {
@@ -227,7 +374,8 @@ void main() {
       const media = MediaRef(
         id: MediaId('m-stable'),
         type: MediaType.image,
-        storageKey: 'bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg',
+        storageKey:
+            'bases/base1/media/550e8400-e29b-41d4-a716-446655440000.jpg',
       );
 
       late VoidCallback triggerRebuild;
