@@ -54,7 +54,8 @@ void main() {
     );
     await _submit(tester);
 
-    expect(find.text(_wrongPasswordCopy), findsOneWidget);
+    // Inline (errorText) and snackbar carry the same copy.
+    expect(find.text(_wrongPasswordCopy), findsNWidgets(2));
     expect(find.textContaining('Exception'), findsNothing);
     expect(find.textContaining('Failure('), findsNothing);
   });
@@ -66,7 +67,7 @@ void main() {
     final emailField = tester.widget<TextField>(find.byType(TextField).first);
     expect(emailField.decoration?.errorText, _longCopy);
     expect(emailField.decoration?.errorMaxLines, greaterThanOrEqualTo(3));
-    expect(find.text(_longCopy), findsOneWidget);
+    expect(find.text(_longCopy), findsWidgets);
   });
 
   testWidgets('email stays in the field after a failed sign-in',
@@ -79,6 +80,63 @@ void main() {
 
     final emailField = tester.widget<TextField>(find.byType(TextField).first);
     expect(emailField.controller?.text, 'owner@example.com');
-    expect(find.text(_wrongPasswordCopy), findsOneWidget);
+    final passwordField =
+        tester.widget<TextField>(find.byType(TextField).at(1));
+    expect(passwordField.controller?.text, 'wrong-pw');
+    expect(find.text(_wrongPasswordCopy), findsWidgets);
   });
+
+  testWidgets('failure is also announced as a snackbar with the same copy',
+      (tester) async {
+    await _pumpLogin(
+      tester,
+      failure: const ValidationFailure(_wrongPasswordCopy),
+    );
+    await _submit(tester);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(SnackBar), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.text(_wrongPasswordCopy),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('NetworkFailure shows the plain login network copy',
+      (tester) async {
+    await _pumpLogin(tester, failure: const NetworkFailure('unavailable'));
+    await _submit(tester);
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.text(_LoginCopy.network),
+      findsNWidgets(2), // inline + snackbar
+    );
+    expect(find.textContaining('unavailable'), findsNothing);
+  });
+
+  testWidgets('NetworkTimeoutFailure shows the plain login network copy',
+      (tester) async {
+    await _pumpLogin(tester, failure: const NetworkTimeoutFailure());
+    await _submit(tester);
+
+    final emailField = tester.widget<TextField>(find.byType(TextField).first);
+    expect(emailField.decoration?.errorText, _LoginCopy.network);
+  });
+
+  test('signInCopy maps network failures, passes others to userMessage', () {
+    expect(LoginScreen.signInCopy(const NetworkFailure()), _LoginCopy.network);
+    expect(LoginScreen.signInCopy(const NetworkTimeoutFailure()),
+        _LoginCopy.network);
+    expect(LoginScreen.signInCopy(const ValidationFailure('Bad.')), 'Bad.');
+    expect(LoginScreen.signInCopy(Exception('raw')), 'raw');
+    expect(LoginScreen.signInCopy(null), 'Could not sign in. Try again.');
+  });
+}
+
+abstract final class _LoginCopy {
+  static const network = LoginScreen.kLoginNetworkCopy;
 }
