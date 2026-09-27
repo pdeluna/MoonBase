@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
@@ -209,10 +210,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(ReactionChipRow.chipKey(ReactionKind.wow)), findsNothing);
     expect(
-        find.text('Couldn\'t update reaction: No connection'), findsOneWidget);
+      find.text('Couldn\'t update reaction: $kNetworkErrorCopy'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Exception'), findsNothing);
 
-    await tester.pump(const Duration(seconds: 5));
+    await tester.pump(const Duration(seconds: 7));
     semanticsHandle.dispose();
   });
 }

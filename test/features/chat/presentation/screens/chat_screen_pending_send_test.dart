@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
@@ -166,7 +167,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(MessageBubble.failedKey(id)), findsOneWidget);
     expect(find.text('Not sent · Tap to resend'), findsOneWidget);
-    expect(find.text('Message not sent: No connection'), findsOneWidget);
+    expect(find.text('Message not sent: $kNetworkErrorCopy'), findsOneWidget);
     expect(find.textContaining('Exception'), findsNothing);
     expect(find.text('hello'), findsOneWidget);
 

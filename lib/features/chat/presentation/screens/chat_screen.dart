@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_snackbar.dart';
 import 'package:moonbase_skeleton/core/sync_status.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
@@ -124,26 +125,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  /// Failure alert for a pending send. Plain `Failure.message` copy (no
-  /// `Exception:` prefix) with a Resend action; the bubble itself stays
-  /// tappable for the same retry.
+  /// Failure alert for a pending send. Presenter copy (no `Exception:`
+  /// prefix) with a Retry action; the bubble itself stays tappable for
+  /// the same retry.
   void _showSendFailure(SendFailureEvent event) {
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('Message not sent: ${event.failure.message}'),
-        backgroundColor: Theme.of(context).colorScheme.error,
-        duration: const Duration(seconds: 6),
-        action: SnackBarAction(
-          label: 'Resend',
-          textColor: Theme.of(context).colorScheme.onError,
-          onPressed: () => ref
-              .read(chatControllerProvider.notifier)
-              .retry(event.messageId.value),
-        ),
-      ),
+    showFailureSnackBar(
+      context,
+      event.failure,
+      prefix: 'Message not sent',
+      onRetry: () => ref
+          .read(chatControllerProvider.notifier)
+          .retry(event.messageId.value),
     );
   }
 
@@ -179,8 +172,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       reactionControllerProvider.select((s) => s.lastFailure),
       (previous, next) {
         if (next != null && next != previous) {
-          _showErrorSnackBar(
-            'Couldn\'t update reaction: ${next.failure.message}',
+          showFailureSnackBar(
+            context,
+            next.failure,
+            prefix: 'Couldn\'t update reaction',
           );
         }
       },
