@@ -25,6 +25,9 @@ import 'package:moonbase_skeleton/features/chat/presentation/screens/chat_screen
 import 'package:moonbase_skeleton/features/chat/presentation/widgets/message_bubble.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
+import 'package:moonbase_skeleton/features/reactions/data/datasources/reaction_data_source_impl.dart';
+import 'package:moonbase_skeleton/features/reactions/data/repositories/reaction_repository_impl.dart';
+import 'package:moonbase_skeleton/features/reactions/presentation/providers/reaction_providers.dart';
 
 /// First send fails after [gate] opens; later sends succeed and echo into
 /// the feed like Firestore would.
@@ -111,6 +114,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          reactionRepositoryProvider.overrideWithValue(
+            ReactionRepositoryImpl(source: InMemoryReactionDataSource()),
+          ),
           effectiveSelectedBaseProvider.overrideWith((ref) => base),
           currentUserProvider
               .overrideWith((ref) => const AsyncValue<User?>.data(user)),

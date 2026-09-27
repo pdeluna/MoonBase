@@ -6,6 +6,10 @@ import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/presentation/widgets/media_preview.dart';
 import 'package:moonbase_skeleton/features/media/presentation/widgets/media_tile.dart';
+import 'package:moonbase_skeleton/features/reactions/domain/entities/reaction_group.dart';
+import 'package:moonbase_skeleton/features/reactions/domain/entities/reaction_kind.dart';
+import 'package:moonbase_skeleton/features/reactions/presentation/widgets/reaction_chip_row.dart';
+import 'package:moonbase_skeleton/features/reactions/presentation/widgets/reaction_picker_sheet.dart';
 
 /// Maximum width the media stack inside a chat bubble can occupy, in
 /// logical pixels. Keeps grids on phones from going edge-to-edge and
@@ -18,7 +22,10 @@ const double _kBubbleMediaMaxWidth = 240;
 /// `uploading` / `localOnly` show a small spinner + "Sending…" under the
 /// bubble; `failed` shows a warning flag + "Not sent · Tap to resend" and
 /// the whole bubble becomes tappable ([onRetry]) with a dismiss ([onDiscard]).
-/// Synced messages render exactly as before.
+///
+/// Reactions: [reactions] renders a `ReactionChipRow` under the bubble;
+/// long-press opens the six-kind picker and emits [onReact]. Both are
+/// disabled for pending messages (no server doc to react to yet).
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
     super.key,
@@ -28,6 +35,8 @@ class MessageBubble extends StatelessWidget {
     this.senderColor,
     this.onRetry,
     this.onDiscard,
+    this.reactions,
+    this.onReact,
   });
 
   final Message message;
@@ -40,6 +49,13 @@ class MessageBubble extends StatelessWidget {
 
   /// Invoked when the dismiss affordance on a `failed` bubble is tapped.
   final VoidCallback? onDiscard;
+
+  /// Chip-row model for this message (null/empty ⇒ no row).
+  final ReactionGroup? reactions;
+
+  /// Emitted with the kind picked from the long-press sheet or a tapped
+  /// chip. Null disables reacting.
+  final ValueChanged<ReactionKind>? onReact;
 
   /// Stable keys for tests and the device runbook.
   static Key pendingKey(String id) => ValueKey('pending-$id');
@@ -65,6 +81,14 @@ class MessageBubble extends StatelessWidget {
     final isFailed = message.syncStatus == SyncStatus.failed;
     final isSending = message.syncStatus == SyncStatus.uploading ||
         message.syncStatus == SyncStatus.localOnly;
+    final canReact = onReact != null && !message.isPending;
+    final group = reactions ?? ReactionGroup.empty;
+
+    Future<void> openPicker() async {
+      final picked =
+          await ReactionPickerSheet.show(context, current: group.mine);
+      if (picked != null) onReact?.call(picked);
+    }
 
     final body = Column(
       crossAxisAlignment:
@@ -119,6 +143,12 @@ class MessageBubble extends StatelessWidget {
             ],
           ),
         ),
+        if (!message.isPending && !group.isEmpty)
+          ReactionChipRow(
+            group: group,
+            alignEnd: isMine,
+            onTap: canReact ? onReact : null,
+          ),
         if (isSending)
           _SendingStatus(key: pendingKey(message.id.value), theme: theme),
         if (isFailed)
@@ -154,7 +184,13 @@ class MessageBubble extends StatelessWidget {
                         child: body,
                       ),
                     )
-                  : body,
+                  : canReact
+                      ? GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onLongPress: openPicker,
+                          child: body,
+                        )
+                      : body,
             ),
             if (!isMine) const SizedBox(width: 48),
             if (isMine) const SizedBox(width: 12),

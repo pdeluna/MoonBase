@@ -17,6 +17,9 @@ import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
+import 'package:moonbase_skeleton/features/reactions/domain/entities/reaction_group.dart';
+import 'package:moonbase_skeleton/features/reactions/domain/entities/reaction_target.dart';
+import 'package:moonbase_skeleton/features/reactions/presentation/controllers/reaction_controller.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -150,13 +153,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final currentUserId = vm.currentUser?.id.value;
 
+    void loadBase(String baseId) {
+      ref
+          .read(chatControllerProvider.notifier)
+          .load(baseId, userId: currentUserId);
+      ref.read(reactionControllerProvider.notifier).load(baseId);
+    }
+
     // ref.listen must be called from build; handles base changes
     ref.listen<Base?>(effectiveSelectedBaseProvider, (previous, next) {
       if (next != null) {
         _loadedBaseId = next.id.value;
-        ref
-            .read(chatControllerProvider.notifier)
-            .load(next.id.value, userId: currentUserId);
+        loadBase(next.id.value);
       }
     });
 
@@ -167,17 +175,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       },
     );
 
+    ref.listen<ReactionFailureEvent?>(
+      reactionControllerProvider.select((s) => s.lastFailure),
+      (previous, next) {
+        if (next != null && next != previous) {
+          _showErrorSnackBar(
+            'Couldn\'t update reaction: ${next.failure.message}',
+          );
+        }
+      },
+    );
+
     // Initial load when opening chat with a base already selected (only once per base)
     if (vm.hasSelectedBase) {
       final baseId = vm.selectedBase!.id.value;
       if (_loadedBaseId != baseId) {
         _loadedBaseId = baseId;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _loadedBaseId == baseId) {
-            ref
-                .read(chatControllerProvider.notifier)
-                .load(baseId, userId: currentUserId);
-          }
+          if (mounted && _loadedBaseId == baseId) loadBase(baseId);
         });
       }
     } else {
@@ -240,6 +255,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: _ChatBody(
               feedAsync: chatState.feed,
               messages: vm.messages,
+              reactionsByMessage: vm.reactionsByMessage,
               baseId: baseId,
               currentUser: vm.currentUser,
             ),
@@ -267,12 +283,14 @@ class _ChatBody extends ConsumerWidget {
   const _ChatBody({
     required this.feedAsync,
     required this.messages,
+    required this.reactionsByMessage,
     required this.baseId,
     required this.currentUser,
   });
 
   final AsyncValue<ChatFeed> feedAsync;
   final List<Message> messages;
+  final Map<String, ReactionGroup> reactionsByMessage;
   final String baseId;
   final User? currentUser;
 
@@ -296,6 +314,8 @@ class _ChatBody extends ConsumerWidget {
         }
         return _ChatMessageList(
           messages: messages,
+          reactionsByMessage: reactionsByMessage,
+          baseId: baseId,
           currentUserId: currentUser?.id.value,
         );
       },
@@ -389,10 +409,14 @@ class _ChatStateContent extends StatelessWidget {
 class _ChatMessageList extends ConsumerStatefulWidget {
   const _ChatMessageList({
     required this.messages,
+    required this.reactionsByMessage,
+    required this.baseId,
     required this.currentUserId,
   });
 
   final List<Message> messages;
+  final Map<String, ReactionGroup> reactionsByMessage;
+  final String baseId;
   final String? currentUserId;
 
   @override
@@ -434,12 +458,26 @@ class _ChatMessageListState extends ConsumerState<_ChatMessageList> {
           final member =
               ref.watch(memberPresentationProvider(message.userId.value));
           final isFailed = message.syncStatus == SyncStatus.failed;
+          final me = widget.currentUserId;
           return MessageBubble(
             key: ValueKey(message.id.value),
             message: message,
-            currentUserId: widget.currentUserId,
+            currentUserId: me,
             senderNickname: member.nickname,
             senderColor: member.nameColor,
+            reactions: widget.reactionsByMessage[message.id.value],
+            onReact: me == null || message.isPending
+                ? null
+                : (kind) =>
+                    ref.read(reactionControllerProvider.notifier).toggle(
+                          baseId: widget.baseId,
+                          target: ReactionTarget(
+                            kind: ReactionTargetKind.message,
+                            id: message.id.value,
+                          ),
+                          userId: me,
+                          kind: kind,
+                        ),
             onRetry: isFailed
                 ? () => ref
                     .read(chatControllerProvider.notifier)
