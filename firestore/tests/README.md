@@ -52,3 +52,5 @@ Allow: owner-create, join (+1 self), leave (−1 self).
 Deny (each uses `assertFails`): non-owner rename, joiner adds other uid, redeem past `maxUses`, redeem past `expiresAt`, non-member read base, non-member read messages, profile A writes B.
 
 Also: contention/orphan demos justifying client `runTransaction` on redeem (see `docs/FIRESTORE_SCHEMA.md` Decisions & deferred).
+
+Calendar (`calendar.rules.test.js`, own file to keep the message-rule merge surface small): `events` read/create/update/delete matrix incl. the `settings/calendar.eventCreation` policy (`members` default when the doc is missing, `owner` restricts creation only), title 1–80 / notes ≤ 500 / `endAt >= startAt` caps, immutable `createdBy`/`createdAt`; `settings/calendar` owner-only write, 0–365 window clamp, `eventCreation in ['members','owner']`, `settings/{other}` denied, owner delete for the `deleteBase` sweep.
