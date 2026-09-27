@@ -39,6 +39,7 @@ class ChatFirestoreDataSource implements ChatLocalDataSource {
     required String userId,
     required String content,
     List<MediaRef> media = const [],
+    String? messageId,
   }) async {
     final authUid = _auth.currentUser?.uid;
     if (authUid == null || authUid != userId) {
@@ -47,7 +48,7 @@ class ChatFirestoreDataSource implements ChatLocalDataSource {
       );
     }
 
-    final messageId = _uuid.v4();
+    messageId ??= _uuid.v4();
     final now = DateTime.now().toUtc();
     final model = MessageModel(
       id: messageId,

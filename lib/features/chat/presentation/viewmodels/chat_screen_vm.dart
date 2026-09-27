@@ -16,6 +16,11 @@ class ChatScreenVM {
 
   final Base? selectedBase;
   final User? currentUser;
+
+  /// Newest first. Live feed messages plus this device's pending sends for
+  /// the selected base (deduped by id — a pending entry whose document has
+  /// already arrived in the feed is not shown twice). Pending entries carry
+  /// `Message.syncStatus` `uploading` / `failed` for the bubble to render.
   final List<Message> messages;
   final bool isLoading;
   final String? error;
@@ -27,6 +32,21 @@ class ChatScreenVM {
   bool get hasSelectedBase => selectedBase != null;
   bool get hasMessages => messages.isNotEmpty;
   bool get hasError => error != null;
+
+  /// Merge helper shared by the provider and tests: feed messages win over a
+  /// pending copy with the same id; result is newest first.
+  static List<Message> mergePending(
+    List<Message> feed,
+    Iterable<Message> pending,
+  ) {
+    final ids = feed.map((m) => m.id).toSet();
+    final merged = <Message>[
+      ...feed,
+      ...pending.where((p) => !ids.contains(p.id)),
+    ];
+    merged.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return List<Message>.unmodifiable(merged);
+  }
 
   ChatScreenVM copyWith({
     Base? selectedBase,

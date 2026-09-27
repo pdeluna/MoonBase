@@ -29,6 +29,7 @@ class _StubBatchDs implements ChatLocalDataSource {
     required String userId,
     required String content,
     List<MediaRef> media = const [],
+    String? messageId,
   }) =>
       throw UnimplementedError();
 
@@ -139,6 +140,25 @@ void main() {
       expect(list.single.media.length, 2);
       expect(list.single.media.map((m) => m.storageKey).toList(),
           ['b1/img_0.jpg', 'b1/vid_0.mp4']);
+    });
+
+    test('sendMessage honours a client-chosen messageId (outbox retry)',
+        () async {
+      final ds = InMemoryChatLocalDataSource();
+      final repo = ChatRepositoryImpl(local: ds);
+
+      final sent = await repo.sendMessage(
+        baseId: 'b1'.bid,
+        userId: 'u1'.uid,
+        content: 'hi',
+        messageId: 'client-uuid-1'.mid,
+      );
+
+      final msg = (sent as Right<Failure, Message>).value;
+      expect(msg.id, 'client-uuid-1'.mid);
+      final listed = await repo.listMessages(baseId: 'b1'.bid);
+      final list = (listed as Right<Failure, List<Message>>).value;
+      expect(list.single.id, 'client-uuid-1'.mid);
     });
   });
 }

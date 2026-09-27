@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/viewmodels/chat_screen_vm.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/controllers/chat_controller.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
@@ -25,11 +26,18 @@ final chatScreenVmProvider = Provider<ChatScreenVM>((ref) {
   developer.log(
       'ChatScreenVM: canSend = $canSend (baseEntity: ${baseEntity != null}, currentUser: ${currentUser != null})');
 
+  // Pending sends for this base only; the merge dedupes against the feed.
+  final pendingForBase = baseEntity == null
+      ? const <Message>[]
+      : chatState.pending
+          .map((p) => p.message)
+          .where((m) => m.baseId == baseEntity.id);
+
   return chatState.feed.when(
     data: (feed) => ChatScreenVM(
       selectedBase: baseEntity,
       currentUser: currentUser,
-      messages: feed.messages,
+      messages: ChatScreenVM.mergePending(feed.messages, pendingForBase),
       isLoading: false,
       error: null,
       canSendMessage: canSend,
