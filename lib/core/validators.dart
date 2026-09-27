@@ -1,5 +1,5 @@
 const int kBaseNameMaxLen = 32;
-const int kMessageMaxLen = 4000;
+const int kMessageMaxLen  = 4000;
 
 /// Calendar caps — single constants mirrored by `firestore.rules`
 /// (`eventFieldsValid` / `isValidWindowDays`). Same discipline as the 4000
@@ -24,8 +24,7 @@ final RegExp kInviteCode = RegExp(r'^[A-HJ-NP-Z2-9]{6}$');
 
 String normalizeInviteCode(String s) => s.trim().toUpperCase();
 
-bool isValidInviteCode(String s) =>
-    kInviteCode.hasMatch(normalizeInviteCode(s));
+bool isValidInviteCode(String s) => kInviteCode.hasMatch(normalizeInviteCode(s));
 
 bool isValidBaseName(String s) {
   final t = s.trim();

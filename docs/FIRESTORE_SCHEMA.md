@@ -1,6 +1,7 @@
 # Firestore Schema — Week 3
 
-**Status:** Profiles, bases/members/invites/leave, chat messages, and calendar (events + per-base `settings/calendar`) → Firestore. Last-accessed is device-local SharedPreferences (keyed by uid).  
+**Status:** Profiles, bases/members/invites/leave, chat messages, and calendar (events + per-base `settings/calendar`) → Firestore. Last-accessed is device-local SharedPreferences (keyed by uid).
+
 **Source of truth for document shape:** this file + checked-in [`firestore.rules`](../firestore.rules).  
 **Current schema version:** `1` on every product document.
 
