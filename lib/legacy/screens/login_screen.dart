@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -21,12 +21,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return email.contains('@') && _password.text.length >= 6;
   }
 
+  static const _fallbackCopy = 'Could not sign in. Try again.';
+
   String _messageFromAuthState() {
     final current = ref.read(authControllerProvider).current;
     return current.when(
-      data: (_) => 'Could not sign in. Try again.',
-      loading: () => 'Could not sign in. Try again.',
-      error: (e, _) => e is Failure ? e.message : 'Could not sign in. Try again.',
+      data: (_) => _fallbackCopy,
+      loading: () => _fallbackCopy,
+      error: (e, _) => userMessage(e),
     );
   }
 
@@ -48,9 +50,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       } else {
         setState(() => _error = _messageFromAuthState());
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        setState(() => _error = 'Could not sign in. Try again.');
+        setState(() => _error = userMessage(e));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -81,7 +83,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
-              const Text('Use the email and password for your MoonBase account.'),
+              const Text(
+                  'Use the email and password for your MoonBase account.'),
               const SizedBox(height: 16),
               TextField(
                 controller: _email,
@@ -90,6 +93,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 decoration: InputDecoration(
                   labelText: 'Email',
                   errorText: _error,
+                  // Default is 1 line — long failure copy was being clipped.
+                  errorMaxLines: 3,
                 ),
                 onChanged: (_) => setState(() => _error = null),
               ),
