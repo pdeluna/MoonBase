@@ -352,7 +352,7 @@ class MediaBrokenTile extends StatelessWidget {
         ),
       ),
     );
-    if (showDebugDetails) {
+    if (kMoonbaseDebugUi && showDebugDetails) {
       // Debug builds: long-press → raw details (which include the user copy).
       // A second long-press Tooltip here would win the gesture arena.
       return DebugErrorDetails(
