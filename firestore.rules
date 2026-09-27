@@ -159,6 +159,44 @@ service cloud.firestore {
       return resource.data.createdBy == request.auth.uid;
     }
 
+    // Reactions (R3 — flat per-base collection). Kind set mirrors Dart
+    // `ReactionKind` — keep both in lockstep (emulator test pins the six).
+    function isValidReactionKind(kind) {
+      return kind in ['like', 'heart', 'laugh', 'wow', 'sad', 'fire'];
+    }
+
+    // Target kinds that ship. `story`, `comment`, `post`, `event` are reserved
+    // in the Dart enum; add each here AND in reactionTargetExists when its
+    // collection exists — never before.
+    function isShippedReactionTargetKind(kind) {
+      return kind in ['message'];
+    }
+
+    // One exists() per kind — extend per kind as collections ship.
+    function reactionTargetExists(baseId, targetKind, targetId) {
+      return targetKind == 'message'
+        && exists(/databases/$(database)/documents/bases/$(baseId)/messages/$(targetId));
+    }
+
+    // Deterministic id `{targetKind}:{targetId}:{uid}` ⇒ one reaction per
+    // (user, target) by construction; set() upserts, delete() toggles off.
+    function isValidReactionWrite(baseId, reactionId) {
+      let d = request.resource.data;
+      return hasSchemaV1()
+        && d.keys().hasOnly([
+          'targetKind', 'targetId', 'uid', 'kind', 'createdAt', 'schemaVersion'
+        ])
+        && d.uid == request.auth.uid
+        && d.targetKind is string
+        && isShippedReactionTargetKind(d.targetKind)
+        && d.targetId is string
+        && d.targetId.size() > 0
+        && reactionId == d.targetKind + ':' + d.targetId + ':' + request.auth.uid
+        && isValidReactionKind(d.kind)
+        && d.createdAt is timestamp
+        && reactionTargetExists(baseId, d.targetKind, d.targetId);
+    }
+
     // -------------------------------------------------------------------------
     // users/{uid} — profile
     // -------------------------------------------------------------------------
@@ -434,6 +472,29 @@ service cloud.firestore {
 
         // Owner-only delete so the deleteBase sweep can clear the subcollection.
         allow delete: if isOwner(baseId);
+      }
+
+      // -----------------------------------------------------------------------
+      // bases/{baseId}/reactions/{targetKind}:{targetId}:{uid}
+      // R3 flat per-base collection — see FIRESTORE_SCHEMA.md Decisions
+      // "Reactions — chat un-parked, R3". Message docs stay update: false.
+      // -----------------------------------------------------------------------
+      match /reactions/{reactionId} {
+        allow read: if isMember(baseId);
+
+        allow create: if isMember(baseId)
+          && isValidReactionWrite(baseId, reactionId);
+
+        // Replace kind via set() on the same deterministic id.
+        allow update: if isMember(baseId)
+          && existingSchemaV1()
+          && isValidReactionWrite(baseId, reactionId)
+          && request.resource.data.targetKind == resource.data.targetKind
+          && request.resource.data.targetId == resource.data.targetId
+          && request.resource.data.uid == resource.data.uid;
+
+        // Toggle off (self) or moderate (owner).
+        allow delete: if isSelf(resource.data.uid) || isOwner(baseId);
       }
 
       // DEFERRED — do not enable until stories ship.
