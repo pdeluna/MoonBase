@@ -59,3 +59,11 @@ class MediaUnsupportedFailure extends Failure {
 class PermissionDeniedFailure extends Failure {
   const PermissionDeniedFailure([super.message = 'Permission denied.']);
 }
+
+/// The operation needs a signed-in user and there is none (session gate
+/// raced, token expired, or a provider ran while signed out). Distinct from
+/// [PermissionDeniedFailure]: the fix is to sign in, not to grant access.
+class UnauthenticatedFailure extends Failure {
+  const UnauthenticatedFailure(
+      [super.message = 'You need to be signed in to do that.']);
+}
