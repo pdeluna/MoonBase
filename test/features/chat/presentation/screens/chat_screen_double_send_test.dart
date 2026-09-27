@@ -25,6 +25,9 @@ import 'package:moonbase_skeleton/features/chat/presentation/screens/chat_screen
 import 'package:moonbase_skeleton/features/chat/presentation/viewmodels/chat_screen_vm.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
+import 'package:moonbase_skeleton/features/reactions/data/datasources/reaction_data_source_impl.dart';
+import 'package:moonbase_skeleton/features/reactions/data/repositories/reaction_repository_impl.dart';
+import 'package:moonbase_skeleton/features/reactions/presentation/providers/reaction_providers.dart';
 
 /// Counts `sendMessage` calls and holds each one open until [gate] completes,
 /// simulating the slow compress + upload + create that Week 5 task 3 pass 2
@@ -104,6 +107,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          reactionRepositoryProvider.overrideWithValue(
+            ReactionRepositoryImpl(source: InMemoryReactionDataSource()),
+          ),
           chatScreenVmProvider.overrideWithValue(ChatScreenVM(
             selectedBase: base,
             currentUser: user,

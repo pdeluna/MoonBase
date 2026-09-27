@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
@@ -25,6 +26,9 @@ import 'package:moonbase_skeleton/features/chat/presentation/screens/chat_screen
 import 'package:moonbase_skeleton/features/chat/presentation/widgets/message_bubble.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
+import 'package:moonbase_skeleton/features/reactions/data/datasources/reaction_data_source_impl.dart';
+import 'package:moonbase_skeleton/features/reactions/data/repositories/reaction_repository_impl.dart';
+import 'package:moonbase_skeleton/features/reactions/presentation/providers/reaction_providers.dart';
 
 /// First send fails after [gate] opens; later sends succeed and echo into
 /// the feed like Firestore would.
@@ -111,6 +115,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          reactionRepositoryProvider.overrideWithValue(
+            ReactionRepositoryImpl(source: InMemoryReactionDataSource()),
+          ),
           effectiveSelectedBaseProvider.overrideWith((ref) => base),
           currentUserProvider
               .overrideWith((ref) => const AsyncValue<User?>.data(user)),
@@ -160,7 +167,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(MessageBubble.failedKey(id)), findsOneWidget);
     expect(find.text('Not sent · Tap to resend'), findsOneWidget);
-    expect(find.text('Message not sent: No connection'), findsOneWidget);
+    expect(find.text('Message not sent: $kNetworkErrorCopy'), findsOneWidget);
     expect(find.textContaining('Exception'), findsNothing);
     expect(find.text('hello'), findsOneWidget);
 

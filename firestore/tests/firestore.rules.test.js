@@ -910,3 +910,247 @@ describe('messages mediaPaths', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Reactions — R3 flat per-base collection
+// bases/{baseId}/reactions/{targetKind}:{targetId}:{uid}
+// ---------------------------------------------------------------------------
+const REACTION_KINDS = ['like', 'heart', 'laugh', 'wow', 'sad', 'fire'];
+
+function reactionId(targetKind, targetId, uid) {
+  return `${targetKind}:${targetId}:${uid}`;
+}
+
+function reactionDoc(uid, kind, { targetKind = 'message', targetId = 'm1' } = {}) {
+  return {
+    targetKind,
+    targetId,
+    uid,
+    kind,
+    createdAt: Timestamp.fromMillis(1_700_000_000_300),
+    schemaVersion: 1,
+  };
+}
+
+async function seedBobAsMember() {
+  await assertSucceeds(
+    updateDoc(doc(bobDb(), 'bases', BASE), {
+      name: 'Family',
+      ownerUid: ALICE,
+      memberUids: [ALICE, BOB],
+      createdAt: Timestamp.fromMillis(1_700_000_000_000),
+      schemaVersion: 1,
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(bobDb(), 'bases', BASE, 'members', BOB), memberDoc('member', 'Bob')),
+  );
+}
+
+/** Owner Alice, member Bob, message m1 authored by Alice. */
+async function seedReactionFixture() {
+  await seedOwnerBaseWithMemberRow();
+  await seedBobAsMember();
+  await seedMessage('m1', ALICE, 'hello');
+}
+
+describe('reactions (R3 flat per-base collection)', () => {
+  test('member can react to a message with each locked kind (pins the six)', async () => {
+    await seedReactionFixture();
+    for (const kind of REACTION_KINDS) {
+      await assertSucceeds(
+        setDoc(
+          doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB)),
+          reactionDoc(BOB, kind),
+        ),
+      );
+    }
+  });
+
+  test('doc id that does not match targetKind:targetId:uid is rejected', async () => {
+    await seedReactionFixture();
+    await assertFails(
+      setDoc(
+        doc(bobDb(), 'bases', BASE, 'reactions', 'freeform-id'),
+        reactionDoc(BOB, 'heart'),
+      ),
+    );
+    await assertFails(
+      setDoc(
+        doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm2', BOB)),
+        reactionDoc(BOB, 'heart'), // body says m1
+      ),
+    );
+  });
+
+  test('foreign uid (id or body) is rejected', async () => {
+    await seedReactionFixture();
+    // Bob writes under Alice's id.
+    await assertFails(
+      setDoc(
+        doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', ALICE)),
+        reactionDoc(ALICE, 'heart'),
+      ),
+    );
+    // Bob's id, Alice's uid in the body.
+    await assertFails(
+      setDoc(
+        doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB)),
+        reactionDoc(ALICE, 'heart'),
+      ),
+    );
+  });
+
+  test('unknown kind is rejected', async () => {
+    await seedReactionFixture();
+    await assertFails(
+      setDoc(
+        doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB)),
+        reactionDoc(BOB, 'thumbsdown'),
+      ),
+    );
+  });
+
+  test('missing target message is rejected', async () => {
+    await seedReactionFixture();
+    await assertFails(
+      setDoc(
+        doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'ghost', BOB)),
+        reactionDoc(BOB, 'heart', { targetId: 'ghost' }),
+      ),
+    );
+  });
+
+  test('reserved targetKind (story) is rejected until it ships', async () => {
+    await seedReactionFixture();
+    await assertFails(
+      setDoc(
+        doc(bobDb(), 'bases', BASE, 'reactions', reactionId('story', 'm1', BOB)),
+        reactionDoc(BOB, 'heart', { targetKind: 'story' }),
+      ),
+    );
+  });
+
+  test('extra key / missing schemaVersion / bad createdAt are rejected', async () => {
+    await seedReactionFixture();
+    const ref = doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB));
+    await assertFails(setDoc(ref, { ...reactionDoc(BOB, 'heart'), extra: true }));
+    const noSchema = reactionDoc(BOB, 'heart');
+    delete noSchema.schemaVersion;
+    await assertFails(setDoc(ref, noSchema));
+    await assertFails(setDoc(ref, { ...reactionDoc(BOB, 'heart'), createdAt: 'now' }));
+  });
+
+  test('upsert replaces kind on the same id (one reaction per user/target)', async () => {
+    await seedReactionFixture();
+    const ref = doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB));
+    await assertSucceeds(setDoc(ref, reactionDoc(BOB, 'heart')));
+    await assertSucceeds(setDoc(ref, reactionDoc(BOB, 'fire')));
+
+    const { data } = await adminGet(['bases', BASE, 'reactions', reactionId('message', 'm1', BOB)]);
+    expect(data.kind).toBe('fire');
+    const all = await assertSucceeds(
+      getDocs(collection(aliceDb(), 'bases', BASE, 'reactions')),
+    );
+    expect(all.size).toBe(1);
+  });
+
+  test('update that retargets (targetId / uid change) is rejected', async () => {
+    await seedReactionFixture();
+    await seedMessage('m2', ALICE, 'second');
+    const ref = doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB));
+    await assertSucceeds(setDoc(ref, reactionDoc(BOB, 'heart')));
+    // Id still says m1 → mismatch with body m2 → rejected by the id rule.
+    await assertFails(setDoc(ref, reactionDoc(BOB, 'heart', { targetId: 'm2' })));
+  });
+
+  test('self delete (toggle off) succeeds', async () => {
+    await seedReactionFixture();
+    const ref = doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB));
+    await assertSucceeds(setDoc(ref, reactionDoc(BOB, 'heart')));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  test('owner can delete a member reaction (moderation); another member cannot', async () => {
+    await seedReactionFixture();
+    await assertSucceeds(
+      setDoc(
+        doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB)),
+        reactionDoc(BOB, 'heart'),
+      ),
+    );
+    // Carol joins as a plain member and tries to remove Bob's reaction.
+    await assertSucceeds(
+      updateDoc(doc(carolDb(), 'bases', BASE), {
+        name: 'Family',
+        ownerUid: ALICE,
+        memberUids: [ALICE, BOB, CAROL],
+        createdAt: Timestamp.fromMillis(1_700_000_000_000),
+        schemaVersion: 1,
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(carolDb(), 'bases', BASE, 'members', CAROL), memberDoc('member', 'Carol')),
+    );
+    await assertFails(
+      deleteDoc(doc(carolDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB))),
+    );
+    await assertSucceeds(
+      deleteDoc(doc(aliceDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB))),
+    );
+  });
+
+  test('non-member cannot react or read reactions', async () => {
+    await seedOwnerBaseWithMemberRow();
+    await seedMessage('m1', ALICE, 'hello');
+    await assertSucceeds(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', ALICE)),
+        reactionDoc(ALICE, 'like'),
+      ),
+    );
+    await assertFails(
+      setDoc(
+        doc(carolDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', CAROL)),
+        reactionDoc(CAROL, 'like'),
+      ),
+    );
+    await assertFails(
+      getDoc(doc(carolDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', ALICE))),
+    );
+    await assertFails(getDocs(collection(carolDb(), 'bases', BASE, 'reactions')));
+  });
+
+  test('member can run the chat listener query (targetKind == message, createdAt desc)', async () => {
+    await seedReactionFixture();
+    await assertSucceeds(
+      setDoc(
+        doc(aliceDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', ALICE)),
+        reactionDoc(ALICE, 'like'),
+      ),
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(bobDb(), 'bases', BASE, 'reactions', reactionId('message', 'm1', BOB)),
+        reactionDoc(BOB, 'heart'),
+      ),
+    );
+    const snap = await assertSucceeds(
+      getDocs(
+        query(
+          collection(bobDb(), 'bases', BASE, 'reactions'),
+          where('targetKind', '==', 'message'),
+          orderBy('createdAt', 'desc'),
+        ),
+      ),
+    );
+    expect(snap.size).toBe(2);
+  });
+
+  test('message docs still deny update (reactions never touch the message)', async () => {
+    await seedReactionFixture();
+    await assertFails(
+      updateDoc(doc(aliceDb(), 'bases', BASE, 'messages', 'm1'), { text: 'edited' }),
+    );
+  });
+});

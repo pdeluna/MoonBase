@@ -41,6 +41,10 @@ import 'package:moonbase_skeleton/features/media/data/datasources/resolving_medi
 import 'package:moonbase_skeleton/features/media/data/firebase_storage_retry.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
 
+import 'package:moonbase_skeleton/features/reactions/data/datasources/reaction_firestore_data_source.dart';
+import 'package:moonbase_skeleton/features/reactions/data/repositories/reaction_repository_impl.dart';
+import 'package:moonbase_skeleton/features/reactions/presentation/providers/reaction_providers.dart';
+
 import 'package:moonbase_skeleton/core/di/providers.dart'
     show sharedPrefsProvider;
 
@@ -141,6 +145,11 @@ void main() async {
           prefs: prefs,
         ),
       ),
+    ),
+
+    // Reactions (R3 flat per-base collection) — see FIRESTORE_SCHEMA.md.
+    reactionRepositoryProvider.overrideWithValue(
+      ReactionRepositoryImpl(source: ReactionFirestoreDataSource()),
     ),
 
     // mediaStorageProvider: ResolvingMediaStorage (local put/delete + routed

@@ -279,6 +279,39 @@ Defaults when the doc is missing: `pastDays 7`, `futureDays 30`, `eventCreation 
 
 ---
 
+### `bases/{baseId}/reactions/{reactionId}` — reactions (R3, flat per-base)
+
+Doc id is **deterministic**: `{targetKind}:{targetId}:{uid}` — one reaction per `(user, target)` by construction. `set()` upserts (replace kind), `delete()` toggles off; no transaction.
+
+| Field | Type | Notes |
+|-------|------|--------|
+| `targetKind` | string | Shipped: `message`. Reserved in the Dart enum and denied by rules until their collection exists: `story`, `comment`, `post`, `event`. |
+| `targetId` | string | Doc id of the target under the same base; rules `exists()`-check it per kind (`messages/{targetId}` for `message`). |
+| `uid` | string | Reactor; `== request.auth.uid` and `==` the id's third segment. |
+| `kind` | string | `like` \| `heart` \| `laugh` \| `wow` \| `sad` \| `fire` — mirrors Dart `ReactionKind`; the emulator test pins the six. |
+| `createdAt` | timestamp | Write via `serverTimestamp()`; rewritten on replace (it is the ordering field for the chat listener). |
+| `schemaVersion` | number | `1` |
+
+`hasOnly([targetKind, targetId, uid, kind, createdAt, schemaVersion])`. Target docs are never modified — `messages` keeps `allow update: if false`.
+
+**Example**
+
+```json
+{
+  "targetKind": "message",
+  "targetId": "550e8400-e29b-41d4-a716-446655440000",
+  "uid": "uid_bob",
+  "kind": "heart",
+  "createdAt": "<timestamp>",
+  "schemaVersion": 1
+}
+```
+
+**Chat listener query:** `reactions.where('targetKind', isEqualTo: 'message').orderBy('createdAt', descending: true).limit(500).snapshots(includeMetadataChanges: true)` — one listener per chat screen, joined client-side by `targetId` in the chat VM. Requires the composite index below.
+
+
+---
+
 ### Stories — deferred (do not implement)
 
 ```
@@ -300,6 +333,7 @@ bases/{baseId}/invites/{code}
 bases/{baseId}/messages/{messageId}
 bases/{baseId}/events/{eventId}
 bases/{baseId}/settings/calendar
+bases/{baseId}/reactions/{targetKind}:{targetId}:{uid}
 // bases/{baseId}/settings/notifications — reserved (deferred)
 // users/{uid}/devices/{deviceId}        — reserved (deferred)
 // bases/{baseId}/stories/{storyId}      — deferred
@@ -337,6 +371,7 @@ Full rules: [`firestore.rules`](../firestore.rules) (draft for review).
 | `messages/{messageId}` | base member | create as self (`text` length 0–4000; text or media required); author or owner may delete |
 | `events/{eventId}` | base member | create: `mayCreateEvent()` (member, and `settings/calendar.eventCreation == 'members'` or owner) as self, title 1–80, notes ≤ 500, `endAt >= startAt`; update: author or owner (`createdBy`/`createdAt` immutable); delete: author or owner |
 | `settings/{settingId}` | base member | create/update: owner, `settingId == 'calendar'` only, 0–365 window, `eventCreation in ['members','owner']`; delete: owner (`deleteBase` sweep) |
+| `reactions/{targetKind}:{targetId}:{uid}` | base member | create/update as self only, id must equal `targetKind:targetId:uid`, `kind` in the six, `targetKind` shipped, target `exists()`; delete: self or owner |
 | stories | — | not ruled / not shipped |
 | `_smoke_tests/**` | signed-in | signed-in (debug probe only) |
 
@@ -462,6 +497,20 @@ Client-side compress/resize before upload is required in MediaRepository (Week 5
 
 **ADR:** `request.resource.contentType.matches('image/.*')` trusts the **client-supplied** `Content-Type` header; it is not magic-byte / real content validation. Acceptable for MVP.
 
+### Reactions — "chat untouched" un-parked (D-19); storage R3 flat per-base collection (D-20)
+
+**Supersedes** the Phase 3 blueprint lock "reactions target `post` and `story` only; chat-message reactions out of scope" (`PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md` §1). Decided 2026-09-27 (plan rev 2): reactions are a **generalized** system usable across chat, stories, and comments; `message` is the first shipped target kind, the others stay reserved (enum + rules `exists()` mapping) until their collections exist.
+
+**Storage — R3 chosen** over R1 (counters/maps on the target doc) and R2 (`reactions` subcollection under each target): a single flat `bases/{baseId}/reactions` collection with deterministic ids.
+
+- **Why not R1:** would require `allow update` on `messages` (today `false`) and a per-target read-modify-write for every tap — two things that must agree (counter vs rows) and a rules widening on the hottest write path.
+- **Why not R2:** one listener per visible message (N snapshots for a chat screen) or a collection-group query with its own index and a cross-base read surface.
+- **R3 cost:** one listener per chat screen (`targetKind == 'message'`, `orderBy createdAt desc`, `limit 500`) and **one composite index** `reactions (targetKind ASC, createdAt DESC)` — checked into `firestore.indexes.json`; **Philip deploys it manually** and the first live query fails with `failed-precondition` until the Console shows **Enabled**. The repository maps that code to a typed `Failure` so the chat screen degrades to "no chips", never a crash.
+- **Invariant:** one reaction per `(user, target)`, enforced by the id shape (no transaction, no uniqueness query). Same kind again ⇒ `delete()` (toggle off); different kind ⇒ `set()` (replace). Encoded once in the `ToggleReaction` use case and once in rules (id + `uid` checks); the emulator suite pins both.
+- **Membership cost:** `isMember` on read bills one base `get()` per matched reaction (trigger #1, accepted).
+
+**Not decided here:** owner moderation UI (rules allow owner delete; UI may ship later), reactions on stories/comments/events (each needs its `exists()` branch + tests), aggregated counters (would be R1 and a new ADR).
+
 ---
 
 ## Storage media path
@@ -492,6 +541,7 @@ Firestorestore message docs store those paths in `mediaPaths` (never bytes, neve
 | Redeem by code (if collection-group) | Collection group `invites` — confirm fields once redeem path is chosen |
 | Messages by time | `messages` orderBy `createdAt` under a base — **single-field auto index**; no composite entry required for Tuesday stream/list |
 | Calendar window | `events` range (`>=`, `<`) + orderBy on `startAt` under a base — **single-field auto index**; no composite entry |
+| Reactions for a chat screen | Composite: `reactions` `targetKind` **ASC** + `createdAt` **DESC** — checked in [`firestore.indexes.json`](../firestore.indexes.json); **manual deploy by Philip**, wait for **Enabled** before the reactions device gate |
 
 Deploy indexes with: `firebase deploy --only firestore:indexes --project moonbase-aaff7`
 

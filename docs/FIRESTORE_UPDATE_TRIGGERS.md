@@ -35,6 +35,7 @@ Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisio
 | 19 | Calendar notifications: paths reserved, nothing built | Delivery mechanism decided (U-7) | `settings/notifications` + `users/{uid}/devices/{deviceId}` rules + tests; `events.reminders` additive field |
 | 20 | Event attachments: entity extension point only | Member documents / pictures on events become a product need | `events.attachmentPaths` additive field (rules hasOnly + Storage path family) — no schemaVersion bump |
 | 21 | Calendar feed `limit(200)` client cap | A base's window regularly exceeds 200 events | Pagination in data source — not rules |
+| 22 | **Resolved:** "chat untouched" for reactions; R3 flat collection, `message` only | Fired 2026-09-27 (plan rev 2). Re-fires per new target kind (`story`, `comment`, `post`, `event`) | Rules `isShippedReactionTargetKind` + `reactionTargetExists` branch + emulator cases; **no** index change per kind |
 
 ---
 
@@ -320,6 +321,23 @@ Both are copy problems, not hangs to timeout-away.
 **Trigger:** a base's window regularly exceeds 200 events.
 
 **Change:** paginate in `CalendarFirestoreDataSource` (cursor on `startAt`). Not a rules change.
+
+---
+
+## 22 — Reactions: "chat untouched" resolved; R3 flat collection
+
+**Was parked as:** Phase 3 blueprint locked reactions to `post` / `story` targets and put chat-message reactions out of scope; no rules, no index.
+
+**Fired:** 2026-09-27 — plan rev 2 D-19 (un-park) + D-20 (R3). Rules add `match /reactions/{reactionId}` under `bases/{baseId}` with deterministic ids, `isValidReactionKind` (six kinds), `isShippedReactionTargetKind` (`message` only), `reactionTargetExists` (`exists(messages/{targetId})`). `firestore.indexes.json` gains `reactions (targetKind ASC, createdAt DESC)`. Emulator suite +14 cases. ADR: [FIRESTORE_SCHEMA.md → Reactions](FIRESTORE_SCHEMA.md#reactions--chat-untouched-un-parked-d-19-storage-r3-flat-per-base-collection-d-20).
+
+**Re-fires when** a new target kind ships (`story`, `comment`, `post`, `event`):
+
+- **Rule change:** add the kind to `isShippedReactionTargetKind` **and** an `exists()` branch to `reactionTargetExists` pointing at that kind's collection — both in the same PR, never one without the other.
+- **Test change:** copy the `reactions` describe block's create-ok / missing-target / reserved-kind cases for the new kind.
+- **Index:** none — the composite is on `(targetKind, createdAt)`, which already covers a per-kind listener.
+- **Dart:** the enum value already exists; flip it from reserved to shipped in `ReactionTargetKind.shipped` and mirror the pinning test.
+
+**Deploy note:** rules and index deploy are Philip's manual steps; the reactions device gate must not start before the Console shows the index **Enabled** (the first live query returns `failed-precondition` until then — the data source maps it to a typed `Failure`).
 
 ---
 

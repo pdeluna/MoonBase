@@ -2,6 +2,7 @@ import 'package:moonbase_skeleton/features/chat/domain/entities/chat_freshness.d
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
+import 'package:moonbase_skeleton/features/reactions/domain/entities/reaction_group.dart';
 
 class ChatScreenVM {
   const ChatScreenVM({
@@ -12,6 +13,7 @@ class ChatScreenVM {
     required this.error,
     required this.canSendMessage,
     this.freshness,
+    this.reactionsByMessage = const <String, ReactionGroup>{},
   });
 
   final Base? selectedBase;
@@ -28,6 +30,11 @@ class ChatScreenVM {
 
   /// Null until the message stream has emitted a ChatFeed.
   final ChatFreshness? freshness;
+
+  /// Message id → chip-row model, joined client-side from the single
+  /// reactions listener (only ids present in [messages]; empty groups
+  /// omitted). Derived every build — never stored on the message.
+  final Map<String, ReactionGroup> reactionsByMessage;
 
   bool get hasSelectedBase => selectedBase != null;
   bool get hasMessages => messages.isNotEmpty;
@@ -56,6 +63,7 @@ class ChatScreenVM {
     String? error,
     bool? canSendMessage,
     ChatFreshness? freshness,
+    Map<String, ReactionGroup>? reactionsByMessage,
   }) {
     return ChatScreenVM(
       selectedBase: selectedBase ?? this.selectedBase,
@@ -65,6 +73,7 @@ class ChatScreenVM {
       error: error,
       canSendMessage: canSendMessage ?? this.canSendMessage,
       freshness: freshness ?? this.freshness,
+      reactionsByMessage: reactionsByMessage ?? this.reactionsByMessage,
     );
   }
 }
