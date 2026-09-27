@@ -70,7 +70,9 @@ void main() {
     final r = await repo.createEvent(
         baseId: kBase.id, createdBy: kMember, input: inputAt(kToday));
     expect(r, isA<Left<Failure, dynamic>>());
-    expect(r.match((f) => f, (_) => null), isA<UnknownFailure>());
+    // Shared mapper types Firestore rules denials as PermissionDeniedFailure
+    // (authored copy), same path calendar already uses for policy denials.
+    expect(r.match((f) => f, (_) => null), isA<PermissionDeniedFailure>());
 
     ds.throwOn =
         FirebaseException(plugin: 'cloud_firestore', code: 'unavailable');
