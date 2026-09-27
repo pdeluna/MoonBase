@@ -10,7 +10,9 @@ const Duration kFailureSnackBarDuration = Duration(seconds: 6);
 /// Shows [error] as a plain-copy, multi-line error snackbar.
 ///
 /// - Copy comes from [userMessage] — never `toString()`, never truncated
-///   (no `maxLines`; the snackbar grows to fit).
+///   (no `maxLines`; the snackbar grows to fit). [message] overrides it for
+///   surfaces with situation-specific copy (e.g. the login screen's network
+///   wording); the debug details still show the raw [error].
 /// - [prefix] names the operation, e.g. `'Could not create base'` →
 ///   `Could not create base: <copy>`.
 /// - [onRetry] adds a **Retry** action.
@@ -25,12 +27,13 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showFailureSnackBar(
   BuildContext context,
   Object? error, {
   StackTrace? stackTrace,
+  String? message,
   String? prefix,
   VoidCallback? onRetry,
   bool showDebugDetails = kMoonbaseDebugUi,
 }) {
   final scheme = Theme.of(context).colorScheme;
-  final copy = userMessage(error);
+  final copy = message ?? userMessage(error);
   final text = prefix == null || prefix.isEmpty ? copy : '$prefix: $copy';
 
   final SnackBarAction? action;
