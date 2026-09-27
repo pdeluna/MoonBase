@@ -1,167 +1,483 @@
-# iOS Firebase device handoff
+# MoonBase iOS Personal Team device handoff
 
-This is the canonical iOS handoff and physical-device checklist. It separates
-facts present on the remote repository from results that exist only on a
-developer's machine.
+This is the canonical repository runbook for one direct physical-device test
+on Philip's sister's Mac. It does not cover TestFlight, App Store submission,
+paid Apple Developer Program signing, or production distribution.
 
-## Current state and hard gates
+## Gate status
 
-Audit baseline (**2026-09-17**):
+The repository is coherent up to two external boundaries, but the iOS device
+gate is **not closed**:
 
-- Remote `origin/main` is `57b1ab9` (merged
-  [PR #24](https://github.com/pdeluna/MoonBase/pull/24)). Its checked-in
-  records say the Firebase build is stable on Android, but that historical
-  device result was not reproduced during this audit.
-- iOS Firebase is **not configured** on that revision:
-  `DefaultFirebaseOptions.currentPlatform` throws for iOS, `firebase.json`
-  lists Android only, and no `GoogleService-Info.plist` is tracked.
-- The Runner still uses the placeholder bundle identifier
-  `com.example.moonbaseSkeleton`. The Podfile and
-  `AppFrameworkInfo.plist` say iOS 15, while the Runner Xcode project says
-  iOS 12. These values must be reconciled during the approved iOS pass.
-- `.github/workflows/ios.yml` does not parse as YAML, so its failed workflow
-  records are not iOS build evidence. TestFlight also requires paid Apple
-  Developer Program access; it is not part of the free-signing device check.
-- The current Firebase media contract is JPEG images only. The older Phase 3
-  local-media video checklist is historical evidence, not a cloud-video
-  acceptance test. Video remains deferred by
-  [`FIRESTORE_SCHEMA.md`](FIRESTORE_SCHEMA.md#images-only-mvp-video-deferred).
-- No self-hosted user Mac is connected to the Cursor project. Changes,
-  branches, or test results present only on Philip's or his sister's machine
-  are therefore unverified until pushed or recorded against a commit SHA.
+- Runner uses the intended non-placeholder identifier
+  `com.deluna.moonbase` in Debug, Profile, and Release. RunnerTests derives
+  `com.deluna.moonbase.RunnerTests`.
+- Runner, RunnerTests, CocoaPods, and `AppFrameworkInfo.plist` all target
+  iOS 15.0.
+- Automatic signing is checked in without a developer team. Selecting a
+  Personal Team is a reversible, Mac-local step.
+- Camera and photo-library purpose strings describe photos only.
+  `NSMicrophoneUsageDescription` and the unused photo-library write
+  permission are absent.
+- The cloud chat contract remains JPEG images only: at most four attachments,
+  caption optional, empty message denied, and video choices hidden/rejected.
+- `.github/workflows/ios.yml` is now an unsigned macOS preflight. It does not
+  import certificates, download profiles, call Fastlane, or upload to
+  TestFlight. GitHub workflow `185513668` remains manually disabled until an
+  authorized repository owner re-enables it.
+- Firebase CLI authentication was unavailable on the implementation worker
+  (`Failed to authenticate, have you run firebase login?`). Therefore no iOS
+  app was guessed or created and no fake Firebase values were committed.
 
-The sequence is locked:
+The strict repository gate remains blocked until an authorized owner registers
+the exact iOS bundle ID in Firebase project `moonbase-aaff7` and commits all
+generated surfaces together:
 
-1. **Android contract preflight:** the checked-in Firestore rule and Dart
-   validator must both allow text-only and image-only messages while rejecting
-   an empty message. Chat must expose only image choices and reject a
-   programmatic video payload before upload. Deploy the reviewed rule to
-   `moonbase-aaff7` before testing the live project.
-2. **Android device gate (current stop after preflight):** after this change
-   merges, test exactly the resulting `main` SHA on a physical Android device.
-   Cover cold and returning sign-in, text-only send, image-only send with no
-   caption, multi-image send, two-device receive, permission denial/Open
-   Settings, and force-stop/relaunch media resolution. On the home dual-stack
-   network, also confirm cache-to-live state and the bounded blackhole media
-   failure. Record device, Android version, network, resulting `main` SHA, and
-   each result. Fully stop and re-run between debug harness modes; do not use
-   hot reload/restart. The branch verification record is in
-   [`CHAT_MEDIA_DEVICE_TESTS.md`](../assignments/CHAT_MEDIA_DEVICE_TESTS.md#current-firebase-android-revalidation-gate).
-3. **Philip approval:** after that evidence is recorded, Philip explicitly
-   approves starting/completing the iOS Firebase pass. Until then, do not
-   register the production iOS Firebase app, choose the final bundle ID,
-   change signing, configure deployment credentials, or claim iOS complete.
-4. **iOS implementation:** generate the iOS Firebase configuration, reconcile
-   deployment targets, make the app build, and run non-device checks.
-5. **iOS physical-device gate:** run the checklist below. Simulator or CI
-   compilation is useful preflight, but does not prove camera, photo-library,
-   HEIC, free provisioning, or physical-device behavior.
+1. `lib/firebase_options.dart` with `TargetPlatform.iOS => ios`;
+2. the iOS app mapping in `firebase.json`;
+3. `ios/Runner/GoogleService-Info.plist`;
+4. the plist's Runner target/resource entry in
+   `ios/Runner.xcodeproj/project.pbxproj`.
 
-Minor unrelated bugs are logged for later; they do not silently expand this
-pass.
+Run the structural check before that boundary:
 
-## Approved implementation checklist
+```bash
+fvm dart run tool/validate_ios_readiness.dart \
+  --allow-pending-firebase-registration
+```
 
-After Philip's approval:
+Run the strict check after generated configuration is committed:
 
-1. Choose the final iOS bundle identifier once. Use the same value in the
-   Runner target, Firebase iOS app registration, and any later App Store
-   record. Do not maintain parallel "temporary" and "real" identifiers.
-2. Register that bundle identifier as an iOS app in Firebase project
-   `moonbase-aaff7`, then regenerate `lib/firebase_options.dart` and
-   `firebase.json` with FlutterFire. Confirm the generated iOS app ID is
-   present before changing `DefaultFirebaseOptions.currentPlatform`.
-3. Set the Runner, test target, Podfile, and `AppFrameworkInfo.plist` to one
-   supported iOS deployment target.
-4. Keep Flutter **3.29.2** / Dart **3.7.2** through FVM. Do not use an
-   unpinned `stable` SDK on the Mac or in CI.
-5. First prove a local, no-codesign build and the non-device suite. Configure
-   TestFlight only if Philip separately approves paid-account deployment.
+```bash
+fvm dart run tool/validate_ios_readiness.dart
+```
 
-## Philip's sister's Mac: free-signing device test
+The pending flag accepts only the fully unconfigured state. A partial Firebase
+configuration fails so the four surfaces cannot drift.
 
-This procedure uses the Mac as the build host and an attached iPhone/iPad as
-the test device. A free Apple ID Personal Team is enough for direct testing;
-it does **not** support TestFlight, and the installed development app normally
-expires after seven days.
+## Locked repository decisions
 
-### Prepare the Mac
+### Identifier and signing
 
-1. Install and open the latest Xcode supported by macOS. Accept its license and
-   allow it to install platform components.
-2. Install CocoaPods and FVM, then clone the repository. Follow
-   [`DEVELOPMENT_SETUP.md`](DEVELOPMENT_SETUP.md) for the toolchain, but use
-   the repository pin rather than `stable`.
-3. Check out the approved commit, then run:
+`com.deluna.moonbase` matches the existing Android application ID and is the
+single intended iOS identifier. Do not change only Xcode to make free signing
+work. If the Personal Team cannot provision this identifier:
+
+1. stop before running the app;
+2. record the Xcode error;
+3. ask Philip to approve one development identifier;
+4. change every Xcode configuration and the validator expectation in one
+   commit;
+5. register that exact replacement in Firebase and regenerate all four
+   configuration surfaces.
+
+Do not silently maintain both a temporary and a final identifier.
+
+The repository deliberately contains `CODE_SIGN_STYLE = Automatic` but no
+`DEVELOPMENT_TEAM`. Xcode may add a team ID to the project locally. Before
+committing anything from the Mac, inspect the diff and never commit Philip's
+sister's Personal Team ID.
+
+### Toolchain and Xcode
+
+Flutter 3.29.2 and Dart 3.7.2 are pinned by `.fvmrc`; all Flutter and Dart
+commands must run through FVM. Use an Xcode version that is simultaneously
+compatible with:
+
+- Flutter 3.29.2;
+- the Mac's macOS version; and
+- the attached device's iOS version.
+
+Xcode 16.3 is a known-compatible reference for Flutter 3.29.2 and iOS 15–18.4.
+Do not assume a much newer Xcode/device OS is compatible with this pinned
+Flutter release. Record the actual versions and stop on a compatibility error
+instead of upgrading Flutter during the device pass.
+
+### Images and permissions
+
+The chat attachment sheet exposes only **Camera (Photo)** and
+**Photo Library**. Cloud upload always normalizes the selected bytes to JPEG
+and writes `bases/{baseId}/media/{uuid}.jpg` with `image/jpeg`.
+
+`image_picker` uses PHPicker on iOS 14+. PHPicker can select photos without a
+broad photo-library authorization prompt; that is expected, not a skipped
+test. HEIC/HEIF selection and conversion must still be proved on a physical
+device because the simulator cannot provide equivalent evidence.
+
+No current UI reaches video capture, and no microphone permission should
+appear. Video upload/playback is not an acceptance case.
+
+## 1. Mac pre-registration and bundle-ID proof
+
+Do not create the Firebase iOS app yet. First prove the repository integrates
+cleanly with CocoaPods and that the intended Personal Team can provision
+`com.deluna.moonbase`.
+
+### Prepare the unsigned Xcode workspace
+
+On Philip's sister's Mac, install/open Xcode, accept its license and platform
+components, then install FVM and CocoaPods:
+
+```bash
+brew install fvm cocoapods
+git clone https://github.com/pdeluna/MoonBase.git
+cd MoonBase
+git fetch origin
+git checkout <candidate-branch>
+git pull --ff-only origin <candidate-branch>
+git rev-parse HEAD
+git status --short
+fvm install
+fvm flutter --version
+fvm dart --version
+fvm flutter doctor -v
+fvm flutter pub get
+fvm dart run tool/validate_ios_readiness.dart \
+  --allow-pending-firebase-registration
+cd ios
+pod install --repo-update
+cd ..
+fvm flutter build ios --debug --no-codesign
+git status --short
+git diff -- ios
+```
+
+The first CocoaPods/Flutter integration may create or change trackable files
+beyond `ios/Podfile.lock`, including the Xcode project, workspace, or xcconfig
+integration. Review the complete `ios/` result:
+
+1. Commit every intended deterministic tracked/trackable iOS integration
+   change, not only the lockfile.
+2. Never commit `Pods/`, `.symlinks/`, generated Flutter artifacts,
+   `xcuserdata`, or a Personal Team ID.
+3. Push, check out the resulting exact SHA, and repeat `pod install`, the
+   unsigned build, full `git status --short`, and `git diff -- ios`.
+4. Continue only when `ios/Podfile.lock` is tracked and the entire
+   pre-signing tree remains clean after the repeated integration/build.
+
+The macOS workflow applies the same clean-tree gate and intentionally fails
+when a lockfile or any other trackable CocoaPods/Xcode integration change is
+missing from the commit.
+
+### Prove Personal Team provisionability
+
+From that clean pushed SHA:
+
+1. Open `ios/Runner.xcworkspace`.
+2. Add the intended Apple Account under **Xcode → Settings → Accounts** and
+   verify Xcode labels it **Personal Team**.
+3. Connect/unlock the physical device, complete trust and Developer Mode
+   prompts, and select it as the destination.
+4. Under **Runner → Signing & Capabilities**, keep automatic signing enabled,
+   select the Personal Team, and leave the bundle ID exactly
+   `com.deluna.moonbase`.
+5. Use **Product → Build** for the physical device. Record Xcode's successful
+   managed-profile/signing result. This proves only identifier provisionability;
+   it is not Firebase runtime or device acceptance.
+
+If Xcode cannot register/provision the identifier, stop before Firebase
+registration. Philip must approve one replacement development identifier;
+then update all Runner/test configurations and validator expectations in one
+commit, push it, and repeat the clean CocoaPods and signing precheck.
+
+After successful proof, close Xcode and inspect:
+
+```bash
+git status --short
+git diff -- ios/Runner.xcodeproj/project.pbxproj
+```
+
+Preserve the signing evidence, but do not commit `DEVELOPMENT_TEAM`. If that
+is the only tracked change, restore the team-neutral project file, confirm the
+whole tree is clean, and re-select the same proved team only for the final run:
+
+```bash
+git restore --source=HEAD -- ios/Runner.xcodeproj/project.pbxproj
+git status --short
+```
+
+Only after this proof and clean-tree restoration may the Firebase owner step
+run.
+
+## 2. One-time Firebase owner step
+
+Do this on a trusted Mac while signed into an account that can modify
+`moonbase-aaff7`. Complete it before treating any device result as acceptance.
+The generated client files are not server secrets and must be committed. The
+Personal Team provisionability proof above is a mandatory precondition.
+
+1. Start from the candidate branch and confirm the intended identity:
 
    ```bash
-   fvm install 3.29.2
-   fvm use 3.29.2
+   git rev-parse HEAD
+   git status --short
    fvm flutter --version
-   fvm flutter pub get
-   cd ios
-   pod install
-   open Runner.xcworkspace
+   fvm dart run tool/validate_ios_readiness.dart \
+     --allow-pending-firebase-registration
    ```
 
-   Open `Runner.xcworkspace`, never `Runner.xcodeproj`, after `pod install`.
-
-### Configure free signing
-
-1. In Xcode, open **Settings → Accounts** and add the Apple ID that will own
-   the temporary Personal Team. Philip should enter his own credentials if
-   his account is used.
-2. Select **Runner → Signing & Capabilities**:
-   - enable **Automatically manage signing**;
-   - select that **Personal Team**;
-   - confirm the bundle identifier is the same approved Firebase identifier.
-3. Connect and unlock the iPhone/iPad, tap **Trust** on both devices when
-   prompted, and enable **Developer Mode** on the iOS device if requested.
-4. Select the physical device as Xcode's run destination and build once. If
-   iOS asks to trust the developer profile, follow the on-device prompt under
-   **Settings → General → VPN & Device Management**.
-5. From the repository root, confirm the device appears and launch the pinned
-   build:
+2. Install the latest Firebase CLI and authenticate interactively:
 
    ```bash
-   fvm flutter devices
-   fvm flutter run -d <ios-device-id>
+   npm install --global firebase-tools@latest
+   firebase login
+   firebase projects:list
    ```
 
-### Physical-device acceptance
+3. Install FlutterFire CLI using the pinned Dart SDK, then configure Android
+   and iOS together so the existing Android entry is preserved:
 
-Record the tested commit SHA, Mac/Xcode version, device/iOS version, network,
-and each result:
+   ```bash
+   fvm dart pub global activate flutterfire_cli
+   PATH="$PWD/.fvm/flutter_sdk/bin:$PATH" \
+     fvm dart pub global run flutterfire_cli:flutterfire configure \
+       --yes \
+       --project=moonbase-aaff7 \
+       --platforms=android,ios \
+       --android-package-name=com.deluna.moonbase \
+       --ios-bundle-id=com.deluna.moonbase \
+       --out=lib/firebase_options.dart \
+       --android-out=android/app/google-services.json \
+       --ios-out=ios/Runner/GoogleService-Info.plist
+   ```
 
-- cold launch reaches the expected signed-out or signed-in state without an
-  unsupported Firebase-options error;
-- sign in, list/select a base, send text, and receive it on another signed-in
-  device;
-- pick a normal library image and an iPhone HEIC image, upload each, and render
-  it on both sender and receiver;
-- take a camera photo and verify camera/photo permission-denial copy plus
-  **Open Settings**;
-- force-stop and relaunch; chat and cloud media still resolve;
-- test a first-ever sign-in separately from a returning cached session;
-- if resilience flags are exercised, fully stop and re-run between modes.
+4. Verify that FlutterFire added `GoogleService-Info.plist` to Runner's Copy
+   Bundle Resources, then run:
 
-A simulator run is a preflight only. If no physical iOS device is available,
-the iOS gate remains open.
+   ```bash
+   fvm dart run tool/validate_ios_readiness.dart
+   git diff --check
+   git status --short
+   ```
 
-## Review/agent model
+5. Inspect generated changes. Confirm `PROJECT_ID=moonbase-aaff7`,
+   `BUNDLE_ID=com.deluna.moonbase`, and one `GOOGLE_APP_ID` agree across
+   Xcode, `firebase_options.dart`, `firebase.json`, and the plist. The strict
+   validator also proves that the established Android app ID, API key,
+   package, project, Storage bucket, generated options, and Dart mapping did
+   not drift. Commit and push all generated iOS surfaces before the
+   physical-device test.
 
-Use one assessor as gate owner and one implementer between gates. Parallel
-agents are useful for read-only branch/history review or independent tests,
-but multiple implementation owners create branches and claims that can drift.
-At each device gate, the assessor reconciles the tested SHA with the remote
-branch before work resumes. This replaces a standing requirement for multiple
-implementer agents; add another implementer only for an isolated,
-non-overlapping change.
+6. In Firebase Console, record App Check enforcement for Authentication,
+   Firestore, and Storage. This repository has no App Check provider, so
+   affected products must not enforce App Check for this test unless a
+   separately approved provider/debug-token setup is committed and evidenced.
 
-## Later paid deployment
+## 3. Backend deployment gate
 
-Fastlane/TestFlight is a separate, explicitly approved pass. It requires App
-Store Connect setup, paid-program signing assets, repaired CI YAML, protected
-secrets, and a successful archive/upload check. A free Personal Team device
-run must not be reported as TestFlight readiness.
+The candidate includes the reviewed Firestore contract that allows text or
+one-to-four same-base JPEG paths, including a captionless image, while denying
+an empty message. Storage allows authenticated image upload under the base
+media path and denies client delete.
+
+Rules tests do not prove deployment. From the exact source SHA to be tested,
+an authorized Firebase owner must run and retain the output:
+
+```bash
+git rev-parse HEAD
+firebase deploy \
+  --project=moonbase-aaff7 \
+  --only firestore:rules,storage
+```
+
+Record that SHA as the deployed-rules SHA. If production rules cannot be
+deployed, the live image-only cases remain blocked.
+
+## 4. Re-enable and run the macOS workflow
+
+The workflow definition is repaired and validates every code-controlled
+preflight, but GitHub workflow `185513668` is manually disabled. Repository
+code cannot re-enable an externally disabled workflow.
+
+An authorized repository owner must open **Actions → iOS repository
+preflight**, choose **Enable workflow**, and run/re-run it against the final
+candidate after Firebase and CocoaPods integration changes are pushed. A
+successful run is required. The workflow watches `firebase.json`, both
+established Android Firebase inputs, all iOS/lib/test changes, and the
+validator; it fails if CocoaPods/build leaves any trackable `ios/` change.
+
+## 5. Final post-registration Mac/device procedure
+
+### 1. Prepare and record the host
+
+Install Xcode from Apple and open it once. Accept the license and allow its
+platform components to finish. Install Homebrew if needed, then:
+
+```bash
+brew install fvm cocoapods
+xcodebuild -version
+sw_vers -productVersion
+pod --version
+fvm --version
+```
+
+Clone the repository, check out the exact pushed candidate, and do not test a
+local-only commit:
+
+```bash
+git clone https://github.com/pdeluna/MoonBase.git
+cd MoonBase
+git fetch origin
+git checkout <candidate-branch>
+git pull --ff-only origin <candidate-branch>
+git rev-parse HEAD
+git status --short
+```
+
+The status must be clean here. Record the SHA.
+
+### 2. Run the unsigned preflight
+
+```bash
+fvm install
+fvm flutter --version
+fvm dart --version
+fvm flutter doctor -v
+fvm flutter pub get
+fvm dart run tool/validate_ios_readiness.dart
+fvm flutter analyze
+fvm flutter test --reporter expanded
+cd ios
+pod install --repo-update
+cd ..
+fvm flutter build ios --debug --no-codesign
+git status --short
+git diff -- ios
+```
+
+Expected toolchain output is Flutter 3.29.2 / Dart 3.7.2, and analysis must
+exit with no findings. The three findings recorded by the stacked handoff
+were removed so the repaired macOS workflow has a deterministic gate.
+
+This is the post-registration repeat of the earlier integration loop.
+`ios/Podfile.lock` must already be tracked, and both status and the iOS diff
+must remain empty after CocoaPods and the unsigned build. If any trackable
+file changes, stop, review and commit every intended deterministic change,
+push, check out the resulting SHA, and rerun. The final device record must
+not depend on any unpushed CocoaPods/Xcode integration.
+
+Run both rules suites and record their totals:
+
+```bash
+cd firestore/tests
+npm ci
+npm test
+cd ../../storage/tests
+npm ci
+npm test
+cd ../..
+```
+
+The stacked baseline is 225 Flutter tests, 48 Firestore-rule tests, and
+8 Storage-rule tests. Added tests may increase the total; no baseline test may
+disappear or fail.
+
+Open the CocoaPods workspace, never the project:
+
+```bash
+open ios/Runner.xcworkspace
+```
+
+### 3. Re-select the proved Personal Team
+
+1. In **Xcode → Settings → Accounts**, select the Apple Account already proved
+   during the pre-registration signing check. Xcode must label it
+   **Personal Team**.
+2. Select **Runner → Signing & Capabilities**.
+3. Keep **Automatically manage signing** enabled.
+4. Select the Personal Team and confirm the bundle identifier remains exactly
+   `com.deluna.moonbase`.
+5. If provisioning fails, stop and follow the identifier decision process
+   above. Never change Xcode alone.
+6. Connect and unlock the iPhone/iPad. Trust the Mac and device prompts and
+   enable **Developer Mode** if requested.
+7. Select the physical device as the run destination and build once in Xcode.
+   If iOS requests developer trust, follow the device's
+   **Settings → General → VPN & Device Management** prompt.
+
+After Xcode saves signing, run:
+
+```bash
+git status --short
+git diff -- ios/Runner.xcodeproj/project.pbxproj
+fvm flutter devices
+fvm flutter run -d <ios-device-id>
+```
+
+Only a documented automatic-signing/Personal-Team delta may be uncommitted.
+Any source, Firebase, identifier, permission, or deployment-target delta must
+be committed, pushed, and rebuilt before testing. A free provisioning profile
+expires after seven days; this proves direct testing only.
+
+### 4. Run physical-device acceptance
+
+Use the documented home dual-stack Wi-Fi and a second signed-in client in the
+same base. Record each result separately:
+
+1. Fresh install/cold launch reaches the signed-out or signed-in shell without
+   an unsupported Firebase-options error. Complete a first-ever sign-in.
+2. Send and receive a text-only message. Confirm an empty message cannot send.
+3. Open attachments. Only **Camera (Photo)** and **Photo Library** appear.
+   No video choice or microphone prompt appears.
+4. From a reset app privacy state, deny the camera prompt. The picker dismisses,
+   the permission snackbar and **Open Settings** appear, Settings opens the
+   MoonBase page, and granting camera access then retrying succeeds.
+5. Exercise Photo Library separately. If iOS shows authorization, deny it and
+   verify the same recovery. If PHPicker shows scoped selection without broad
+   authorization, record that expected path and prove selection succeeds.
+6. Send a normal library image with no caption and render it on both devices.
+7. Confirm a source photo is HEIC/HEIF, send it, and verify the resulting
+   cloud object/message path is JPEG and renders on both devices.
+8. Take and send a camera photo; verify it on both devices.
+9. Send four images in one message. Confirm a fifth attachment cannot be
+   staged.
+10. Send an image from the second client back to iOS and verify iOS resolves
+    it; sender-local rendering alone is insufficient.
+11. Force-quit MoonBase from the app switcher. Relaunch from its icon without
+    rebuilding, reinstalling, hot reload, or hot restart. The returning session,
+    base/chat, sent images, remote image, and HEIC-origin image must resolve.
+12. Record App Check warnings. Enforcement cannot be silently waived.
+
+If a debug-harness mode is exercised, fully stop and rerun the app for that
+mode. Hot restart/reload wedges the harness gRPC channel and is not valid
+evidence.
+
+## Evidence record
+
+Keep one record containing:
+
+- candidate branch and exact pushed app SHA;
+- clean pre-signing status and the post-signing diff;
+- deployed-rules SHA and deploy output;
+- bundle ID, Firebase iOS app ID, and Firebase project;
+- App Check enforcement state;
+- Mac model, macOS, Xcode, CocoaPods, FVM, Flutter, and Dart versions;
+- physical device model/iOS and Personal Team account type;
+- second-client identity and device type;
+- home dual-stack network confirmation;
+- command outputs and pass/fail evidence for every acceptance row;
+- first-install and returning-session results separately;
+- all failures, warnings, screenshots, and logs.
+
+Linux/macOS simulator or unsigned CI evidence cannot close signing,
+permissions, HEIC conversion, process-death recovery, two-device realtime, or
+dual-stack physical-device gates.
+
+## Known Windows worker blocker
+
+Project evidence
+`media/windows-worker-node-abi-error.png` shows the attempted Windows Cursor
+worker failed before MoonBase validation: Cursor's native
+`better_sqlite3.node` was compiled for `NODE_MODULE_VERSION 137`, while the
+worker's Node runtime required `127`. This is a Cursor worker native ABI
+mismatch, not a MoonBase Firebase/rules-test failure and not evidence about the
+Mac's Node installation. It explains why that worker could not supply
+additional device evidence; it does not waive any iOS gate.
+
+## Deferred paid deployment
+
+`ios/fastlane/Fastfile` is legacy, inert configuration and is not called by
+the current workflow. Do not add App Store Connect keys, distribution
+certificates, App Store profiles, TestFlight upload, or production signing to
+this pass. Those require separate paid-program approval and validation.
 

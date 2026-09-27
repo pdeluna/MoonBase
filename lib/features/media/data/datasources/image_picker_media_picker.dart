@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
@@ -312,10 +310,9 @@ class ImagePickerMediaPicker implements MediaPicker {
   /// to [fallback] when nothing matches (rather than `null`) so the caller
   /// can still reject via the `image/` or `video/` prefix check.
   String _sniffMime(String path, List<int> bytes, {required String fallback}) {
-    final headerBytes =
-        bytes.length > defaultMagicNumbersMaxLength
-            ? bytes.sublist(0, defaultMagicNumbersMaxLength)
-            : bytes;
+    final headerBytes = bytes.length > defaultMagicNumbersMaxLength
+        ? bytes.sublist(0, defaultMagicNumbersMaxLength)
+        : bytes;
     return lookupMimeType(path, headerBytes: headerBytes) ?? fallback;
   }
 

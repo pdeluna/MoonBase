@@ -46,12 +46,8 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Allow MoonBase to use your camera to take photos and videos for chats.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Allow MoonBase to use your microphone for video capture.</string>
+	<string>MoonBase uses the camera only to take photos you choose to share in chat.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Allow MoonBase to access your photo library to share media.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Allow MoonBase to save received photos or videos to your library.</string>
+	<string>MoonBase lets you choose photos from your library to share in chat.</string>
 </dict>
 </plist>

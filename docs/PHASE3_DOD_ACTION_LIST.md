@@ -20,6 +20,16 @@
 | Sequencing     | Slice A: chat media → Slice B: stories → Slice C: posts + reactions                                                                                                                                                                                                                                                                                                                                                            |
 | Out of scope   | Live streaming, voice notes, threaded replies, content moderation tooling, push notifications, in-app trim/edit, custom in-app camera surface (live preview, hold-to-record, overlays)                                                                                                                                                                                                                                         |
 
+> **Current Firebase override (2026-09-17):** The table above and T0.2/T1.2
+> describe the historical Phase 3 **local-media** build. Cloud chat is now
+> images-only: `ChatMediaPolicy` exposes camera-photo and photo-library paths,
+> `SendMessage` rejects video before I/O, and Firebase persists JPEG paths
+> only. The current iOS gate therefore requires camera and photo-library
+> descriptions, must not request microphone access, and does not test video.
+> See [`README-ios.md`](README-ios.md). Re-enabling cloud video requires a
+> separate policy/schema/rules/storage decision; this historical DoD does not
+> authorize it.
+
 
 ## Definition of Done (high level)
 
@@ -31,7 +41,7 @@ A Phase 3 build is "done" when:
 4. A base member can react to a story or post; reaction counts and the user's own reaction are visible.
 5. A base owner can open base settings and toggle "Stories archive" on/off and override the story TTL; settings persist and apply on next publish.
 6. All persistence is local; no remote calls. All entities carrying media include a `syncStatus` field (default `synced` while local-only). Media URIs are content-addressable keys, not absolute device paths.
-7. Full unit test suite passes (`flutter test`). Manual smoke covers each slice's flows + base-isolation invariants.
+7. Full unit test suite passes (`fvm flutter test`). Manual smoke covers each slice's flows + base-isolation invariants.
 
 ---
 
@@ -44,7 +54,7 @@ A Phase 3 build is "done" when:
 > `test/features/media/` (T0.1). Manual device checks T0.2 and T0.3 were
 > run on **Android** per [`assignments/CHAT_MEDIA_DEVICE_TESTS.md`](../assignments/CHAT_MEDIA_DEVICE_TESTS.md).
 >
-> **T0.2 — Pass.** All four `MediaPickerSheet` paths (camera photo/video,
+> **Historical local T0.2 — Pass.** All four `MediaPickerSheet` paths (camera photo/video,
 > gallery photo/video) send successfully; media survives **hot restart** and
 > **force-stop / relaunch** within the same install. Full **app uninstall
 > wipes users, bases, chats, and media files** — expected for Phase 3
@@ -54,7 +64,8 @@ A Phase 3 build is "done" when:
 > surfaces the correct snackbar; sheet auto-dismisses before snackbar (POL-1 ✅).
 > "Open Settings" deep-links to the app's OS settings page (POL-2 ✅).
 >
-> iOS device parity for T0.2/T0.3 is **deferred** (not blocking Slice B).
+> Historical local-video iOS parity for T0.2/T0.3 remains deferred. It is not
+> the current Firebase iOS acceptance gate; use `README-ios.md`.
 
 ### 0.1 Dependencies
 
@@ -64,10 +75,15 @@ A Phase 3 build is "done" when:
   - `path_provider: ^2.1.4` — app documents directory
   - `mime: ^1.0.5` — content-type sniffing
   - `flutter_image_compress: ^2.3.0` *(optional; recommended for size cap)*
-- **0.1.2** Run `flutter pub get`; confirm Android, iOS, Web, Windows, macOS, Linux still build (`flutter build` smoke per platform you target).
+- **0.1.2** Run `fvm flutter pub get`; confirm Android, iOS, Web,
+  Windows, macOS, and Linux still build (`fvm flutter build` smoke per
+  platform you target).
 - **0.1.3** Platform permissions:
   - Android `AndroidManifest.xml`: `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `CAMERA`, `RECORD_AUDIO` (for video).
-  - iOS `Info.plist`: `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, `NSMicrophoneUsageDescription`.
+  - Current Firebase iOS gate: photo-specific `NSCameraUsageDescription` and
+    `NSPhotoLibraryUsageDescription`; no microphone key while cloud video is
+    deferred. The historical local-video build additionally required
+    `NSMicrophoneUsageDescription`.
   - macOS entitlements (if targeted): camera + microphone + user-selected files read.
 
 ### 0.2 Core abstractions
@@ -98,7 +114,11 @@ A Phase 3 build is "done" when:
 - **0.3.6** Presentation widgets at `lib/features/media/presentation/widgets/`:
   - `media_tile.dart` — given a `MediaRef`, calls `MediaStorage.resolveUri`, then renders `Image.file` / `Image.network` for images and a tap-to-play `VideoPreview` for video. Scheme-agnostic.
   - `media_preview.dart` — full-screen viewer with pinch-zoom (image) or controls (video).
-  - `media_picker_sheet.dart` — bottom sheet: "Camera (Photo)", "Camera (Video)", "Photo Library", "Video Library", "Cancel". Each option calls the corresponding `MediaPicker` method and returns `MediaRef?`. The OS camera is launched directly from the "Camera" entries — no in-app capture surface this phase.
+  - `media_picker_sheet.dart` — capability-filtered bottom sheet. The generic
+    historical local-media implementation supports "Camera (Photo)",
+    "Camera (Video)", "Photo Library", and "Video Library"; current cloud chat
+    supplies `ChatMediaPolicy.allowedTypes` and renders only the two image
+    paths. Each visible option calls the corresponding `MediaPicker` method.
   - `video_thumbnail.dart` — small composite for grids.
 - **0.3.7** Riverpod providers at `lib/features/media/presentation/providers/media_providers.dart`:
   - `mediaStorageProvider` (override at app root with `LocalFileMediaStorage`).
@@ -111,7 +131,11 @@ A Phase 3 build is "done" when:
   - Picker (with mocked `image_picker`): `pickImage` and `pickVideo` return `null` on cancel; `captureFromCamera` dispatches by `MediaPickRequest.kind`; all three throw `MediaTooLargeFailure` over cap and `MediaTooLongFailure` over 30s.
   - `LocalFileMediaStorage`: round-trip put → resolve → file exists → delete clears it.
   - `MediaTile`: renders image for `file://` and `https://` schemes (golden or pump).
-- **T0.2** Manual (Android verified 2026-06-22): from `MediaPickerSheet`, exercise (a) Camera (Photo), (b) Camera (Video), (c) Photo Library, (d) Video Library; confirm files live under `documents/media/<baseId>/<uuid>.<ext>`. Confirm media re-renders after **hot restart** or **force-stop + relaunch** (relative-key resolver). **Do not** expect chat history to survive **full app uninstall** in Phase 3 local-only — uninstall removes SharedPreferences and the app sandbox together.
+- **T0.2 historical local-media check** (Android verified 2026-06-22):
+  exercise all four generic picker paths and local relative-key resolution.
+  This does not define the current images-only Firebase/iOS gate. For the
+  current debug harness, fully stop and rerun between modes; do not use hot
+  restart/reload as acceptance evidence.
 - **T0.3** Manual (Android verified 2026-06-22): deny camera or photo-library permission → `PermissionDeniedFailure` snackbar with "Open Settings". POL-1 ✅ · POL-2 ✅.
 
 ---
@@ -149,7 +173,8 @@ A Phase 3 build is "done" when:
 
 **Testing:**
 
-- **T1.1** Run `flutter test test/features/chat/` and `test/features/media/`. **Pass** (106 feature tests total on `main`).
+- **T1.1** Run `fvm flutter test test/features/chat/` and
+  `test/features/media/`. **Pass** (106 feature tests total on `main`).
 - **T1.2** Manual (Android verified 2026-06-22): send text-only (regression); send image-only; send 4 images; send a video (≤ 30s); switch base → media still loads per base. **Pass.**
 - **T1.3** Manual (Android verified 2026-06-22): force-stop or hot restart app → confirm media re-renders (relative-key resolver). **Pass.**
 
@@ -182,7 +207,8 @@ A Phase 3 build is "done" when:
 
 **Testing:**
 
-- **T2.1** Run `flutter test test/features/bases/` (settings tests) and `test/features/stories/`.
+- **T2.1** Run `fvm flutter test test/features/bases/` (settings tests) and
+  `test/features/stories/`.
 - **T2.2** Manual: publish a story; bubble appears on home; advance device clock by `ttl + 1m`, restart, confirm story is no longer in active feed and **is** in Highlights when archive is on; toggle archive off in base settings, publish a new story, expire it, confirm it's gone (and its media is deleted from disk).
 - **T2.3** Base isolation: stories from base A do not appear in base B; only mutual members can view.
 
@@ -211,14 +237,15 @@ Reactions are a separate, narrow domain so chat can opt in later without restruc
 
 **Testing:**
 
-- **T3.1** Run `flutter test test/features/posts/`.
+- **T3.1** Run `fvm flutter test test/features/posts/`.
 - **T3.2** Manual: create a text-only post; create a post with 4 images; delete own post; another user can't delete it; react with 👍, change to ❤️, then tap ❤️ again to remove; counts and own-reaction state survive base switch and app restart.
 
 ---
 
 ## 4. Phase 3 sign-off
 
-- **4.1** Run full test suite: `flutter test`. Target: ≥ 80% feature-level coverage matching Phase 2 bar.
+- **4.1** Run full test suite: `fvm flutter test`. Target: ≥ 80%
+  feature-level coverage matching Phase 2 bar.
 - **4.2** Manual smoke (full): chat (text + image + video), stories (publish, expire, archive, owner toggles archive off then on), posts (create, view, delete, paginate ≥ 20), reactions (post + story), base isolation (no cross-base leakage on any surface), permissions (deny camera → graceful failure UI).
 - **4.3** Disk audit: after deletion of a story/post, confirm `MediaStorage.delete` was invoked and the file is gone from `documents/media/<baseId>/`.
 - **4.4** No new direct dependencies in `lib/legacy/`. New code lives entirely in `lib/features/media`, `lib/features/stories`, `lib/features/posts`, and additions to existing `lib/features/chat`, `lib/features/bases`.
@@ -231,11 +258,11 @@ Reactions are a separate, narrow domain so chat can opt in later without restruc
 
 | After              | Action                                                                                                                            |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Foundation (0)** | T0.1: `flutter test test/features/media/`. T0.2: device pick + relaunch round-trip (**Android ✅ 2026-06-22**). T0.3: permission denial UX (**Android partial ✅**). |
-| **Slice A (1)**    | T1.1: `flutter test test/features/chat/ test/features/media/`. T1.2: device chat media flow (**Android ✅ 2026-06-22**). T1.3: app restart re-resolves media (**Android ✅ 2026-06-22**). |
-| **Slice B (2)**    | T2.1: `flutter test test/features/bases/ test/features/stories/`. T2.2: device expiry + archive toggle. T2.3: base isolation.     |
-| **Slice C (3)**    | T3.1: `flutter test test/features/posts/`. T3.2: device post + reactions flows.                                                   |
-| **Sign-off (4)**   | Full `flutter test` + full device smoke + disk audit.                                                                             |
+| **Foundation (0)** | T0.1: `fvm flutter test test/features/media/`. T0.2: device pick + relaunch round-trip (**Android ✅ 2026-06-22**). T0.3: permission denial UX (**Android partial ✅**). |
+| **Slice A (1)**    | T1.1: `fvm flutter test test/features/chat/ test/features/media/`. T1.2: device chat media flow (**Android ✅ 2026-06-22**). T1.3: app restart re-resolves media (**Android ✅ 2026-06-22**). |
+| **Slice B (2)**    | T2.1: `fvm flutter test test/features/bases/ test/features/stories/`. T2.2: device expiry + archive toggle. T2.3: base isolation.     |
+| **Slice C (3)**    | T3.1: `fvm flutter test test/features/posts/`. T3.2: device post + reactions flows.                                                   |
+| **Sign-off (4)**   | Full `fvm flutter test` + full device smoke + disk audit.                                                                             |
 | **Polish (follow-up)** | [`PHASE3_MEDIA_POLISH_TICKET.md`](../assignments/PHASE3_MEDIA_POLISH_TICKET.md): permission snackbar layering, Open Settings, multi-pick, video thumbnails. |
 
 
