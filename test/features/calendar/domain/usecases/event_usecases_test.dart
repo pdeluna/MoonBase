@@ -73,7 +73,8 @@ void main() {
     test('501-char notes → ValidationFailure; blank notes collapse to null',
         () async {
       expect(
-        leftOf(await uc(create(title: 'a', notes: 'n' * (kEventNotesMaxLen + 1)))),
+        leftOf(
+            await uc(create(title: 'a', notes: 'n' * (kEventNotesMaxLen + 1)))),
         isA<ValidationFailure>(),
       );
       final r = rightOf(await uc(create(title: 'a', notes: '   ')));
@@ -93,10 +94,12 @@ void main() {
       rightOf(await uc(create(title: 'a', start: start, end: start)));
     });
 
-    test('startAt outside the window → ValidationFailure (both edges)', () async {
+    test('startAt outside the window → ValidationFailure (both edges)',
+        () async {
       // defaults: 7 back / 30 ahead around 2026-09-27
       expect(
-        leftOf(await uc(create(title: 'a', start: DateTime(2026, 9, 19, 23, 59)))),
+        leftOf(
+            await uc(create(title: 'a', start: DateTime(2026, 9, 19, 23, 59)))),
         isA<ValidationFailure>(),
       );
       expect(
@@ -104,7 +107,8 @@ void main() {
         isA<ValidationFailure>(),
       );
       rightOf(await uc(create(title: 'a', start: DateTime(2026, 9, 20))));
-      rightOf(await uc(create(title: 'a', start: DateTime(2026, 10, 27, 23, 59))));
+      rightOf(
+          await uc(create(title: 'a', start: DateTime(2026, 10, 27, 23, 59))));
     });
   });
 
@@ -122,7 +126,8 @@ void main() {
 
     test('owner allowed under ownerOnly', () async {
       final uc = CreateEvent(repo, now: () => kToday);
-      rightOf(await uc(create(title: 'a', settings: ownerOnly, requester: kOwner)));
+      rightOf(
+          await uc(create(title: 'a', settings: ownerOnly, requester: kOwner)));
     });
 
     test('data-source throw surfaces as Left, never throws', () async {
@@ -143,7 +148,8 @@ void main() {
       ownerEvent = rightOf(await c(create(title: 'Owner', requester: kOwner)));
     });
 
-    UpdateEventParams upd(CalendarEvent e, UserId requester, {String title = 'New'}) =>
+    UpdateEventParams upd(CalendarEvent e, UserId requester,
+            {String title = 'New'}) =>
         UpdateEventParams(
           base: kBase,
           requester: requester,
@@ -153,27 +159,34 @@ void main() {
         );
 
     test('canModifyEvent: author yes, owner yes, other member no', () {
-      expect(canModifyEvent(event: memberEvent, user: kMember, base: kBase), isTrue);
-      expect(canModifyEvent(event: memberEvent, user: kOwner, base: kBase), isTrue);
-      expect(canModifyEvent(event: ownerEvent, user: kMember, base: kBase), isFalse);
-      expect(canModifyEvent(event: memberEvent, user: kStranger, base: kBase), isFalse);
+      expect(canModifyEvent(event: memberEvent, user: kMember, base: kBase),
+          isTrue);
+      expect(canModifyEvent(event: memberEvent, user: kOwner, base: kBase),
+          isTrue);
+      expect(canModifyEvent(event: ownerEvent, user: kMember, base: kBase),
+          isFalse);
+      expect(canModifyEvent(event: memberEvent, user: kStranger, base: kBase),
+          isFalse);
     });
 
     test('author update ok and returns merged entity', () async {
-      final uc = UpdateEvent(repo, now: () => kToday.add(const Duration(hours: 1)));
+      final uc =
+          UpdateEvent(repo, now: () => kToday.add(const Duration(hours: 1)));
       final r = rightOf(await uc(upd(memberEvent, kMember, title: 'Renamed')));
       expect(r.id, memberEvent.id);
       expect(r.title, 'Renamed');
       expect(r.createdBy, kMember);
       expect(r.updatedAt.isAfter(memberEvent.updatedAt), isTrue);
-      expect(ds.eventsFor('b1').firstWhere((e) => e.id == 'e0').title, 'Renamed');
+      expect(
+          ds.eventsFor('b1').firstWhere((e) => e.id == 'e0').title, 'Renamed');
     });
 
     test('owner may update a member event; member may not update owner event',
         () async {
       final uc = UpdateEvent(repo, now: () => kToday);
       rightOf(await uc(upd(memberEvent, kOwner)));
-      expect(leftOf(await uc(upd(ownerEvent, kMember))), isA<PermissionDeniedFailure>());
+      expect(leftOf(await uc(upd(ownerEvent, kMember))),
+          isA<PermissionDeniedFailure>());
     });
 
     test('update still validates (81-char title)', () async {
@@ -187,11 +200,14 @@ void main() {
     test('delete: author ok, owner ok, other member denied', () async {
       final del = DeleteEvent(repo);
       expect(
-        leftOf(await del(DeleteEventParams(base: kBase, requester: kMember, event: ownerEvent))),
+        leftOf(await del(DeleteEventParams(
+            base: kBase, requester: kMember, event: ownerEvent))),
         isA<PermissionDeniedFailure>(),
       );
-      rightOf(await del(DeleteEventParams(base: kBase, requester: kMember, event: memberEvent)));
-      rightOf(await del(DeleteEventParams(base: kBase, requester: kOwner, event: ownerEvent)));
+      rightOf(await del(DeleteEventParams(
+          base: kBase, requester: kMember, event: memberEvent)));
+      rightOf(await del(DeleteEventParams(
+          base: kBase, requester: kOwner, event: ownerEvent)));
       expect(ds.eventsFor('b1'), isEmpty);
     });
   });
@@ -206,7 +222,8 @@ void main() {
       )));
       expect(f, isA<PermissionDeniedFailure>());
       expect(ds.settingsReads, 0);
-      expect(rightOf(await repo.getSettings(baseId: kBase.id)), CalendarSettings.defaults);
+      expect(rightOf(await repo.getSettings(baseId: kBase.id)),
+          CalendarSettings.defaults);
     });
 
     test('owner write clamps window to 0–365 and returns the clamped copy',
