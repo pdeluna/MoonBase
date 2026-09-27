@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_event.dart';
@@ -135,7 +136,7 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(calls, 1);
-    expect(find.text('Offline'), findsOneWidget);
+    expect(find.text(kNetworkErrorCopy), findsOneWidget);
     expect(find.byType(EventEditorSheet), findsOneWidget,
         reason: 'stays open on failure');
   });

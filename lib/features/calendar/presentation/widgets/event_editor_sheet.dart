@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_snackbar.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_event.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_window.dart';
@@ -149,12 +150,7 @@ class _EventEditorSheetState extends State<EventEditorSheet> {
       Navigator.of(context).pop();
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(failure.message),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
-    );
+    showFailureSnackBar(context, failure);
   }
 
   @override

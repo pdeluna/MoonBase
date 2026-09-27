@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_snackbar.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/member_presentation_provider.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_event.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_settings.dart';
@@ -14,10 +14,8 @@ import 'package:moonbase_skeleton/features/calendar/presentation/widgets/event_e
 
 /// Entry points shared by the Home FAB, the empty state, and the detail
 /// sheet. Each reads the VM at call time, routes the intent to the
-/// controller, and lets the sheet/dialog render the returned `Failure`.
-///
-/// Presenter adoption (W3 `showFailureSnackBar` / `userMessage`) replaces the
-/// `failure.message` snackbars here once `feat/failure-presenter` merges.
+/// controller, and lets the sheet/dialog render the returned `Failure`
+/// through [showFailureSnackBar].
 
 Future<void> showEventEditor(
   BuildContext context,
@@ -112,7 +110,7 @@ Future<void> confirmAndDeleteEvent(
   final failure = await ref
       .read(calendarControllerProvider.notifier)
       .delete(base: base, requester: user.id, event: event);
-  if (failure != null && context.mounted) showCalendarFailure(context, failure);
+  if (failure != null && context.mounted) showFailureSnackBar(context, failure);
 }
 
 Future<void> showCalendarSettings(BuildContext context, WidgetRef ref) {
@@ -127,15 +125,6 @@ Future<void> showCalendarSettings(BuildContext context, WidgetRef ref) {
       onSubmit: (CalendarSettings s) => ref
           .read(calendarControllerProvider.notifier)
           .saveSettings(base: base, requester: user.id, settings: s),
-    ),
-  );
-}
-
-void showCalendarFailure(BuildContext context, Failure failure) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(failure.message),
-      backgroundColor: Theme.of(context).colorScheme.error,
     ),
   );
 }
