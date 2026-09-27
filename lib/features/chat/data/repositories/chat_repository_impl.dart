@@ -22,6 +22,7 @@ class ChatRepositoryImpl implements ChatRepository {
     required UserId userId,
     required String content,
     List<MediaRef> media = const [],
+    MessageId? messageId,
   }) =>
       guard(() async {
         final m = await local.sendMessage(
@@ -29,6 +30,7 @@ class ChatRepositoryImpl implements ChatRepository {
           userId: userId.value,
           content: content,
           media: media,
+          messageId: messageId?.value,
         );
         return m.toEntity();
       });

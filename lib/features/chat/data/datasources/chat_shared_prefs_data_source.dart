@@ -72,8 +72,9 @@ class ChatSharedPrefsDataSource implements ChatLocalDataSource {
     required String userId,
     required String content,
     List<MediaRef> media = const [],
+    String? messageId,
   }) async {
-    final messageId = 'm_${DateTime.now().microsecondsSinceEpoch}';
+    messageId ??= 'm_${DateTime.now().microsecondsSinceEpoch}';
     final now = DateTime.now();
 
     final message = MessageModel(

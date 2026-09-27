@@ -33,11 +33,16 @@ class SendMessageParams {
     required this.userId,
     required this.content,
     this.media = const [],
+    this.messageId,
   });
 
   final BaseId baseId;
   final UserId userId;
   final String content;
+
+  /// Optional client-chosen document id (pending-send outbox). Forwarded to
+  /// `ChatRepository.sendMessage` unchanged; null lets the data source mint.
+  final MessageId? messageId;
 
   /// Zero or more media attachments. Capped per message by
   /// `MediaConstraints.maxMediaPerMessageDefault` (default 4). The use case
@@ -143,6 +148,7 @@ class SendMessage implements UseCase<Message, SendMessageParams> {
       userId: p.userId,
       content: content,
       media: mediaToSend,
+      messageId: p.messageId,
     );
   }
 
