@@ -334,13 +334,9 @@ Full rules: [`firestore.rules`](../firestore.rules) (draft for review).
 | `members/{uid}` | base member | owner manage; self-create on join; self may update own nickname copy |
 | `invites/{code}` | signed-in (redeem) | create/delete: owner; `useCount` bump: signed-in under constraints |
 | `inviteCodes/{code}` | signed-in **get** only; **list denied** | create/delete: owner of mapped `baseId`; update denied |
-<<<<<<< HEAD
-| `messages/{messageId}` | base member | create as self (`text` length 1–4000); author or owner may delete |
+| `messages/{messageId}` | base member | create as self (`text` length 0–4000; text or media required); author or owner may delete |
 | `events/{eventId}` | base member | create: `mayCreateEvent()` (member, and `settings/calendar.eventCreation == 'members'` or owner) as self, title 1–80, notes ≤ 500, `endAt >= startAt`; update: author or owner (`createdBy`/`createdAt` immutable); delete: author or owner |
 | `settings/{settingId}` | base member | create/update: owner, `settingId == 'calendar'` only, 0–365 window, `eventCreation in ['members','owner']`; delete: owner (`deleteBase` sweep) |
-=======
-| `messages/{messageId}` | base member | create as self (`text` length 0–4000; text or media required); author or owner may delete |
->>>>>>> origin/main
 | stories | — | not ruled / not shipped |
 | `_smoke_tests/**` | signed-in | signed-in (debug probe only) |
 
