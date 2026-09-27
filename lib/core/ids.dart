@@ -85,6 +85,17 @@ class ReactionId {
   @override String toString() => value;
 }
 
+/// Calendar event id — client-generated UUID v4 (as `MessageId`).
+@immutable
+class EventId {
+  const EventId(this.value) : assert(value != '');
+  final String value;
+
+  @override bool operator ==(Object other) => other is EventId && other.value == value;
+  @override int get hashCode => value.hashCode;
+  @override String toString() => value;
+}
+
 /// Nice test/dev ergonomics.
 ///
 /// `MediaId` deliberately has no shortcut: `.mid` is taken by `MessageId` and
@@ -97,4 +108,5 @@ extension IdShortcuts on String {
   StoryId get sid => StoryId(this);
   PostId get pid => PostId(this);
   ReactionId get rid => ReactionId(this);
+  EventId get eid => EventId(this);
 }

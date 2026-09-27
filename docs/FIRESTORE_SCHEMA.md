@@ -1,6 +1,7 @@
 # Firestore Schema — Week 3
 
-**Status:** Profiles, bases/members/invites/leave, and chat messages → Firestore. Last-accessed is device-local SharedPreferences (keyed by uid).  
+**Status:** Profiles, bases/members/invites/leave, chat messages, and calendar (events + per-base `settings/calendar`) → Firestore. Last-accessed is device-local SharedPreferences (keyed by uid).
+
 **Source of truth for document shape:** this file + checked-in [`firestore.rules`](../firestore.rules).  
 **Current schema version:** `1` on every product document.
 
@@ -196,6 +197,88 @@ At least one of trimmed `text` or `mediaPaths` must be non-empty.
 
 ---
 
+### `bases/{baseId}/events/{eventId}` — calendar
+
+| Field | Type | Notes |
+|-------|------|--------|
+| `title` | string | **1–80** chars (rules + Dart `kEventTitleMaxLen`) |
+| `startAt` | timestamp | **UTC** instant. All-day events store local midnight of the chosen day converted to UTC. |
+| `endAt` | timestamp \| null | Optional; when present must be `>= startAt`. Single-day events only (MVP). |
+| `allDay` | bool | Required |
+| `notes` | string \| null | Optional; **≤ 500** chars (rules + Dart `kEventNotesMaxLen`) |
+| `createdBy` | string | Auth UID of author; `== request.auth.uid` on create; **immutable** |
+| `createdAt` | timestamp | `serverTimestamp()`; **immutable** |
+| `updatedAt` | timestamp | `serverTimestamp()` on create and on every update |
+| `schemaVersion` | number | `1` |
+
+Doc id is **client-generated** (UUID v4, as chat). Create is gated by `settings/calendar.eventCreation` (see below); author **or** owner may update/delete. The creation policy gates *creation only* — a member's own earlier events stay editable/deletable under `owner` (U-1 assumption; rules + emulator test pin it).
+
+Pending local writes carry null `createdAt`/`updatedAt` until the server timestamp resolves; the client codec maps those to `DateTime.now()` (UTC) stand-ins, same as chat.
+
+**Example**
+
+```json
+{
+  "title": "Dinner at Grandma's",
+  "startAt": "<timestamp>",
+  "endAt": null,
+  "allDay": false,
+  "notes": "Bring dessert",
+  "createdBy": "uid_bob",
+  "createdAt": "<timestamp>",
+  "updatedAt": "<timestamp>",
+  "schemaVersion": 1
+}
+```
+
+**Reserved (additive; not written or ruled today):**
+
+```
+// bases/{baseId}/events/{eventId}.reminders        — notification offsets (deferred)
+// bases/{baseId}/events/{eventId}.attachmentPaths  — member documents / pictures (deferred;
+//   the Dart entity already carries an empty `attachments` extension point; the codec never
+//   writes it — adding the field extends rules hasOnly + validation, no schemaVersion bump)
+```
+
+---
+
+### `bases/{baseId}/settings/{settingId}` — per-kind base settings
+
+Only `settingId == 'calendar'` exists. Owner-write / member-read. The owner writes the **whole** doc on first save (window + policy together) — no partial docs, so the codec only substitutes defaults for the *missing-doc* case.
+
+| Field | Type | Notes |
+|-------|------|--------|
+| `pastDays` | int | **0–365** (rules + Dart `kCalendarWindowMaxDays`) |
+| `futureDays` | int | **0–365** |
+| `eventCreation` | string | `"members"` \| `"owner"`. **Missing doc ⇒ `"members"`** — mirrored by rules `eventCreationPolicy()` and Dart `CalendarSettings.defaults` (the one defaults constant). |
+| `updatedAt` | timestamp | `serverTimestamp()` |
+| `schemaVersion` | number | `1` |
+
+Defaults when the doc is missing: `pastDays 7`, `futureDays 30`, `eventCreation "members"`.
+
+**Example**
+
+```json
+{
+  "pastDays": 7,
+  "futureDays": 30,
+  "eventCreation": "members",
+  "updatedAt": "<timestamp>",
+  "schemaVersion": 1
+}
+```
+
+**Reserved (comment-only, do not create or rule — same convention as stories):**
+
+```
+// bases/{baseId}/settings/notifications  — per-base notification policy (quiet hours,
+//                                          default reminder offset); same owner-write shape
+// users/{uid}/devices/{deviceId}         — FCM tokens (deferred; needs Cloud Messaging decision;
+//                                          profile doc hasOnly stays strict)
+```
+
+---
+
 ### Stories — deferred (do not implement)
 
 ```
@@ -215,7 +298,11 @@ bases/{baseId}
 bases/{baseId}/members/{uid}
 bases/{baseId}/invites/{code}
 bases/{baseId}/messages/{messageId}
-// bases/{baseId}/stories/{storyId}   — deferred
+bases/{baseId}/events/{eventId}
+bases/{baseId}/settings/calendar
+// bases/{baseId}/settings/notifications — reserved (deferred)
+// users/{uid}/devices/{deviceId}        — reserved (deferred)
+// bases/{baseId}/stories/{storyId}      — deferred
 ```
 
 ---
@@ -248,6 +335,8 @@ Full rules: [`firestore.rules`](../firestore.rules) (draft for review).
 | `invites/{code}` | signed-in (redeem) | create/delete: owner; `useCount` bump: signed-in under constraints |
 | `inviteCodes/{code}` | signed-in **get** only; **list denied** | create/delete: owner of mapped `baseId`; update denied |
 | `messages/{messageId}` | base member | create as self (`text` length 0–4000; text or media required); author or owner may delete |
+| `events/{eventId}` | base member | create: `mayCreateEvent()` (member, and `settings/calendar.eventCreation == 'members'` or owner) as self, title 1–80, notes ≤ 500, `endAt >= startAt`; update: author or owner (`createdBy`/`createdAt` immutable); delete: author or owner |
+| `settings/{settingId}` | base member | create/update: owner, `settingId == 'calendar'` only, 0–365 window, `eventCreation in ['members','owner']`; delete: owner (`deleteBase` sweep) |
 | stories | — | not ruled / not shipped |
 | `_smoke_tests/**` | signed-in | signed-in (debug probe only) |
 
@@ -332,6 +421,20 @@ Domain `Message.media` / `MediaRef` round-trip is **lossy** on Firestore: only t
 
 No ownership transfer; no last-owner-leave. Owner cannot use the self-remove branch to abandon a base without orphaning. Out of scope for MVP — do not build.
 
+### Calendar — Home agenda, window, creation policy (2026-09-27)
+
+**ADR:** The Home tab of a base is an **agenda list** (no month grid, no third-party calendar package, no `intl` — `MaterialLocalizations` formats dates) of events inside a **rolling window** the owner configures: `pastDays`/`futureDays`, defaults **7 / 30**, each clamped **0–365**. Events are single-day with optional end time; caps **title 80 / notes 500**. Times are stored **UTC** and displayed **device-local**; there is no per-base time zone (all-day events store local midnight → UTC, so a member in a different zone may see the day shift — accepted for a family app on one home network).
+
+**Who may create:** `settings/calendar.eventCreation` — `members` (default) or `owner`. The policy gates **creation only**; a member may still edit/delete their **own** earlier events under `owner` (author rule unchanged). UI derives FAB visibility from `CalendarSettings.canCreate(user, base)`; the `CreateEvent` use case re-checks the same object; rules enforce it independently via `mayCreateEvent()` (+1 `get()` on the settings doc per create — create-only, accepted).
+
+**Why a `settings` subcollection, not fields on `bases/{baseId}`:** the base update rule has three branches (owner / join / leave) reasoning about `name` and `memberUids`; extra keys widen every branch and the join transaction's projected state. A per-kind settings doc is owner-write / member-read with a five-line rule, costs one extra read on calendar open, and gives notifications its own `settings/notifications` doc later without touching base rules. No settings write on base create — the sequential owner-bootstrap and its compensating delete are untouched; missing doc ⇒ `CalendarSettings.defaults`.
+
+**Query:** `where('startAt' >= from).where('startAt' < to).orderBy('startAt').limit(200)` — range + orderBy on the **same single field** ⇒ **no composite index**; `firestore.indexes.json` unchanged. `limit(200)` is a client safety cap surfaced as a banner, not pagination.
+
+**Delete sweep:** `deleteBase` pages through `events` and `settings` in addition to `invites`/`members`.
+
+**Notifications (data architecture only — nothing built):** every event carries `startAt`, `updatedAt`, `createdBy`, and a stable client UUID, enough for a Cloud Function `onWrite` trigger or a client scheduler to key reminders idempotently; `settings/notifications` and `users/{uid}/devices/{deviceId}` paths are reserved; `WatchEvents` returns a domain stream a future `ReminderScheduler` can consume without touching the data source. Delivery mechanism (FCM via Functions/Blaze vs device-local vs defer) is **undecided** — U-7.
+
 ### Storage access (MVP openness)
 
 **ADR:** Storage reads/writes are gated by `request.auth != null` + object path + size/type only — **not** by base membership. Storage security rules cannot read Firestore documents, so `isMember(baseId)` is impossible here (unlike [`firestore.rules`](../firestore.rules)).
@@ -388,6 +491,7 @@ Firestorestore message docs store those paths in `mediaPaths` (never bytes, neve
 | List my bases | Composite: `memberUids` **CONTAINS** + `createdAt` **DESC** — checked in [`firestore.indexes.json`](../firestore.indexes.json) |
 | Redeem by code (if collection-group) | Collection group `invites` — confirm fields once redeem path is chosen |
 | Messages by time | `messages` orderBy `createdAt` under a base — **single-field auto index**; no composite entry required for Tuesday stream/list |
+| Calendar window | `events` range (`>=`, `<`) + orderBy on `startAt` under a base — **single-field auto index**; no composite entry |
 
 Deploy indexes with: `firebase deploy --only firestore:indexes --project moonbase-aaff7`
 

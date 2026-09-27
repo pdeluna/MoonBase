@@ -30,6 +30,11 @@ Locked decisions (why they’re parked) live in [FIRESTORE_SCHEMA.md → Decisio
 | 14 | `NetworkFailure` covers four SDK codes | When R2b needs copy or retry to vary by cause | `mapException` + `Failure` hierarchy — not rules |
 | 15 | Timeout ordering 15s → 20s → 20s | When any of those three constants is changed | Native retry / `resolveTimeout` / `kGuardTimeout` — never equal on the same call |
 | 16 | First-sign-in / fresh-install need a network | Copy, not a timeout change | UX copy — not rules |
+| 17 | Calendar `eventCreation` default `'members'` lives in rules **and** Dart | Default changes, or a third policy value is added | Rules `eventCreationPolicy()` + `isValidEventCreation` + `CalendarSettings.defaults` / `EventCreationPolicy` + emulator "no settings doc" test |
+| 18 | Event caps 80 / 500 / window 0–365 mirrored in rules and Dart | Any cap changes | Rules `eventFieldsValid` / `isValidWindowDays` + `validators.dart` constants + both test suites |
+| 19 | Calendar notifications: paths reserved, nothing built | Delivery mechanism decided (U-7) | `settings/notifications` + `users/{uid}/devices/{deviceId}` rules + tests; `events.reminders` additive field |
+| 20 | Event attachments: entity extension point only | Member documents / pictures on events become a product need | `events.attachmentPaths` additive field (rules hasOnly + Storage path family) — no schemaVersion bump |
+| 21 | Calendar feed `limit(200)` client cap | A base's window regularly exceeds 200 events | Pagination in data source — not rules |
 
 ---
 
@@ -263,6 +268,58 @@ This is why the field is on every doc — you’re pre-positioned.
 Both are copy problems, not hangs to timeout-away.
 
 **Trigger:** product wants different copy or an offline-first empty-state for those two paths.
+
+**Home half addressed (calendar PR, bug B-e):** `/home` no longer shows the "No Base Available" create prompt while `basesListProvider` is loading or errored — `CalendarHomeView` branches loading → skeleton, error → "Can't reach MoonBase right now" + Retry, `data([])` → create/join prompt. The login half stays with the auth worker.
+
+---
+
+## 17 — Calendar `eventCreation` default in two places
+
+**Parked as:** rules `eventCreationPolicy()` returns `'members'` when `settings/calendar` is missing; Dart `CalendarSettings.defaults` says the same. Emulator test *"member create ok when no settings doc exists"* and Dart codec test *"missing doc ⇒ defaults"* pin both ends.
+
+**Trigger:** changing the default, or adding a third policy value (e.g. `'owner+adults'`).
+
+**Change:** rules `eventCreationPolicy()` + `isValidEventCreation()`, Dart `EventCreationPolicy` enum + codec mapping, both tests. Do it in one PR.
+
+---
+
+## 18 — Event caps mirrored in rules and Dart
+
+**Parked as:** title 1–80, notes ≤ 500, window days 0–365. Rules `eventFieldsValid()` / `isValidWindowDays()`; Dart `kEventTitleMaxLen` / `kEventNotesMaxLen` / `kCalendarWindowMaxDays` in `validators.dart` (same discipline as the 4000 message cap).
+
+**Trigger:** any cap changes.
+
+**Change:** both sides + both suites in one PR.
+
+---
+
+## 19 — Calendar notifications reserved, not built
+
+**Parked as:** paths `bases/{baseId}/settings/notifications` and `users/{uid}/devices/{deviceId}` are comment-only; `events.reminders` is a reserved additive field. Every event already carries `startAt`, `updatedAt`, `createdBy`, and a stable client UUID so a Cloud Function `onWrite` or a client scheduler can key reminders idempotently.
+
+**Trigger:** U-7 decided — FCM via Cloud Functions (Blaze + Console Cloud Messaging + APNs key) vs device-local scheduled notifications vs none.
+
+**Change:** rules for the reserved paths (same owner-write shape as `settings/calendar`), emulator deny matrix, `Failure` types only when a real use case arrives (trigger #14 posture).
+
+---
+
+## 20 — Event attachments: extension point only
+
+**Parked as:** `CalendarEvent.attachments` exists on the Dart entity (always empty; the codec never writes it). No Firestore field, no Storage path, no picker wiring.
+
+**Trigger:** member documents / pictures on events become a product need.
+
+**Change:** `events.attachmentPaths: string[]` additive field (rules `hasOnly` + per-entry path match like `mediaPaths`), a Storage path family under `bases/{baseId}/…`, codec read/write. No `schemaVersion` bump (additive).
+
+---
+
+## 21 — Calendar feed `limit(200)`
+
+**Parked as:** client safety cap on the window query; the UI shows a "more than 200 events in this window" banner instead of paginating.
+
+**Trigger:** a base's window regularly exceeds 200 events.
+
+**Change:** paginate in `CalendarFirestoreDataSource` (cursor on `startAt`). Not a rules change.
 
 ---
 

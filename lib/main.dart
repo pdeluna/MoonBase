@@ -26,6 +26,10 @@ import 'package:moonbase_skeleton/features/chat/data/repositories/chat_outbox_re
 import 'package:moonbase_skeleton/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/providers/chat_providers.dart';
 
+import 'package:moonbase_skeleton/features/calendar/data/datasources/calendar_firestore_data_source.dart';
+import 'package:moonbase_skeleton/features/calendar/data/repositories/calendar_repository_impl.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_providers.dart';
+
 import 'package:moonbase_skeleton/features/bases/data/datasources/base_firestore_data_source.dart';
 import 'package:moonbase_skeleton/features/bases/data/repositories/base_repository_impl.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
@@ -116,6 +120,10 @@ void main() async {
 
     chatRepositoryProvider.overrideWithValue(
       ChatRepositoryImpl(local: ChatFirestoreDataSource()),
+    ),
+
+    calendarRepositoryProvider.overrideWithValue(
+      CalendarRepositoryImpl(source: CalendarFirestoreDataSource()),
     ),
 
     // Pending-send outbox (bug B-c): SharedPreferences-backed so unsent

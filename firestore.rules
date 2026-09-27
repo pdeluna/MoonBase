@@ -97,6 +97,68 @@ service cloud.firestore {
       return role in ['owner', 'member'];
     }
 
+    // Calendar (bases/{baseId}/events + bases/{baseId}/settings/calendar).
+    // Shape + caps: docs/FIRESTORE_SCHEMA.md §Calendar. Dart mirrors:
+    // kEventTitleMaxLen 80, kEventNotesMaxLen 500, kCalendarWindowMaxDays 365,
+    // CalendarSettings.defaults (eventCreation 'members') — do not diverge.
+    function calendarSettingsPath(baseId) {
+      return /databases/$(database)/documents/bases/$(baseId)/settings/calendar;
+    }
+
+    // Missing settings doc ⇒ 'members' (mirrors CalendarSettings.defaults —
+    // the two must agree; emulator test "create ok with no settings doc" pins it).
+    function eventCreationPolicy(baseId) {
+      return exists(calendarSettingsPath(baseId))
+        ? get(calendarSettingsPath(baseId)).data.eventCreation
+        : 'members';
+    }
+
+    // +1 settings get() per event create — create-only cost, accepted.
+    function mayCreateEvent(baseId) {
+      return isMember(baseId)
+        && (eventCreationPolicy(baseId) == 'members' || isOwner(baseId));
+    }
+
+    function isValidEventCreation(policy) {
+      return policy in ['members', 'owner'];
+    }
+
+    function isValidWindowDays(days) {
+      return days is int && days >= 0 && days <= 365;
+    }
+
+    // Field validation shared by event create + update (request.resource.data
+    // is the post-write document in both cases).
+    function eventFieldsValid() {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'title', 'startAt', 'endAt', 'allDay', 'notes',
+          'createdBy', 'createdAt', 'updatedAt', 'schemaVersion'
+        ])
+        && d.title is string
+        && d.title.size() >= 1
+        && d.title.size() <= 80
+        && d.startAt is timestamp
+        && d.allDay is bool
+        && (
+          !('endAt' in d)
+          || d.endAt == null
+          || (d.endAt is timestamp && d.endAt >= d.startAt)
+        )
+        && (
+          !('notes' in d)
+          || d.notes == null
+          || (d.notes is string && d.notes.size() <= 500)
+        )
+        && d.createdBy is string
+        && d.createdAt is timestamp
+        && d.updatedAt is timestamp;
+    }
+
+    function isEventAuthor() {
+      return resource.data.createdBy == request.auth.uid;
+    }
+
     // -------------------------------------------------------------------------
     // users/{uid} — profile
     // -------------------------------------------------------------------------
@@ -318,6 +380,60 @@ service cloud.firestore {
             resource.data.authorUid == request.auth.uid
             || isOwner(baseId)
           );
+      }
+
+      // -----------------------------------------------------------------------
+      // bases/{baseId}/events/{eventId} — calendar
+      // -----------------------------------------------------------------------
+      match /events/{eventId} {
+        allow read: if isMember(baseId);
+
+        // Create is policy-gated (settings/calendar.eventCreation); author is
+        // always the caller.
+        allow create: if mayCreateEvent(baseId)
+          && hasSchemaV1()
+          && eventFieldsValid()
+          && request.resource.data.createdBy == request.auth.uid;
+
+        // Author or owner may edit; createdBy / createdAt are immutable. The
+        // creation policy gates *creation* only (D-3 / U-1 assumption).
+        allow update: if isMember(baseId)
+          && existingSchemaV1()
+          && hasSchemaV1()
+          && (isEventAuthor() || isOwner(baseId))
+          && eventFieldsValid()
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt;
+
+        allow delete: if isMember(baseId)
+          && (isEventAuthor() || isOwner(baseId));
+
+        // RESERVED (additive, not ruled): `reminders` (notification offsets)
+        // and `attachmentPaths` (member documents / pictures). Adding either
+        // extends hasOnly + validation here — no schemaVersion bump.
+      }
+
+      // -----------------------------------------------------------------------
+      // bases/{baseId}/settings/{settingId} — per-kind base settings
+      // Only 'calendar' exists today. RESERVED: settings/notifications
+      // (per-base notification policy; same owner-write shape).
+      // -----------------------------------------------------------------------
+      match /settings/{settingId} {
+        allow read: if isMember(baseId);
+
+        allow create, update: if isOwner(baseId)
+          && settingId == 'calendar'
+          && hasSchemaV1()
+          && request.resource.data.keys().hasOnly([
+            'pastDays', 'futureDays', 'eventCreation', 'updatedAt', 'schemaVersion'
+          ])
+          && isValidWindowDays(request.resource.data.pastDays)
+          && isValidWindowDays(request.resource.data.futureDays)
+          && isValidEventCreation(request.resource.data.eventCreation)
+          && request.resource.data.updatedAt is timestamp;
+
+        // Owner-only delete so the deleteBase sweep can clear the subcollection.
+        allow delete: if isOwner(baseId);
       }
 
       // DEFERRED — do not enable until stories ship.
