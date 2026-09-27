@@ -23,6 +23,12 @@ Failure mapException(Object e) {
 ///
 /// The hierarchy has no dedicated retry-exhausted member. Closest fit is
 /// [NetworkFailure]. Not adding a new type this pass.
+///
+/// **Storage / rules access codes (B-b):** `object-not-found` →
+/// [MediaNotFoundFailure]; `unauthorized` / `unauthenticated` (Storage) and
+/// `permission-denied` (Firestore) → [PermissionDeniedFailure]. These carry
+/// authored copy, not the SDK message, because they reach the screen
+/// directly (media tiles, rule-denied writes).
 Failure _mapFirebaseException(FirebaseException e) {
   switch (e.code) {
     case 'retry-limit-exceeded':
@@ -30,6 +36,14 @@ Failure _mapFirebaseException(FirebaseException e) {
     case 'deadline-exceeded':
     case 'network-request-failed':
       return NetworkFailure(e.message ?? e.code);
+    case 'object-not-found':
+      return const MediaNotFoundFailure();
+    case 'unauthorized':
+    case 'unauthenticated':
+    case 'permission-denied':
+      return const PermissionDeniedFailure(
+        "You don't have permission to do that.",
+      );
     default:
       return UnknownFailure(e.toString());
   }

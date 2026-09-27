@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
+import 'package:moonbase_skeleton/core/error_mapper.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/features/media/data/datasources/remote_media_storage.dart';
 import 'package:moonbase_skeleton/features/media/data/firebase_storage_path.dart';
@@ -53,7 +54,12 @@ const Duration kFirebaseMediaResolveTimeout = Duration(seconds: 20);
 ///
 /// Returns `https://...` via [Reference.getDownloadURL]. Throws on invalid
 /// keys / Firebase errors (same Future-throws convention as [putBytes]; the
-/// port is not `Either`). Widgets map failures to a broken-image fallback.
+/// port is not `Either`) — but **only typed [Failure]s**: every caught error
+/// goes through `mapException`, so `object-not-found` →
+/// `MediaNotFoundFailure`, `unauthorized` / `unauthenticated` →
+/// `PermissionDeniedFailure`, `retry-limit-exceeded` → [NetworkFailure], the
+/// Dart-side timeout → [NetworkFailure], anything else → `UnknownFailure`.
+/// Widgets branch on the [Failure] type for the broken-media state (B-b).
 ///
 /// In-flight / completed download-URL futures are memoized per Storage path for
 /// the session so chat rebuilds share one `getDownloadURL` call. Failed
@@ -150,10 +156,14 @@ class FirebaseMediaStorage extends RemoteMediaStorage {
           'Timed out resolving media download URL.',
         ),
       );
-    } catch (_) {
+    } catch (e) {
       // Evict so a later attempt (e.g. after auth settles) can retry.
       _downloadUrlByPath.remove(path);
-      rethrow;
+      // Port contract: throws, but only typed Failures. A raw
+      // FirebaseException (object-not-found, unauthorized, …) becomes its
+      // domain Failure here so MediaTile can vary the broken state and
+      // nothing above the widget ever sees a plugin type.
+      throw mapException(e);
     }
   }
 
