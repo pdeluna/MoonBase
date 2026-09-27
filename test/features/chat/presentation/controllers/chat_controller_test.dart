@@ -5,6 +5,8 @@ import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source_impl.dart';
+import 'package:moonbase_skeleton/features/chat/data/datasources/chat_outbox_local_data_source_impl.dart';
+import 'package:moonbase_skeleton/features/chat/data/repositories/chat_outbox_repository_impl.dart';
 import 'package:moonbase_skeleton/features/chat/data/repositories/chat_repository_impl.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/chat_freshness.dart';
@@ -56,9 +58,13 @@ class _SilentStreamRepo implements ChatRepository {
     required UserId userId,
     required String content,
     List<MediaRef> media = const [],
+    MessageId? messageId,
   }) =>
       throw UnimplementedError();
 }
+
+ChatOutboxRepositoryImpl _memoryOutbox() =>
+    ChatOutboxRepositoryImpl(local: InMemoryChatOutboxDataSource());
 
 void main() {
   group('ChatController with in-memory repo', () {
@@ -82,6 +88,7 @@ void main() {
           cloudStorage: _UnusedMediaStorage(),
         ),
         StreamMessages(repo),
+        outbox: _memoryOutbox(),
       );
     });
 
@@ -114,6 +121,7 @@ void main() {
         cloudStorage: _UnusedMediaStorage(),
       ),
       StreamMessages(repo),
+      outbox: _memoryOutbox(),
     );
 
     await c.load('b1');
