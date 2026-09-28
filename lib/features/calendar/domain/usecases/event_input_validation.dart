@@ -15,12 +15,12 @@ ValidationFailure? validateEventInput(
 }) {
   if (!isValidEventTitle(input.title)) {
     return const ValidationFailure(
-      'Title must be 1–$kEventTitleMaxLen characters.',
+      'Title needs 1–$kEventTitleMaxLen characters.',
     );
   }
   if (!isValidEventNotes(input.notes)) {
     return const ValidationFailure(
-      'Notes can\'t exceed $kEventNotesMaxLen characters.',
+      'Notes are too long.',
     );
   }
   final end = input.endAt;
@@ -29,8 +29,8 @@ ValidationFailure? validateEventInput(
   }
   if (!window.resolve(today).contains(input.startAt)) {
     return ValidationFailure(
-      'Pick a day inside the visible window '
-      '(${window.pastDays} days back · ${window.futureDays} days ahead).',
+      'Pick a day on the calendar '
+      '(${window.pastDays} days back, ${window.futureDays} days ahead).',
     );
   }
   return null;
