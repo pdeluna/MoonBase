@@ -278,7 +278,10 @@ void main() {
       await pumpBroken(tester, const PermissionDeniedFailure());
       expect(find.byIcon(Icons.lock_outline), findsOneWidget);
       expect(
-          find.byTooltip('Permission denied. Tap to retry.'), findsOneWidget);
+          find.byTooltip(
+            "You don't have permission to do that. Tap to retry.",
+          ),
+          findsOneWidget);
     });
 
     testWidgets('UnauthenticatedFailure → lock', (tester) async {
@@ -329,7 +332,12 @@ void main() {
         showDebugDetails: true,
       );
       // Debug builds drop the user Tooltip (long-press is taken by details).
-      expect(find.byTooltip('Permission denied. Tap to retry.'), findsNothing);
+      expect(
+        find.byTooltip(
+          "You don't have permission to do that. Tap to retry.",
+        ),
+        findsNothing,
+      );
       await tester.longPress(find.byIcon(Icons.lock_outline));
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);

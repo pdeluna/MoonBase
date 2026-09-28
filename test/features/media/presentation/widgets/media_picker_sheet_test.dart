@@ -126,7 +126,7 @@ void main() {
       );
 
       expect(find.byType(MediaPickerSheet), findsNothing);
-      expect(find.text('That file is too large to attach.'), findsOneWidget);
+      expect(find.text('That file is too big.'), findsOneWidget);
     },
   );
 

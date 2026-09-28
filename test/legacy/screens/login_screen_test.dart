@@ -10,7 +10,11 @@ import 'package:moonbase_skeleton/legacy/screens/login_screen.dart';
 
 import '../../test_utils/mocks_auth.dart';
 
-const _wrongPasswordCopy = 'Invalid email or password.';
+const _firebaseCredentialSentence =
+    'The supplied auth credential is incorrect, malformed or has expired.';
+const _wrongPassword = InvalidCredentialsFailure(
+  debugDetail: _firebaseCredentialSentence,
+);
 const _longCopy =
     'This account has been disabled by an administrator. Contact the base '
     'owner to have it re-enabled before trying to sign in again.';
@@ -50,12 +54,12 @@ void main() {
       (tester) async {
     await _pumpLogin(
       tester,
-      failure: const ValidationFailure(_wrongPasswordCopy),
+      failure: _wrongPassword,
     );
     await _submit(tester);
 
     // Inline (errorText) and snackbar carry the same copy.
-    expect(find.text(_wrongPasswordCopy), findsNWidgets(2));
+    expect(find.text(kInvalidCredentialsCopy), findsNWidgets(2));
     expect(find.textContaining('Exception'), findsNothing);
     expect(find.textContaining('Failure('), findsNothing);
   });
@@ -74,7 +78,7 @@ void main() {
       (tester) async {
     await _pumpLogin(
       tester,
-      failure: const ValidationFailure(_wrongPasswordCopy),
+      failure: _wrongPassword,
     );
     await _submit(tester);
 
@@ -83,14 +87,14 @@ void main() {
     final passwordField =
         tester.widget<TextField>(find.byType(TextField).at(1));
     expect(passwordField.controller?.text, 'wrong-pw');
-    expect(find.text(_wrongPasswordCopy), findsWidgets);
+    expect(find.text(kInvalidCredentialsCopy), findsWidgets);
   });
 
   testWidgets('failure is also announced as a snackbar with the same copy',
       (tester) async {
     await _pumpLogin(
       tester,
-      failure: const ValidationFailure(_wrongPasswordCopy),
+      failure: _wrongPassword,
     );
     await _submit(tester);
     await tester.pump(const Duration(milliseconds: 300));
@@ -99,10 +103,18 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(SnackBar),
-        matching: find.text(_wrongPasswordCopy),
+        matching: find.text(kInvalidCredentialsCopy),
       ),
       findsOneWidget,
     );
+    expect(find.textContaining('supplied auth credential'), findsNothing);
+
+    await tester.longPress(find.descendant(
+      of: find.byType(SnackBar),
+      matching: find.text(kInvalidCredentialsCopy),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(_firebaseCredentialSentence), findsOneWidget);
   });
 
   testWidgets('NetworkFailure shows the plain login network copy',

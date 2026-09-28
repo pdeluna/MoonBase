@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 
+import 'package:moonbase_skeleton/core/error_mapper.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
 import 'package:moonbase_skeleton/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:moonbase_skeleton/features/auth/data/models/user_model.dart';
@@ -29,24 +30,15 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
     );
   }
 
+  /// Maps a Firebase Auth error to a [Failure]. The Firebase sentence stays
+  /// on [Failure.debugDetail]; [userMessage] reads the plain [Failure.message].
+  static Failure mapAuthException(fb.FirebaseAuthException e) {
+    return mapAuthFirebaseCode(e.code, e.message) ??
+        UnknownFailure(kGenericFailureCopy, e.message ?? e.code);
+  }
+
   Never _mapFirebaseException(fb.FirebaseAuthException e) {
-    switch (e.code) {
-      case 'network-request-failed':
-      case 'too-many-requests':
-        throw NetworkFailure(e.message ?? 'Network error');
-      case 'wrong-password':
-      case 'user-not-found':
-      case 'invalid-credential':
-      case 'invalid-email':
-      case 'user-disabled':
-        throw ValidationFailure(e.message ?? 'Invalid email or password.');
-      case 'email-already-in-use':
-        throw ValidationFailure(e.message ?? 'That email is already in use.');
-      case 'weak-password':
-        throw ValidationFailure(e.message ?? 'Password is too weak.');
-      default:
-        throw UnknownFailure(e.message ?? e.code);
-    }
+    throw mapAuthException(e);
   }
 
   @override
@@ -62,8 +54,7 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       );
       final user = cred.user;
       if (user == null) {
-        throw const UnknownFailure(
-            'Sign-up succeeded but no user was returned.');
+        throw const UnknownFailure('Could not create your account. Try again.');
       }
       final trimmed = nickname.trim();
       await user.updateDisplayName(trimmed);
@@ -87,8 +78,7 @@ class FirebaseAuthRemoteDataSource implements AuthRemoteDataSource {
       );
       final user = cred.user;
       if (user == null) {
-        throw const UnknownFailure(
-            'Sign-in succeeded but no user was returned.');
+        throw const UnknownFailure('Could not sign you in. Try again.');
       }
       return _toModel(user);
     } on fb.FirebaseAuthException catch (e) {

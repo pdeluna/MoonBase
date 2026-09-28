@@ -112,24 +112,22 @@ class SendMessage implements UseCase<Message, SendMessageParams> {
 
     if (!isValidMessageInput(text: content, mediaCount: media.length)) {
       if (content.length > kMessageMaxLen) {
-        return const Left(ValidationFailure(
-          'Message can\'t exceed $kMessageMaxLen characters.',
-        ));
+        return const Left(ValidationFailure('That message is too long.'));
       }
       return const Left(ValidationFailure(
-        'Message must contain text or at least one attachment.',
+        'Write something or add a photo.',
       ));
     }
 
     if (media.length > MediaConstraints.maxMediaPerMessageDefault) {
       return const Left(ValidationFailure(
-        'Too many attachments (max ${MediaConstraints.maxMediaPerMessageDefault}).',
+        'You can add up to ${MediaConstraints.maxMediaPerMessageDefault} photos.',
       ));
     }
 
     if (media.any((m) => !ChatMediaPolicy.allows(m.type))) {
       return const Left(MediaUnsupportedFailure(
-        'Video attachments are not supported in cloud chat yet.',
+        "Videos can't be sent in chat yet.",
       ));
     }
 
