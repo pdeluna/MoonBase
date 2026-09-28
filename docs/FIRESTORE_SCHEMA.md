@@ -456,9 +456,9 @@ Domain `Message.media` / `MediaRef` round-trip is **lossy** on Firestore: only t
 
 No ownership transfer; no last-owner-leave. Owner cannot use the self-remove branch to abandon a base without orphaning. Out of scope for MVP — do not build.
 
-### Calendar — Home agenda, window, creation policy (2026-09-27)
+### Calendar — Home grid, window, creation policy (2026-09-27)
 
-**ADR:** The Home tab of a base is an **agenda list** (no month grid, no third-party calendar package, no `intl` — `MaterialLocalizations` formats dates) of events inside a **rolling window** the owner configures: `pastDays`/`futureDays`, defaults **7 / 30**, each clamped **0–365**. Events are single-day with optional end time; caps **title 80 / notes 500**. Times are stored **UTC** and displayed **device-local**; there is no per-base time zone (all-day events store local midnight → UTC, so a member in a different zone may see the day shift — accepted for a family app on one home network).
+**ADR:** The Home tab of a base draws a **week/month grid** (custom widgets over the same feed — no third-party calendar package, no `intl` — `MaterialLocalizations` formats dates) of events inside a **rolling window** the owner configures: `pastDays`/`futureDays`, defaults **7 / 30**, each clamped **0–365**. The week/month control only changes drawing; it does not change the saved window. Events are single-day with optional end time; caps **title 80 / notes 500**. Times are stored **UTC** and displayed **device-local**; there is no per-base time zone (all-day events store local midnight → UTC, so a member in a different zone may see the day shift — accepted for a family app on one home network).
 
 **Who may create:** `settings/calendar.eventCreation` — `members` (default) or `owner`. The policy gates **creation only**; a member may still edit/delete their **own** earlier events under `owner` (author rule unchanged). UI derives FAB visibility from `CalendarSettings.canCreate(user, base)`; the `CreateEvent` use case re-checks the same object; rules enforce it independently via `mayCreateEvent()` (+1 `get()` on the settings doc per create — create-only, accepted).
 
