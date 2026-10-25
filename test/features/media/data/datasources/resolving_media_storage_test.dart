@@ -9,9 +9,9 @@ import 'package:moonbase_skeleton/features/media/data/firebase_storage_path.dart
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
 
 class _FakeCloudStorage implements MediaStorage {
-  _FakeCloudStorage({this.downloadUrl = 'https://example.com/tokenized.jpg'});
+  _FakeCloudStorage();
 
-  final String downloadUrl;
+  final String downloadUrl = 'https://example.com/tokenized.jpg';
   final List<String> resolveCalls = <String>[];
   Object? resolveError;
 
@@ -108,7 +108,8 @@ void main() {
       expect(cloud.resolveCalls, [cloudPath]);
     });
 
-    test('cloud resolve failures throw (widgets map to broken image)', () async {
+    test('cloud resolve failures throw (widgets map to broken image)',
+        () async {
       cloud.resolveError = StateError('permission-denied');
 
       expect(
