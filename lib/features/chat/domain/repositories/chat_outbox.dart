@@ -8,7 +8,8 @@ import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 ///
 /// A message enters the outbox the moment the user taps send (with
 /// `SyncStatus.uploading`) and leaves it when the send use case returns
-/// `Right`, or when the live feed delivers a document with the same id.
+/// `Right`, or when the live feed delivers a server-acknowledged document
+/// with the same id. A local cache echo is not in that feed.
 /// Failed sends stay in the outbox as `SyncStatus.failed` so they survive
 /// app termination and are replayed on the next open of that base.
 ///

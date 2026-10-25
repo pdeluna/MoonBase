@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/platform_settings.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_constraints.dart';
@@ -211,7 +212,7 @@ class MediaPickerSheet extends ConsumerWidget {
       return;
     }
     messenger.showSnackBar(
-      SnackBar(content: Text(_friendlyFailure(failure))),
+      SnackBar(content: Text(userMessage(failure))),
     );
   }
 
@@ -226,14 +227,6 @@ class MediaPickerSheet extends ConsumerWidget {
     });
   }
 
-  String _friendlyFailure(Failure f) {
-    if (f is MediaTooLargeFailure) return 'That file is too large to attach.';
-    if (f is MediaTooLongFailure) return 'That video is longer than allowed.';
-    if (f is MediaUnsupportedFailure) {
-      return 'That file type isn’t supported here.';
-    }
-    return f.message;
-  }
 }
 
 class _PickerOption extends StatelessWidget {

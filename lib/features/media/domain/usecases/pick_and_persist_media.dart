@@ -44,7 +44,10 @@ class PickAndPersistMedia implements UseCase<MediaRef?, MediaPickRequest> {
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
-      return Left(UnknownFailure(e.toString()));
+      return Left(UnknownFailure(
+        "Couldn't add that photo. Try again.",
+        e.toString(),
+      ));
     }
   }
 }

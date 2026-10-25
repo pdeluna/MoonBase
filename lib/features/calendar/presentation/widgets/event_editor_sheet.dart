@@ -27,9 +27,9 @@ class EventEditorSheet extends StatefulWidget {
   static const startKey = Key('event-editor-start');
   static const endKey = Key('event-editor-end');
 
-  static const titleError = 'Title must be 1–$kEventTitleMaxLen characters';
-  static const notesError = 'Notes can\'t exceed $kEventNotesMaxLen characters';
-  static const endBeforeStartError = 'End time must not be before start time';
+  static const titleError = 'Title needs 1–$kEventTitleMaxLen characters.';
+  static const notesError = 'Notes are too long.';
+  static const endBeforeStartError = 'End time must not be before start time.';
 
   final CalendarWindow window;
   final DateTime today;

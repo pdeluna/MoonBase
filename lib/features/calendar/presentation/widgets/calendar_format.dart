@@ -26,6 +26,6 @@ String formatEventDate(BuildContext context, CalendarEvent e) =>
     MaterialLocalizations.of(context).formatMediumDate(e.startAt.toLocal());
 
 String formatWindowLabel(CalendarWindow w) =>
-    'Showing ${_days(w.pastDays)} back · ${_days(w.futureDays)} ahead';
+    'Showing ${_days(w.pastDays)} back, ${_days(w.futureDays)} ahead';
 
 String _days(int n) => n == 1 ? '1 day' : '$n days';

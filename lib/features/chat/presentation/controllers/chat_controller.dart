@@ -90,17 +90,21 @@ class ChatState {
 /// outbox row is updated so the failure survives termination. `retry`
 /// re-runs the same id with the same media; `discard` drops it.
 ///
-/// Reconciliation: whenever the live feed delivers a document whose id is
-/// pending, the entry is settled — the backend (or Firestore's own
-/// persistence queue) now owns delivery, and a second `set()` of the same
-/// id would be an update the rules deny.
+/// Reconciliation: whenever the live feed delivers a **server-acknowledged**
+/// document whose id is pending, the entry is settled — the backend now
+/// owns delivery, and a second `set()` of the same id would be an update
+/// the rules deny. Local cache echoes are removed before they reach this
+/// feed (`ChatRepositoryImpl`), so airplane mode cannot reconcile the
+/// outbox away.
 ///
 /// Replay: `load(baseId, userId: …)` restores outbox rows for that base and
 /// signed-in user and re-dispatches them sequentially. Rows authored by
 /// another account on the device are left untouched.
 ///
-/// No write timeout is added here — the unbounded Firestore write is the
-/// parked R3 trigger #12; the pending spinner is the honest UI for it.
+/// The send use case bounds the server ack (`kChatSendAckTimeout`). Until
+/// it returns, the bubble stays on `uploading`. `Left` flips it to `failed`
+/// and raises [ChatState.lastSendFailure] for the Retry alert. Profile
+/// create-or-return stays unbounded (trigger #12).
 class ChatController extends StateNotifier<ChatState> {
   ChatController(
     this._sendMessage,

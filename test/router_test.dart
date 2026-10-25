@@ -13,7 +13,7 @@ import 'package:moonbase_skeleton/router.dart';
 
 import 'test_utils/mocks_auth.dart';
 
-const _wrongPasswordCopy = 'Invalid email or password.';
+const _wrongPasswordCopy = kInvalidCredentialsCopy;
 
 MockAuthRepository _signedOutRepo({required Failure signInFailure}) {
   final repo = MockAuthRepository();

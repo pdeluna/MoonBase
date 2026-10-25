@@ -13,7 +13,35 @@ Failure mapException(Object e) {
   return UnknownFailure(e.toString());
 }
 
-/// Storage `retry-limit-exceeded` and Firestore/Auth connectivity codes.
+/// Auth codes that must not surface the Firebase sentence.
+///
+/// Returns null for codes this helper does not own (Storage, Firestore).
+/// [sdkMessage] is kept as [Failure.debugDetail] or, for [NetworkFailure],
+/// as the failure message the presenter already hides.
+Failure? mapAuthFirebaseCode(String code, String? sdkMessage) {
+  final raw = (sdkMessage == null || sdkMessage.isEmpty) ? code : sdkMessage;
+  switch (code) {
+    case 'network-request-failed':
+    case 'too-many-requests':
+      return NetworkFailure(raw);
+    case 'wrong-password':
+    case 'user-not-found':
+    case 'invalid-credential':
+      return InvalidCredentialsFailure(debugDetail: raw);
+    case 'invalid-email':
+      return ValidationFailure('Enter a valid email address.', raw);
+    case 'user-disabled':
+      return ValidationFailure('This account is turned off.', raw);
+    case 'email-already-in-use':
+      return ValidationFailure('That email is already in use.', raw);
+    case 'weak-password':
+      return ValidationFailure('Use at least 6 characters.', raw);
+    default:
+      return null;
+  }
+}
+
+/// Storage `retry-limit-exceeded` and Firestore connectivity codes.
 ///
 /// **Types:** both map to [NetworkFailure], not [NetworkTimeoutFailure].
 /// [NetworkTimeoutFailure] is Dart `TimeoutException` / [guardWithTimeout]
@@ -28,22 +56,22 @@ Failure mapException(Object e) {
 /// [MediaNotFoundFailure]; `unauthorized` / `unauthenticated` (Storage) and
 /// `permission-denied` (Firestore) → [PermissionDeniedFailure]. These carry
 /// authored copy, not the SDK message, because they reach the screen
-/// directly (media tiles, rule-denied writes).
+/// directly (media tiles, rule-denied writes). Auth credential codes are
+/// handled first by [mapAuthFirebaseCode].
 Failure _mapFirebaseException(FirebaseException e) {
+  final auth = mapAuthFirebaseCode(e.code, e.message);
+  if (auth != null) return auth;
   switch (e.code) {
     case 'retry-limit-exceeded':
     case 'unavailable':
     case 'deadline-exceeded':
-    case 'network-request-failed':
       return NetworkFailure(e.message ?? e.code);
     case 'object-not-found':
       return const MediaNotFoundFailure();
     case 'unauthorized':
     case 'unauthenticated':
     case 'permission-denied':
-      return const PermissionDeniedFailure(
-        "You don't have permission to do that.",
-      );
+      return const PermissionDeniedFailure();
     default:
       return UnknownFailure(e.toString());
   }

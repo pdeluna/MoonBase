@@ -52,7 +52,10 @@ class PickAndPersistMultipleImages
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
-      return Left(UnknownFailure(e.toString()));
+      return Left(UnknownFailure(
+        "Couldn't add those photos. Try again.",
+        e.toString(),
+      ));
     }
   }
 }

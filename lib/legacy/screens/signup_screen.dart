@@ -1,7 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_snackbar.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:moonbase_skeleton/legacy/widgets/primary_button.dart';
@@ -29,14 +30,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     super.dispose();
   }
 
-  String _messageFromAuthState() {
-    final current = ref.read(authControllerProvider).current;
-    return current.when(
-      data: (_) => 'Could not create account. Try again.',
-      loading: () => 'Could not create account. Try again.',
-      error: (e, _) =>
-          e is Failure ? e.message : 'Could not create account. Try again.',
-    );
+  static const fallbackCopy = 'Could not create your account. Try again.';
+
+  void _showFailure(Object? error) {
+    final copy = error == null ? fallbackCopy : userMessage(error);
+    setState(() => _error = copy);
+    showFailureSnackBar(context, error, message: copy);
   }
 
   Future<void> _submit() async {
@@ -56,12 +55,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       if (user != null) {
         context.go('/home');
       } else {
-        setState(() => _error = _messageFromAuthState());
+        _showFailure(
+          ref.read(authControllerProvider).current.whenOrNull(
+                error: (e, _) => e,
+              ),
+        );
       }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _error = 'Could not create account. Try again.');
-      }
+    } catch (e) {
+      if (mounted) _showFailure(e);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -100,7 +101,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   onChanged: (_) => setState(() => _error = null),
                   validator: (v) {
                     if (v == null || !isValidNickname(v)) {
-                      return '1–24 chars: letters, numbers, space, _ . -';
+                      return 'Nickname needs 1–24 characters.';
                     }
                     return null;
                   },
@@ -117,7 +118,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   onChanged: (_) => setState(() => _error = null),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty || !v.contains('@'))
-                          ? 'Enter email'
+                          ? 'Enter a valid email address.'
                           : null,
                 ),
                 const SizedBox(height: 12),
@@ -130,7 +131,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     helperText: 'At least 6 characters',
                   ),
                   validator: (v) =>
-                      (v == null || v.length < 6) ? 'Min 6 chars' : null,
+                      (v == null || v.length < 6)
+                          ? 'Use at least 6 characters.'
+                          : null,
                 ),
                 const SizedBox(height: 20),
                 PrimaryButton(

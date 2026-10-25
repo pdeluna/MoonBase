@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moonbase_skeleton/core/either.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source.dart';
 import 'package:moonbase_skeleton/features/chat/data/datasources/chat_local_data_source_impl.dart';
@@ -161,4 +163,83 @@ void main() {
       expect(list.single.id, 'client-uuid-1'.mid);
     });
   });
+
+  group('unacknowledged local writes (S1 B-c)', () {
+    MessageModel model(String id, String content) => MessageModel(
+          id: id,
+          baseId: 'b1',
+          userId: 'u1',
+          content: content,
+          createdAt: DateTime.utc(2026, 9, 27, 12),
+        );
+
+    test('cache echo is dropped from the feed; freshness stays cached',
+        () async {
+      final batches = StreamController<ChatMessageBatch>();
+      final repo = ChatRepositoryImpl(local: _StubBatchDs(batches.stream));
+      final events = <ChatFeed>[];
+      final sub = repo.streamMessages('b1'.bid).listen(events.add);
+
+      batches.add(ChatMessageBatch(
+        messages: [model('old', 'earlier'), model('local-1', 'hello')],
+        fromCache: true,
+        unacknowledgedIds: const {'local-1'},
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(events.single.freshness, ChatFreshness.cached);
+      expect(events.single.messages.map((m) => m.id.value), ['old']);
+      expect(events.single.messages.single.content, 'earlier');
+
+      await sub.cancel();
+      await batches.close();
+    });
+
+    test('a send that never gets a server ack fails with plain network copy',
+        () {
+      fakeAsync((async) {
+        final repo = ChatRepositoryImpl(local: _HangingChatDs());
+        late Either<Failure, Message> result;
+        repo
+            .sendMessage(baseId: 'b1'.bid, userId: 'u1'.uid, content: 'hi')
+            .then((r) => result = r);
+
+        async.elapse(kChatSendAckTimeout);
+        async.flushMicrotasks();
+
+        final failure = result.match((f) => f, (_) => fail('expected Left'));
+        expect(failure, isA<NetworkFailure>());
+        expect(
+          failure.message,
+          'Chat send was not acknowledged by the server.',
+        );
+        expect(userMessage(failure), kNetworkErrorCopy);
+        expect(userMessage(failure), isNot(contains('acknowledged')));
+      });
+    });
+  });
+}
+
+class _HangingChatDs implements ChatLocalDataSource {
+  @override
+  Future<MessageModel> sendMessage({
+    required String baseId,
+    required String userId,
+    required String content,
+    List<MediaRef> media = const [],
+    String? messageId,
+  }) =>
+      Completer<MessageModel>().future;
+
+  @override
+  Stream<ChatMessageBatch> streamMessages(String baseId) =>
+      const Stream.empty();
+
+  @override
+  Future<List<MessageModel>> listMessages({
+    required String baseId,
+    DateTime? before,
+    int limit = 50,
+  }) =>
+      Completer<List<MessageModel>>().future;
 }

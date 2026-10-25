@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/core/presentation/debug_error_details.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/core/presentation/failure_snackbar.dart';
 import 'package:moonbase_skeleton/core/sync_status.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
@@ -66,9 +68,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     result.match(
       (failure) {
         // Best-effort delete failure is non-fatal — the file may be GC'd
-        // by a future sweep. Log via snackbar so the dev sees it in debug.
+        // by a future sweep. Plain copy on the snackbar; raw detail stays
+        // on the debug long-press.
         if (mounted) {
-          _showErrorSnackBar('Could not remove attachment: ${failure.message}');
+          showFailureSnackBar(
+            context,
+            failure,
+            prefix: "Couldn't remove that attachment",
+          );
         }
       },
       (_) {},
@@ -84,17 +91,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (!isValidMessageInput(text: text, mediaCount: _stagedMedia.length)) {
       _showErrorSnackBar(
         text.length > kMessageMaxLen
-            ? 'Message can\'t exceed $kMessageMaxLen characters'
-            : 'Message must contain text or at least one attachment',
+            ? 'That message is too long.'
+            : 'Write something or add a photo.',
       );
       return;
     }
 
     final vm = ref.read(chatScreenVmProvider);
     if (!vm.canSendMessage) {
-      _showErrorSnackBar(
-        'Cannot send message: no base selected or user not authenticated',
-      );
+      _showErrorSnackBar('Sign in and pick a base first.');
       return;
     }
 
@@ -295,9 +300,10 @@ class _ChatBody extends ConsumerWidget {
       loading: () => const _ChatStateContent(
         kind: _ChatStateKind.loading,
       ),
-      error: (Object error, StackTrace _) => _ChatStateContent(
+      error: (Object error, StackTrace stackTrace) => _ChatStateContent(
         kind: _ChatStateKind.error,
-        errorMessage: error.toString(),
+        error: error,
+        stackTrace: stackTrace,
         onRetry: () => ref.read(chatControllerProvider.notifier).load(
               baseId,
               userId: currentUser?.id.value,
@@ -323,12 +329,14 @@ enum _ChatStateKind { loading, error, empty }
 class _ChatStateContent extends StatelessWidget {
   const _ChatStateContent({
     required this.kind,
-    this.errorMessage,
+    this.error,
+    this.stackTrace,
     this.onRetry,
   });
 
   final _ChatStateKind kind;
-  final String? errorMessage;
+  final Object? error;
+  final StackTrace? stackTrace;
   final VoidCallback? onRetry;
 
   @override
@@ -350,18 +358,22 @@ class _ChatStateContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Error loading messages',
+                  "Couldn't load messages.",
                   style: Theme.of(context).textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
-                if (errorMessage != null) ...[
+                if (error != null) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    errorMessage!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                    textAlign: TextAlign.center,
+                  DebugErrorDetails(
+                    error: error,
+                    stackTrace: stackTrace,
+                    child: Text(
+                      userMessage(error),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ],
                 if (onRetry != null) ...[

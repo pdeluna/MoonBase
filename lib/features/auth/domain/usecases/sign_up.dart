@@ -28,9 +28,7 @@ class SignUp implements UseCase<User, SignUpParams> {
     if (!isValidNickname(nickname)) {
       return Future.value(
         const Left(
-          ValidationFailure(
-            'Nickname must be 1–24 characters (letters, numbers, space, _ . -).',
-          ),
+          ValidationFailure('Nickname needs 1–24 characters.'),
         ),
       );
     }

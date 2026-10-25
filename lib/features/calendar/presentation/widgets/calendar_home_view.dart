@@ -24,11 +24,11 @@ import 'package:moonbase_skeleton/features/calendar/presentation/widgets/window_
 class CalendarHomeView extends ConsumerStatefulWidget {
   const CalendarHomeView({super.key});
 
-  static const emptyWindowCopy = 'Nothing planned in this window';
+  static const emptyWindowCopy = 'Nothing planned yet.';
   static const truncatedCopy =
-      'This window has more than $kCalendarFeedLimit events — showing the first $kCalendarFeedLimit.';
+      'Too many events to show. Here are the first $kCalendarFeedLimit.';
   static const settingsUnavailableCopy =
-      'Couldn\'t load calendar settings — showing the default window.';
+      "Couldn't load calendar settings. Showing the usual days.";
   static const feedErrorCopy = 'Couldn\'t load events.';
 
   @override

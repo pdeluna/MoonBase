@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/viewmodels/chat_screen_vm.dart';
 import 'package:moonbase_skeleton/features/chat/presentation/controllers/chat_controller.dart';
@@ -77,7 +78,7 @@ final chatScreenVmProvider = Provider<ChatScreenVM>((ref) {
       currentUser: currentUser,
       messages: const [],
       isLoading: false,
-      error: error.toString(),
+      error: userMessage(error),
       canSendMessage: canSend,
     ),
   );

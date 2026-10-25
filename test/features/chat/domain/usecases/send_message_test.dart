@@ -160,7 +160,7 @@ void main() {
       expect(result, isA<Left<Failure, Message>>());
       final failure = (result as Left<Failure, Message>).value;
       expect(failure, isA<ValidationFailure>());
-      expect(failure.message, contains('$kMessageMaxLen'));
+      expect(failure.message, 'That message is too long.');
       verifyZeroInteractions(repo);
     });
 
@@ -191,7 +191,7 @@ void main() {
       expect(result, isA<Left<Failure, Message>>());
       final failure = (result as Left<Failure, Message>).value;
       expect(failure, isA<MediaUnsupportedFailure>());
-      expect(failure.message, contains('Video attachments'));
+      expect(failure.message, "Videos can't be sent in chat yet.");
       verifyZeroInteractions(staging);
       verifyZeroInteractions(cloud);
       verifyZeroInteractions(repo);

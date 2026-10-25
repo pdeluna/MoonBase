@@ -9,8 +9,16 @@ class ChatMessageBatch {
   const ChatMessageBatch({
     required this.messages,
     required this.fromCache,
+    this.unacknowledgedIds = const <String>{},
   });
 
   final List<MessageModel> messages;
   final bool fromCache;
+
+  /// Document ids whose local write the server has not acknowledged.
+  ///
+  /// Not a freshness signal — [fromCache] stays `isFromCache` alone.
+  /// [ChatRepositoryImpl] drops these from the domain feed so a cache echo
+  /// is not treated as delivery. The outbox owns them until the server acks.
+  final Set<String> unacknowledgedIds;
 }

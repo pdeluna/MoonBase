@@ -271,6 +271,30 @@ void main() {
     });
   });
 
+  test(
+      'a cached feed of other messages does not swallow a failed send',
+      () async {
+    repo.script.add(const NetworkFailure('offline'));
+    await c.load('b1');
+    repo.feed.add(ChatFeed(
+      messages: [_feedMessage('older', content: 'earlier')],
+      freshness: ChatFreshness.cached,
+    ));
+    await _settle();
+
+    await c.send('b1', 'u1', 'hello');
+    await _settle();
+
+    expect(c.state.pending.single.isFailed, isTrue);
+    expect(c.state.pending.single.message.content, 'hello');
+    expect(c.state.lastSendFailure, isNotNull);
+    expect(c.state.lastSendFailure!.failure, isA<NetworkFailure>());
+    // The cached snapshot stays the history feed. It is not the failure UI.
+    expect(c.state.feed.value!.freshness, ChatFreshness.cached);
+    expect(c.state.feed.value!.messages.single.content, 'earlier');
+    expect(outboxStore.rows.single.syncStatus, SyncStatus.failed);
+  });
+
   group('reconciliation with the live feed', () {
     test(
         'a feed document with the pending id evicts the pending entry and '

@@ -40,7 +40,7 @@ void main() {
     test('PermissionDeniedFailure / UnauthenticatedFailure → message', () {
       expect(
         userMessage(const PermissionDeniedFailure()),
-        'Permission denied.',
+        "You don't have permission to do that.",
       );
       expect(
         userMessage(const UnauthenticatedFailure()),
@@ -51,7 +51,7 @@ void main() {
     test('media failures → authored message', () {
       expect(
         userMessage(const MediaTooLargeFailure()),
-        'Media exceeds the maximum size.',
+        'That file is too big.',
       );
       expect(
         userMessage(const MediaUnsupportedFailure('HEIC is not supported.')),
@@ -138,6 +138,15 @@ void main() {
   });
 
   group('debugSummary / debugDescription', () {
+    test('InvalidCredentialsFailure hides the Firebase sentence', () {
+      const raw =
+          'The supplied auth credential is incorrect, malformed or has expired.';
+      const failure = InvalidCredentialsFailure(debugDetail: raw);
+      expect(userMessage(failure), kInvalidCredentialsCopy);
+      expect(userMessage(failure), isNot(contains('credential')));
+      expect(debugSummary(failure), 'InvalidCredentialsFailure: $raw');
+    });
+
     test('summary is runtimeType plus message', () {
       expect(
         debugSummary(const NetworkFailure('unavailable')),

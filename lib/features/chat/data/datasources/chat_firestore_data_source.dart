@@ -73,6 +73,15 @@ class ChatFirestoreDataSource implements ChatLocalDataSource {
         .orderBy('createdAt')
         .snapshots(includeMetadataChanges: true)
         .map((snap) {
+      // A local pending write echoes immediately with hasPendingWrites.
+      // Tag those ids so the repository can keep them out of the feed.
+      // Leaving them in made ChatController treat the echo as delivery,
+      // drop the outbox row, and leave only the cached-messages banner
+      // (device session S1 B-c, airplane mode).
+      final unacknowledged = <String>{
+        for (final d in snap.docs)
+          if (d.metadata.hasPendingWrites) d.id,
+      };
       final list = snap.docs
           .map((d) => MessageModel.fromFirestore(d.id, baseId, d.data()))
           .toList()
@@ -80,6 +89,7 @@ class ChatFirestoreDataSource implements ChatLocalDataSource {
       return ChatMessageBatch(
         messages: list,
         fromCache: snap.metadata.isFromCache,
+        unacknowledgedIds: unacknowledged,
       );
     });
   }

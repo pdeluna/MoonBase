@@ -16,7 +16,7 @@ const bool kMoonbaseDebugUi =
     kDebugMode && bool.fromEnvironment('MOONBASE_DEBUG_UI', defaultValue: true);
 
 /// Fallback copy when nothing better is known about the error.
-const String kGenericErrorCopy = 'Something went wrong. Please try again.';
+const String kGenericErrorCopy = kGenericFailureCopy;
 
 /// Copy for [NetworkFailure] — the SDK completed with a connectivity error.
 const String kNetworkErrorCopy =
@@ -104,10 +104,17 @@ String stripExceptionPrefix(String raw) {
 
 final RegExp _bareTypeName = RegExp(r'^_?[A-Za-z]*(?:Exception|Error)$');
 
-/// One-line developer summary: `NetworkFailure: Network error`.
+/// One-line developer summary. Prefers [Failure.debugDetail] (the raw SDK
+/// string) so a release-plain [Failure.message] does not hide the cause.
 String debugSummary(Object? error) {
   if (error == null) return 'null';
-  if (error is Failure) return '${error.runtimeType}: ${error.message}';
+  if (error is Failure) {
+    final detail = error.debugDetail;
+    if (detail != null && detail.isNotEmpty) {
+      return '${error.runtimeType}: $detail';
+    }
+    return '${error.runtimeType}: ${error.message}';
+  }
   return '${error.runtimeType}: $error';
 }
 
@@ -119,7 +126,13 @@ String debugDescription(Object? error, [StackTrace? stackTrace]) {
   final buffer = StringBuffer()
     ..writeln('type: ${error?.runtimeType ?? 'null'}')
     ..writeln('user copy: ${userMessage(error)}');
-  if (error is Failure) buffer.writeln('failure message: ${error.message}');
+  if (error is Failure) {
+    buffer.writeln('failure message: ${error.message}');
+    final detail = error.debugDetail;
+    if (detail != null && detail.isNotEmpty) {
+      buffer.writeln('debug detail: $detail');
+    }
+  }
   buffer.writeln('raw: $error');
   if (stackTrace != null) {
     buffer
