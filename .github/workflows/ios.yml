@@ -80,6 +80,12 @@ jobs:
 
       - name: Precache iOS engine artifacts
         run: fvm flutter precache --ios
+    
+      - name: Install pinned CocoaPods
+        run: sudo gem install cocoapods -v 1.17.0 --no-document
+        
+      - name: Show CocoaPods version
+        run: pod --version
 
       - name: Resolve CocoaPods
         working-directory: ios
