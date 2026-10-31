@@ -104,11 +104,33 @@ jobs:
             git status --short --untracked-files=all -- ios
             exit 1
           fi
+          
+          # Checksums of local :path pods (Flutter plugins) are a hash of the
+          # podspec as evaluated by the local Ruby, so they differ between the
+          # Mac's Ruby and the runner's. Plugin versions are pinned by
+          # pubspec.lock, so mask only those lines; everything else must match.
+          normalize() {
+            awk '
+              /^EXTERNAL SOURCES:/ { sec = "ext"; print; next }
+              /^SPEC CHECKSUMS:/   { sec = "sum"; print; next }
+              /^[^ ]/              { sec = "" }
+              sec == "ext" && /^  [^ ]/ { n = $1; sub(/:$/, "", n); gsub(/"/, "", n); local_pod[n] = 1 }
+              sec == "sum" && /^  [^ ]/ { n = $1; sub(/:$/, "", n); gsub(/"/, "", n)
+                                         if (n in local_pod) { print "  " n ": <local>"; next } }
+              { print }
+            '
+          }
 
-          ios_status="$(git status --porcelain=v1 --untracked-files=all -- ios)"
+          if ! diff -u <(git show HEAD:ios/Podfile.lock | normalize) \
+                       <(normalize < ios/Podfile.lock); then
+            echo "::error::Podfile.lock drifted beyond local plugin checksums."
+            exit 1
+          fi
+
+          ios_status="$(git status --porcelain=v1 --untracked-files=all -- ios ':!ios/Podfile.lock')"
           if [[ -n "$ios_status" ]]; then
             echo "::error::CocoaPods or the iOS build left uncommitted tracked/trackable iOS changes."
             echo "$ios_status"
-            git diff -- ios
+            git diff -- ios ':!ios/Podfile.lock'
             exit 1
           fi
