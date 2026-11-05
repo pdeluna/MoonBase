@@ -17,7 +17,10 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -25,9 +28,15 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        return macos;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -47,6 +56,7 @@ class DefaultFirebaseOptions {
     projectId: 'moonbase-aaff7',
     storageBucket: 'moonbase-aaff7.firebasestorage.app',
   );
+
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAic_1jKsPApSCsS6P8B9XBpzt7s_VAYRQ',
     appId: '1:137107376205:ios:70fd93ab7bf31c3a9bf404',
@@ -54,31 +64,5 @@ class DefaultFirebaseOptions {
     projectId: 'moonbase-aaff7',
     storageBucket: 'moonbase-aaff7.firebasestorage.app',
     iosBundleId: 'com.deluna.moonbase',
-  );
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAKh9aOQ6Fg71abDvkJP73bzc_dzB28ZsQ',
-    appId: '1:137107376205:web:0d690699e00e98f59bf404',
-    messagingSenderId: '137107376205',
-    projectId: 'moonbase-aaff7',
-    authDomain: 'moonbase-aaff7.firebaseapp.com',
-    storageBucket: 'moonbase-aaff7.firebasestorage.app',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAic_1jKsPApSCsS6P8B9XBpzt7s_VAYRQ',
-    appId: '1:137107376205:ios:867413663c6358349bf404',
-    messagingSenderId: '137107376205',
-    projectId: 'moonbase-aaff7',
-    storageBucket: 'moonbase-aaff7.firebasestorage.app',
-    iosBundleId: 'com.example.moonbaseSkeleton',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAKh9aOQ6Fg71abDvkJP73bzc_dzB28ZsQ',
-    appId: '1:137107376205:web:97e7a7ca1cccf0a39bf404',
-    messagingSenderId: '137107376205',
-    projectId: 'moonbase-aaff7',
-    authDomain: 'moonbase-aaff7.firebaseapp.com',
-    storageBucket: 'moonbase-aaff7.firebasestorage.app',
   );
 }
