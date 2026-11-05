@@ -26,10 +26,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -58,5 +55,14 @@ class DefaultFirebaseOptions {
     messagingSenderId: '137107376205',
     projectId: 'moonbase-aaff7',
     storageBucket: 'moonbase-aaff7.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyAic_1jKsPApSCsS6P8B9XBpzt7s_VAYRQ',
+    appId: '1:137107376205:ios:70fd93ab7bf31c3a9bf404',
+    messagingSenderId: '137107376205',
+    projectId: 'moonbase-aaff7',
+    storageBucket: 'moonbase-aaff7.firebasestorage.app',
+    iosBundleId: 'com.deluna.moonbase',
   );
 }
