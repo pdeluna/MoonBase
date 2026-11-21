@@ -234,5 +234,6 @@ final calendarControllerProvider =
     deleteEvent: ref.read(deleteEventUseCaseProvider),
     getSettings: ref.read(getCalendarSettingsUseCaseProvider),
     setSettings: ref.read(setCalendarSettingsUseCaseProvider),
+    now: ref.read(calendarClockProvider),
   );
 });

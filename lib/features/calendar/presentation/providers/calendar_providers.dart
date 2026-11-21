@@ -12,12 +12,24 @@ final calendarRepositoryProvider = Provider<CalendarRepository>((ref) {
   throw UnimplementedError('Provide CalendarRepository in app wiring');
 });
 
+/// Wall clock for "today"; overridable in tests.
+final calendarClockProvider =
+    Provider<DateTime Function()>((ref) => DateTime.now);
+
 final watchEventsUseCaseProvider =
     Provider((ref) => WatchEvents(ref.read(calendarRepositoryProvider)));
-final createEventUseCaseProvider =
-    Provider((ref) => CreateEvent(ref.read(calendarRepositoryProvider)));
-final updateEventUseCaseProvider =
-    Provider((ref) => UpdateEvent(ref.read(calendarRepositoryProvider)));
+final createEventUseCaseProvider = Provider(
+  (ref) => CreateEvent(
+    ref.read(calendarRepositoryProvider),
+    now: ref.read(calendarClockProvider),
+  ),
+);
+final updateEventUseCaseProvider = Provider(
+  (ref) => UpdateEvent(
+    ref.read(calendarRepositoryProvider),
+    now: ref.read(calendarClockProvider),
+  ),
+);
 final deleteEventUseCaseProvider =
     Provider((ref) => DeleteEvent(ref.read(calendarRepositoryProvider)));
 final getCalendarSettingsUseCaseProvider = Provider(

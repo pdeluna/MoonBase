@@ -12,7 +12,6 @@ import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_
 import 'package:moonbase_skeleton/features/calendar/data/repositories/calendar_repository_impl.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_settings.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/event_creation_policy.dart';
-import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_home_vm_provider.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_providers.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/bases_unreachable_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/cached_events_banner.dart';
