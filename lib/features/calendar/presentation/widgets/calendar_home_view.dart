@@ -19,6 +19,7 @@ import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calenda
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/date_heading.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/day_agenda.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/no_base_view.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/shared_today_section.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/stories_heading.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/week_strip.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/window_label.dart';
@@ -228,6 +229,7 @@ class _ReadyBody extends ConsumerWidget {
         child: CalendarLoadingSkeleton(key: ValueKey('calendar-feed-loading')),
       );
     }
+    final stories = ref.watch(storiesHeadingProvider).asData?.value;
     if (span == CalendarDrawSpan.month) {
       return CalendarGrid(
         days: days,
@@ -238,6 +240,7 @@ class _ReadyBody extends ConsumerWidget {
         },
       );
     }
+    final tiles = stories?.tiles ?? const [];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -247,6 +250,8 @@ class _ReadyBody extends ConsumerWidget {
           memoryDays: ref.watch(memoryDaysProvider),
           onSelect: onSelectDay,
         ),
+        if (tiles.isNotEmpty)
+          SharedTodaySection(tiles: tiles, keptUntil: stories?.keptUntil),
         DayAgenda(
           day: selected,
           isToday: selected == vm.todayKey,

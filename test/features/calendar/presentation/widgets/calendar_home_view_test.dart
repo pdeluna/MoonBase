@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moonbase_skeleton/core/di/providers.dart';
+import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_providers.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/member_presentation_provider.dart';
@@ -27,8 +28,14 @@ import 'package:moonbase_skeleton/features/calendar/presentation/widgets/date_he
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/lunar_candy.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/no_base_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/stories_heading.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/shared_today_section.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/week_strip.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/window_label.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
+import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
+import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
+import 'package:moonbase_skeleton/features/media/presentation/widgets/media_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../test_utils/fakes_calendar.dart';
@@ -84,6 +91,7 @@ void main() {
           storiesOverride ?? storiesHeadingProvider.overrideWithValue(stories),
           memoryDaysProvider.overrideWithValue(memoryDays),
           openStoryCaptureProvider.overrideWithValue(onCapture ?? (_) {}),
+          mediaStorageProvider.overrideWithValue(_ThrowingMediaStorage()),
         ],
         child: MaterialApp(
           locale: const Locale('en', 'US'),
@@ -741,6 +749,107 @@ void main() {
       expect(find.text(DayAgenda.emptyCopy), findsOneWidget);
     });
   });
+
+  group('shared today', () {
+    testWidgets('is absent when there are no tiles', (tester) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('SHARED TODAY'), findsNothing);
+
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        stories: AsyncValue.data(
+          StoriesHeadingData(
+            authors: [StoriesHeadingAuthor(userId: kOwner, opened: false)],
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(StoriesHeading.rowKey), findsOneWidget);
+      expect(find.text('SHARED TODAY'), findsNothing);
+    });
+
+    testWidgets('lays tiles out in three columns with the kept-until line', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        stories: AsyncValue.data(
+          StoriesHeadingData(
+            tiles: const [
+              MediaRef(
+                id: MediaId('s1'),
+                type: MediaType.image,
+                storageKey: 'a.jpg',
+              ),
+              MediaRef(
+                id: MediaId('s2'),
+                type: MediaType.image,
+                storageKey: 'b.jpg',
+              ),
+              MediaRef(
+                id: MediaId('s3'),
+                type: MediaType.image,
+                storageKey: 'c.jpg',
+              ),
+            ],
+            keptUntil: DateTime(2026, 9, 28, 9, 41),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      // The tiles start resolving on the frame the feed becomes ready.
+      await tester.pump();
+
+      expect(find.byKey(SharedTodaySection.sectionKey), findsOneWidget);
+      final grid = tester.widget<GridView>(find.byType(GridView));
+      final delegate =
+          grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      expect(delegate.crossAxisCount, 3);
+      expect(delegate.childAspectRatio, 3 / 4);
+      expect(find.byType(MediaTile), findsNWidgets(3));
+      expect(find.byIcon(Icons.broken_image_outlined), findsNWidgets(3));
+      expect(
+        find.text(
+          'Kept until 9:41 AM tomorrow, then moved to this day on the calendar.',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+}
+
+class _ThrowingMediaStorage implements MediaStorage {
+  @override
+  Future<void> delete(String key) async {}
+
+  @override
+  Future<String> putBytes({
+    required String key,
+    required List<int> bytes,
+    required String mimeType,
+  }) async {
+    return key;
+  }
+
+  @override
+  Future<String> resolveUri(String key) async {
+    throw StateError('storage-denied');
+  }
 }
 
 Color _cellFill(WidgetTester tester, DayKey day) {
