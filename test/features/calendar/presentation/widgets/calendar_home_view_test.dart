@@ -25,7 +25,6 @@ import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calenda
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_tokens.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/event_detail_sheet.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/date_heading.dart';
-import 'package:moonbase_skeleton/features/calendar/presentation/widgets/lunar_candy.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/no_base_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/stories_heading.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/shared_today_section.dart';
@@ -344,26 +343,52 @@ void main() {
           tester.getSize(find.byKey(CalendarHomeView.storiesSlotKey)).height,
           0,
         );
-        expect(find.text('Owner dinner'), findsNothing);
+        const today = DayKey(2026, 9, 27);
         expect(
-          find.byKey(CalendarGrid.dotKey(const DayKey(2026, 9, 27), 0)),
-          findsOneWidget,
+          find.descendant(
+            of: find.byKey(CalendarGrid.cellKey(today)),
+            matching: find.text('Owner dinner'),
+          ),
+          findsNothing,
         );
+        expect(find.text('Owner dinner'), findsOneWidget);
+        expect(find.byKey(CalendarGrid.dotKey(today, 0)), findsOneWidget);
 
         const outside = DayKey(2026, 9, 1);
         const loadedEmpty = DayKey(2026, 9, 20);
         expect(find.byKey(CalendarGrid.cellKey(outside)), findsOneWidget);
         expect(_cellFill(tester, outside), _cellFill(tester, loadedEmpty));
-        expect(_cellFill(tester, outside), LunarCandy.cellLight);
-        expect(_cellFill(tester, const DayKey(2026, 9, 27)), LunarCandy.today);
+        expect(_cellFill(tester, outside), CalendarTokens.cardLight);
+        expect(_cellFill(tester, today), CalendarTokens.accent);
+        expect(
+          tester.getSize(find.byKey(CalendarGrid.cellKey(outside))).height,
+          CalendarGrid.rowHeight,
+        );
 
         await tester.tap(find.byKey(CalendarGrid.cellKey(outside)));
         await tester.pumpAndSettle();
         expect(find.byType(EventDetailSheet), findsNothing);
+        expect(find.text('Owner dinner'), findsOneWidget);
 
-        await tester.tap(
-          find.byKey(CalendarGrid.cellKey(const DayKey(2026, 9, 27))),
+        await tester.tap(find.byKey(CalendarGrid.cellKey(loadedEmpty)));
+        await tester.pumpAndSettle();
+        expect(find.byType(EventDetailSheet), findsNothing);
+        expect(find.text('ON THE CALENDAR · SUN, SEP 20'), findsOneWidget);
+        expect(find.text(DayAgenda.emptyCopy), findsOneWidget);
+        expect(find.text('Owner dinner'), findsNothing);
+        expect(
+          _cellDecoration(tester, loadedEmpty).border,
+          Border.all(color: CalendarTokens.accent, width: 1.5),
         );
+
+        await tester.tap(find.byKey(CalendarGrid.cellKey(today)));
+        await tester.pumpAndSettle();
+        expect(find.byType(EventDetailSheet), findsNothing);
+        expect(find.text('Owner dinner'), findsOneWidget);
+        expect(_cellDecoration(tester, today).border, isNull);
+
+        await tester.ensureVisible(find.text('Owner dinner'));
+        await tester.tap(find.text('Owner dinner'));
         await tester.pumpAndSettle();
         expect(find.byType(EventDetailSheet), findsOneWidget);
       },
@@ -393,7 +418,14 @@ void main() {
       expect(find.byKey(CalendarGrid.dotKey(today, 1)), findsOneWidget);
       expect(find.byKey(CalendarGrid.dotKey(today, 2)), findsNothing);
       expect(find.byKey(CalendarGrid.moreKey(today)), findsOneWidget);
-      expect(find.text('Event 0'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(CalendarGrid.cellKey(today)),
+          matching: find.text('Event 0'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('Event 0'), findsOneWidget);
     });
 
     testWidgets('reduced motion snaps the stories strip shut', (tester) async {
@@ -853,12 +885,15 @@ class _ThrowingMediaStorage implements MediaStorage {
 }
 
 Color _cellFill(WidgetTester tester, DayKey day) {
+  return _cellDecoration(tester, day).color!;
+}
+
+BoxDecoration _cellDecoration(WidgetTester tester, DayKey day) {
   final boxes = tester.widgetList<DecoratedBox>(
     find.descendant(
       of: find.byKey(CalendarGrid.cellKey(day)),
       matching: find.byType(DecoratedBox),
     ),
   );
-  final decoration = boxes.first.decoration as BoxDecoration;
-  return decoration.color!;
+  return boxes.first.decoration as BoxDecoration;
 }

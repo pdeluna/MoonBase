@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/calendar_span.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/calendar_home_vm.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_tokens.dart';
-import 'package:moonbase_skeleton/features/calendar/presentation/widgets/lunar_candy.dart';
 
 /// Month name (month span only) and the week/month control.
 class CalendarGridHeader extends StatelessWidget {
@@ -75,15 +74,20 @@ class CalendarGrid extends StatelessWidget {
   const CalendarGrid({
     super.key,
     required this.days,
-    required this.onDayTap,
+    required this.selected,
+    required this.inWindow,
+    required this.onSelectDay,
   });
 
   static const gridKey = Key('calendar-grid');
   static const radius = 22.0;
   static const gap = 2.0;
+  static const rowHeight = 64.0;
 
   final List<CalendarGridDay> days;
-  final ValueChanged<CalendarGridDay> onDayTap;
+  final DayKey selected;
+  final bool Function(DayKey day) inWindow;
+  final ValueChanged<DayKey> onSelectDay;
 
   static Key cellKey(DayKey day) =>
       ValueKey<String>('calendar-cell-${day.year}-${day.month}-${day.day}');
@@ -97,7 +101,7 @@ class CalendarGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final candy = LunarCandy.of(context);
+    final tokens = CalendarTokens.of(context);
     final labels = _weekdayLabels(MaterialLocalizations.of(context));
     return Column(
       key: gridKey,
@@ -116,14 +120,19 @@ class CalendarGrid extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
                       fontSize: 12,
-                      color: candy.ink,
+                      color: tokens.ink,
                     ),
                   ),
                 ),
             ],
           ),
         ),
-        _MonthRows(days: days, onDayTap: onDayTap),
+        _MonthRows(
+          days: days,
+          selected: selected,
+          inWindow: inWindow,
+          onSelectDay: onSelectDay,
+        ),
       ],
     );
   }
@@ -150,10 +159,17 @@ String formatGridHeader(
 }
 
 class _MonthRows extends StatelessWidget {
-  const _MonthRows({required this.days, required this.onDayTap});
+  const _MonthRows({
+    required this.days,
+    required this.selected,
+    required this.inWindow,
+    required this.onSelectDay,
+  });
 
   final List<CalendarGridDay> days;
-  final ValueChanged<CalendarGridDay> onDayTap;
+  final DayKey selected;
+  final bool Function(DayKey day) inWindow;
+  final ValueChanged<DayKey> onSelectDay;
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +180,9 @@ class _MonthRows extends StatelessWidget {
         for (var r = 0; r < rowCount; r++)
           _DayRow(
             days: days.sublist(r * 7, r * 7 + 7),
-            onDayTap: onDayTap,
+            selected: selected,
+            inWindow: inWindow,
+            onSelectDay: onSelectDay,
           ),
       ],
     );
@@ -172,50 +190,72 @@ class _MonthRows extends StatelessWidget {
 }
 
 class _DayRow extends StatelessWidget {
-  const _DayRow({required this.days, required this.onDayTap});
+  const _DayRow({
+    required this.days,
+    required this.selected,
+    required this.inWindow,
+    required this.onSelectDay,
+  });
 
   final List<CalendarGridDay> days;
-  final ValueChanged<CalendarGridDay> onDayTap;
+  final DayKey selected;
+  final bool Function(DayKey day) inWindow;
+  final ValueChanged<DayKey> onSelectDay;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final day in days)
-          Expanded(
-            child: CalendarDayCell(
-              day: day,
-              onTap: day.isEmpty ? null : () => onDayTap(day),
+    return SizedBox(
+      height: CalendarGrid.rowHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final day in days)
+            Expanded(
+              child: CalendarDayCell(
+                day: day,
+                selected: day.day == selected,
+                onTap: inWindow(day.day) ? () => onSelectDay(day.day) : null,
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 class CalendarDayCell extends StatelessWidget {
-  const CalendarDayCell({super.key, required this.day, required this.onTap});
+  const CalendarDayCell({
+    super.key,
+    required this.day,
+    required this.selected,
+    required this.onTap,
+  });
 
   final CalendarGridDay day;
+  final bool selected;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final candy = LunarCandy.of(context);
-    final fill = day.isToday ? LunarCandy.today : candy.cell;
-    final numeralColor = day.isToday ? candy.todayInk : candy.ink;
+    final tokens = CalendarTokens.of(context);
+    final fill = day.isToday ? CalendarTokens.accent : tokens.card;
+    final numeralColor = day.isToday ? Colors.white : tokens.ink;
+    final outlined = selected && !day.isToday;
     return Padding(
       key: CalendarGrid.cellKey(day.day),
       padding: const EdgeInsets.all(CalendarGrid.gap),
       child: Semantics(
         button: onTap != null,
+        selected: selected,
         label: _label(day),
         child: ExcludeSemantics(
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: fill,
               borderRadius: BorderRadius.circular(CalendarGrid.radius),
+              border: outlined
+                  ? Border.all(color: CalendarTokens.accent, width: 1.5)
+                  : null,
             ),
             child: Material(
               type: MaterialType.transparency,
@@ -241,7 +281,7 @@ class CalendarDayCell extends StatelessWidget {
                       ),
                       if (!day.isEmpty) ...[
                         const SizedBox(height: 4),
-                        _MonthDots(day: day, candy: candy),
+                        _MonthDots(day: day, onToday: day.isToday),
                       ],
                     ],
                   ),
@@ -263,16 +303,19 @@ String _label(CalendarGridDay day) {
 }
 
 class _MonthDots extends StatelessWidget {
-  const _MonthDots({required this.day, required this.candy});
+  const _MonthDots({required this.day, required this.onToday});
 
   final CalendarGridDay day;
-  final LunarCandy candy;
+  final bool onToday;
 
   @override
   Widget build(BuildContext context) {
+    final tokens = CalendarTokens.of(context);
     final count = day.events.length;
     final overflow = count > 3;
     final dotCount = overflow ? 2 : count;
+    final mark = onToday ? Colors.white : CalendarTokens.accent;
+    final more = onToday ? Colors.white : tokens.ink;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -283,10 +326,7 @@ class _MonthDots extends StatelessWidget {
             width: 6,
             height: 6,
             child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: candy.dotColor(i),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: mark, shape: BoxShape.circle),
             ),
           ),
         ],
@@ -298,8 +338,8 @@ class _MonthDots extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.w500,
               fontSize: 11,
-              color: day.isToday ? candy.todayInk : candy.ink,
-              height: 1,
+              color: more,
+              height: 1.0,
             ),
           ),
         ],

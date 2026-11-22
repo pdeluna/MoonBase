@@ -230,17 +230,29 @@ class _ReadyBody extends ConsumerWidget {
       );
     }
     final stories = ref.watch(storiesHeadingProvider).asData?.value;
+    final tiles = stories?.tiles ?? const [];
+    final agenda = DayAgenda(
+      day: selected,
+      isToday: selected == vm.todayKey,
+      events: _eventsOn(vm, selected),
+      canAdd: canAddEventOn(vm, selected),
+      onEventTap: (event) => showEventDetail(context, ref, event),
+      onAdd: () => showEventEditor(context, ref, initialDay: selected),
+    );
     if (span == CalendarDrawSpan.month) {
-      return CalendarGrid(
-        days: days,
-        onDayTap: (day) {
-          if (day.events.length == 1) {
-            showEventDetail(context, ref, day.events.first);
-          }
-        },
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CalendarGrid(
+            days: days,
+            selected: selected,
+            inWindow: (day) => _inWindow(vm, day),
+            onSelectDay: onSelectDay,
+          ),
+          agenda,
+        ],
       );
     }
-    final tiles = stories?.tiles ?? const [];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -252,17 +264,16 @@ class _ReadyBody extends ConsumerWidget {
         ),
         if (tiles.isNotEmpty)
           SharedTodaySection(tiles: tiles, keptUntil: stories?.keptUntil),
-        DayAgenda(
-          day: selected,
-          isToday: selected == vm.todayKey,
-          events: _eventsOn(vm, selected),
-          canAdd: canAddEventOn(vm, selected),
-          onEventTap: (event) => showEventDetail(context, ref, event),
-          onAdd: () => showEventEditor(context, ref, initialDay: selected),
-        ),
+        agenda,
       ],
     );
   }
+}
+
+bool _inWindow(CalendarHomeVM vm, DayKey day) {
+  return vm.settings.window
+      .resolve(vm.todayKey.localMidnight)
+      .contains(day.localMidnight);
 }
 
 List<CalendarEvent> _eventsOn(CalendarHomeVM vm, DayKey day) {
