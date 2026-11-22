@@ -6,8 +6,20 @@ paid Apple Developer Program signing, or production distribution.
 
 ## Gate status
 
-The repository is coherent up to two external boundaries, but the iOS device
-gate is **not closed**:
+The four Firebase iOS surfaces are committed and agree:
+`lib/firebase_options.dart` (`TargetPlatform.iOS => ios`), the iOS mapping
+in `firebase.json`, `ios/Runner/GoogleService-Info.plist`, and the plist's
+Runner resource entry in `ios/Runner.xcodeproj/project.pbxproj`. Project
+`moonbase-aaff7`, bundle ID `com.deluna.moonbase`, iOS app ID
+`1:137107376205:ios:70fd93ab7bf31c3a9bf404`.
+
+**Two-device Firebase sync** (Android phone ↔ iPhone, live base/chat against
+`moonbase-aaff7`) was verified on **`4867848`**. That SHA is the
+device-verified iOS commit. Later commits on this branch are cleanup and CI
+only unless a later note supersedes it.
+
+Remaining Mac-local work (Personal Team selection, CocoaPods on a fresh Mac,
+the full acceptance list below) is not closed by that sync.
 
 - Runner uses the intended non-placeholder identifier
   `com.deluna.moonbase` in Debug, Profile, and Release. RunnerTests derives
@@ -25,19 +37,6 @@ gate is **not closed**:
   import certificates, download profiles, call Fastlane, or upload to
   TestFlight. GitHub workflow `185513668` remains manually disabled until an
   authorized repository owner re-enables it.
-- Firebase CLI authentication was unavailable on the implementation worker
-  (`Failed to authenticate, have you run firebase login?`). Therefore no iOS
-  app was guessed or created and no fake Firebase values were committed.
-
-The strict repository gate remains blocked until an authorized owner registers
-the exact iOS bundle ID in Firebase project `moonbase-aaff7` and commits all
-generated surfaces together:
-
-1. `lib/firebase_options.dart` with `TargetPlatform.iOS => ios`;
-2. the iOS app mapping in `firebase.json`;
-3. `ios/Runner/GoogleService-Info.plist`;
-4. the plist's Runner target/resource entry in
-   `ios/Runner.xcodeproj/project.pbxproj`.
 
 Run the structural check before that boundary:
 
@@ -109,7 +108,8 @@ appear. Video upload/playback is not an acceptance case.
 
 ## 1. Mac pre-registration and bundle-ID proof
 
-Do not create the Firebase iOS app yet. First prove the repository integrates
+The Firebase iOS app is already registered and committed (see Gate status,
+device-verified at `4867848`). First prove the repository still integrates
 cleanly with CocoaPods and that the intended Personal Team can provision
 `com.deluna.moonbase`.
 

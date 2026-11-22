@@ -33,8 +33,25 @@
         "lib/firebase_options.dart": {
           "projectId": "moonbase-aaff7",
           "configurations": {
-            "android": "1:137107376205:android:f74e18c46e57a45b9bf404"
+            "android": "1:137107376205:android:f74e18c46e57a45b9bf404",
+            "ios": "1:137107376205:ios:70fd93ab7bf31c3a9bf404"
           }
+        }
+      },
+      "ios": {
+        "targets": {
+          "Runner": {
+            "projectId": "moonbase-aaff7",
+            "appId": "1:137107376205:ios:70fd93ab7bf31c3a9bf404",
+            "uploadDebugSymbols": false,
+            "fileOutput": "ios/Runner/GoogleService-Info.plist"
+          }
+        },
+        "default": {
+          "projectId": "moonbase-aaff7",
+          "appId": "1:137107376205:ios:70fd93ab7bf31c3a9bf404",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
         }
       }
     }

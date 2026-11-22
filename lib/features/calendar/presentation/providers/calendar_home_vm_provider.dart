@@ -5,11 +5,8 @@ import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_eve
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_feed.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_window.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/controllers/calendar_controller.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_providers.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/calendar_home_vm.dart';
-
-/// Wall clock for "today"; overridable in tests.
-final calendarClockProvider =
-    Provider<DateTime Function()>((ref) => DateTime.now);
 
 /// Derived, immutable view of the Home tab.
 final calendarHomeVmProvider = Provider<CalendarHomeVM>((ref) {
