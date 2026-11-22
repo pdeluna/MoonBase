@@ -11,14 +11,17 @@ import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/cale
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/stories_seam.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/bases_unreachable_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/cached_events_banner.dart';
-import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_day_sheet.dart';
+import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_event.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_grid.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_home_actions.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_loading_skeleton.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_tokens.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/date_heading.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/day_agenda.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/no_base_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/stories_heading.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/week_strip.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/window_label.dart';
 
 /// Home tab body. Owns the no-base states (bug B-e), the date heading and
 /// stories row, and the week/month grid. The span is ephemeral drawing
@@ -48,17 +51,22 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
   String? _loadedBaseId;
   CalendarDrawSpan _span = CalendarDrawSpan.week;
 
+  /// Null follows today. Not persisted.
+  DayKey? _selected;
+
   void _syncController(Base? base) {
     final controller = ref.read(calendarControllerProvider.notifier);
     if (base == null) {
       if (_loadedBaseId != null) {
         _loadedBaseId = null;
+        _selected = null;
         controller.clear();
       }
       return;
     }
     if (_loadedBaseId != base.id.value) {
       _loadedBaseId = base.id.value;
+      _selected = null;
       controller.load(base.id.value);
     }
   }
@@ -68,6 +76,7 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
       _span = _span == CalendarDrawSpan.week
           ? CalendarDrawSpan.month
           : CalendarDrawSpan.week;
+      _selected = null;
     });
   }
 
@@ -96,7 +105,13 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
       case CalendarBasesState.empty:
         return NoBaseView(hasBases: vm.hasBases);
       case CalendarBasesState.ready:
-        return _ReadyBody(vm: vm, span: _span, onToggleSpan: _toggleSpan);
+        return _ReadyBody(
+          vm: vm,
+          span: _span,
+          selected: _selected ?? vm.todayKey,
+          onToggleSpan: _toggleSpan,
+          onSelectDay: (day) => setState(() => _selected = day),
+        );
     }
   }
 }
@@ -105,12 +120,16 @@ class _ReadyBody extends ConsumerWidget {
   const _ReadyBody({
     required this.vm,
     required this.span,
+    required this.selected,
     required this.onToggleSpan,
+    required this.onSelectDay,
   });
 
   final CalendarHomeVM vm;
   final CalendarDrawSpan span;
+  final DayKey selected;
   final VoidCallback onToggleSpan;
+  final ValueChanged<DayKey> onSelectDay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -118,80 +137,6 @@ class _ReadyBody extends ConsumerWidget {
     final duration =
         reduceMotion ? Duration.zero : CalendarHomeView.spanDuration;
     final showStories = span == CalendarDrawSpan.week;
-
-    return ColoredBox(
-      color: CalendarTokens.of(context).canvas,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DateHeading(
-            today: vm.todayKey,
-            onShare: () => ref.read(openStoryCaptureProvider)(context),
-          ),
-          ExcludeSemantics(
-            excluding: !showStories,
-            child: ClipRect(
-              child: AnimatedAlign(
-                key: CalendarHomeView.storiesSlotKey,
-                alignment: Alignment.topCenter,
-                heightFactor: showStories ? 1 : 0,
-                duration: duration,
-                curve: Curves.easeOut,
-                child: AnimatedOpacity(
-                  opacity: showStories ? 1 : 0,
-                  duration: duration,
-                  curve: Curves.easeOut,
-                  child: IgnorePointer(
-                    ignoring: !showStories,
-                    child: const StoriesHeading(),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          CalendarGridHeader(
-            span: span,
-            today: vm.todayKey,
-            window: vm.settings.window,
-            isOwner: vm.isOwner,
-            onToggleSpan: onToggleSpan,
-            onOpenSettings: () => showCalendarSettings(context, ref),
-          ),
-          CachedEventsBanner(freshness: vm.freshness, hasEvents: vm.hasEvents),
-          if (vm.settingsUnavailable)
-            const _InfoStrip(text: CalendarHomeView.settingsUnavailableCopy),
-          if (vm.isTruncated)
-            const _InfoStrip(text: CalendarHomeView.truncatedCopy),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: duration,
-              switchInCurve: Curves.easeOut,
-              switchOutCurve: Curves.easeOut,
-              layoutBuilder: _topAlignedStack,
-              child: _gridArea(context, ref),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _gridArea(BuildContext context, WidgetRef ref) {
-    final error = vm.feedError;
-    if (error != null) {
-      return _FeedError(
-        key: const ValueKey('calendar-feed-error'),
-        error: error,
-        onRetry: () => ref.read(calendarControllerProvider.notifier).reload(),
-      );
-    }
-    // An empty block means "loaded, no events" — keep the skeleton until the
-    // feed has emitted.
-    if (vm.isFeedLoading) {
-      return const CalendarLoadingSkeleton(
-        key: ValueKey('calendar-feed-loading'),
-      );
-    }
     final l10n = MaterialLocalizations.of(context);
     final days = gridDays(
       span: span,
@@ -199,20 +144,127 @@ class _ReadyBody extends ConsumerWidget {
       today: vm.todayKey,
       firstDayOfWeekIndex: l10n.firstDayOfWeekIndex,
     );
-    return CalendarGrid(
-      key: ValueKey(span),
-      span: span,
-      days: days,
-      onDayTap: (day) => showCalendarDay(context, ref, day.events),
+
+    return ColoredBox(
+      color: CalendarTokens.of(context).canvas,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DateHeading(
+              today: vm.todayKey,
+              onShare: () => ref.read(openStoryCaptureProvider)(context),
+            ),
+            ExcludeSemantics(
+              excluding: !showStories,
+              child: ClipRect(
+                child: AnimatedAlign(
+                  key: CalendarHomeView.storiesSlotKey,
+                  alignment: Alignment.topCenter,
+                  heightFactor: showStories ? 1 : 0,
+                  duration: duration,
+                  curve: Curves.easeOut,
+                  child: AnimatedOpacity(
+                    opacity: showStories ? 1 : 0,
+                    duration: duration,
+                    curve: Curves.easeOut,
+                    child: IgnorePointer(
+                      ignoring: !showStories,
+                      child: const StoriesHeading(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            CalendarGridHeader(
+              span: span,
+              today: vm.todayKey,
+              onToggleSpan: onToggleSpan,
+            ),
+            CachedEventsBanner(
+              freshness: vm.freshness,
+              hasEvents: vm.hasEvents,
+            ),
+            if (vm.settingsUnavailable)
+              const _InfoStrip(
+                text: CalendarHomeView.settingsUnavailableCopy,
+              ),
+            if (vm.isTruncated)
+              const _InfoStrip(text: CalendarHomeView.truncatedCopy),
+            _body(context, ref, days),
+            WindowLabel(
+              window: vm.settings.window,
+              isOwner: vm.isOwner,
+              onOpenSettings: () => showCalendarSettings(context, ref),
+            ),
+            const SizedBox(height: 88),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    WidgetRef ref,
+    List<CalendarGridDay> days,
+  ) {
+    final error = vm.feedError;
+    if (error != null) {
+      return SizedBox(
+        height: 320,
+        child: _FeedError(
+          key: const ValueKey('calendar-feed-error'),
+          error: error,
+          onRetry: () => ref.read(calendarControllerProvider.notifier).reload(),
+        ),
+      );
+    }
+    // An empty block means "loaded, no events" — keep the skeleton until the
+    // feed has emitted.
+    if (vm.isFeedLoading) {
+      return const SizedBox(
+        height: 320,
+        child: CalendarLoadingSkeleton(key: ValueKey('calendar-feed-loading')),
+      );
+    }
+    if (span == CalendarDrawSpan.month) {
+      return CalendarGrid(
+        days: days,
+        onDayTap: (day) {
+          if (day.events.length == 1) {
+            showEventDetail(context, ref, day.events.first);
+          }
+        },
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        WeekStrip(
+          days: days,
+          selected: selected,
+          memoryDays: ref.watch(memoryDaysProvider),
+          onSelect: onSelectDay,
+        ),
+        DayAgenda(
+          day: selected,
+          isToday: selected == vm.todayKey,
+          events: _eventsOn(vm, selected),
+          canAdd: canAddEventOn(vm, selected),
+          onEventTap: (event) => showEventDetail(context, ref, event),
+          onAdd: () => showEventEditor(context, ref, initialDay: selected),
+        ),
+      ],
     );
   }
 }
 
-Widget _topAlignedStack(Widget? currentChild, List<Widget> previousChildren) {
-  return Stack(
-    alignment: Alignment.topCenter,
-    children: [...previousChildren, if (currentChild != null) currentChild],
-  );
+List<CalendarEvent> _eventsOn(CalendarHomeVM vm, DayKey day) {
+  for (final section in vm.sections) {
+    if (section.day == day) return section.events;
+  }
+  return const [];
 }
 
 class _FeedError extends StatelessWidget {

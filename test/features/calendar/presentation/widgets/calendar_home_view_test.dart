@@ -17,8 +17,8 @@ import 'package:moonbase_skeleton/features/calendar/presentation/providers/stori
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/bases_unreachable_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/cached_events_banner.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/calendar_home_vm.dart';
-import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_day_sheet.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_grid.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/day_agenda.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_home_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_loading_skeleton.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_tokens.dart';
@@ -27,6 +27,7 @@ import 'package:moonbase_skeleton/features/calendar/presentation/widgets/date_he
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/lunar_candy.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/no_base_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/stories_heading.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/week_strip.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/window_label.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -161,7 +162,9 @@ void main() {
       await tester.pump();
       expect(find.text('Nothing planned'), findsNothing);
       expect(find.text('Nothing planned in this window'), findsNothing);
-      expect(find.text('Add event'), findsNothing);
+      expect(find.text(DayAgenda.emptyCopy), findsOneWidget);
+      expect(find.byKey(DayAgenda.addKey), findsOneWidget);
+      expect(find.text('ON THE CALENDAR'), findsOneWidget);
       expect(find.byType(DateHeading), findsOneWidget);
       expect(find.text('Month'), findsOneWidget);
       expect(find.byKey(WindowLabel.gearKey), findsNothing);
@@ -209,11 +212,12 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(find.text('Nothing planned'), findsNothing);
+      expect(find.text(DayAgenda.emptyCopy), findsOneWidget);
       expect(find.text('Add event'), findsNothing);
-      expect(find.byType(CalendarGrid), findsOneWidget);
+      expect(find.byType(WeekStrip), findsOneWidget);
     });
 
-    testWidgets('week chips open the detail sheet; empty days stay blank', (
+    testWidgets('the agenda opens the detail sheet for the selected day', (
       tester,
     ) async {
       await ds.createEvent(
@@ -238,8 +242,8 @@ void main() {
       expect(find.textContaining('Today'), findsNothing);
       expect(find.text('Nothing planned'), findsNothing);
       expect(find.text('Owner dinner'), findsOneWidget);
-      expect(find.text('My lunch'), findsOneWidget);
-      expect(find.text('Owner'), findsNothing);
+      expect(find.text('My lunch'), findsNothing);
+      expect(find.text('Owner'), findsOneWidget);
       expect(find.byType(CachedEventsBanner), findsOneWidget);
       expect(
         find.text(CachedEventsBanner.copy),
@@ -258,6 +262,12 @@ void main() {
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
 
+      await tester.tap(find.byKey(WeekStrip.dayKey(const DayKey(2026, 9, 28))));
+      await tester.pump();
+      expect(find.text('ON THE CALENDAR · MON, SEP 28'), findsOneWidget);
+      expect(find.text('My lunch'), findsOneWidget);
+      expect(find.text('Owner dinner'), findsNothing);
+
       // Own event → edit + delete.
       await tester.tap(find.text('My lunch'));
       await tester.pumpAndSettle();
@@ -265,7 +275,7 @@ void main() {
       expect(find.byKey(EventDetailSheet.deleteKey), findsOneWidget);
     });
 
-    testWidgets('several events on a day open a sheet of cards', (
+    testWidgets('the agenda lists every event and a card opens the detail', (
       tester,
     ) async {
       await ds.createEvent(
@@ -291,12 +301,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Owner dinner'), findsOneWidget);
-      expect(find.text('+1'), findsOneWidget);
-      expect(find.text('Owner dessert'), findsNothing);
-
-      await tester.tap(find.text('Owner dinner'));
-      await tester.pumpAndSettle();
-      expect(find.byKey(CalendarDaySheet.sheetKey), findsOneWidget);
+      expect(find.text('+1'), findsNothing);
       expect(find.text('Owner dessert'), findsOneWidget);
 
       await tester.tap(find.text('Owner dessert'));
@@ -347,7 +352,6 @@ void main() {
         await tester.tap(find.byKey(CalendarGrid.cellKey(outside)));
         await tester.pumpAndSettle();
         expect(find.byType(EventDetailSheet), findsNothing);
-        expect(find.byType(CalendarDaySheet), findsNothing);
 
         await tester.tap(
           find.byKey(CalendarGrid.cellKey(const DayKey(2026, 9, 27))),
@@ -428,6 +432,7 @@ void main() {
       expect(find.text(CalendarHomeView.feedErrorCopy), findsOneWidget);
       expect(find.byType(DateHeading), findsOneWidget);
       expect(find.byKey(CalendarGrid.gridKey), findsNothing);
+      expect(find.byKey(WeekStrip.stripKey), findsNothing);
       expect(find.text('Retry'), findsOneWidget);
     });
 
@@ -595,6 +600,145 @@ void main() {
       } finally {
         semantics.dispose();
       }
+    });
+  });
+
+  group('week strip and agenda', () {
+    const monday = DayKey(2026, 9, 28);
+    const tuesday = DayKey(2026, 9, 29);
+    const wednesday = DayKey(2026, 9, 30);
+    const today = DayKey(2026, 9, 27);
+
+    testWidgets('event and memory dots, with the dot row always reserved', (
+      tester,
+    ) async {
+      for (var i = 0; i < 3; i++) {
+        await ds.createEvent(
+          baseId: 'b1',
+          createdBy: kOwner.value,
+          input: inputAt(kToday.add(Duration(days: 1, hours: i)), title: 'M$i'),
+        );
+      }
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        memoryDays: {monday, wednesday},
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(WeekStrip.eventDotKey(monday)), findsOneWidget);
+      expect(find.byKey(WeekStrip.memoryDotKey(monday)), findsOneWidget);
+      expect(find.byKey(WeekStrip.memoryDotKey(wednesday)), findsOneWidget);
+      expect(find.byKey(WeekStrip.eventDotKey(wednesday)), findsNothing);
+      expect(find.byKey(WeekStrip.eventDotKey(tuesday)), findsNothing);
+      expect(find.byKey(WeekStrip.memoryDotKey(tuesday)), findsNothing);
+      expect(
+        tester.getSize(find.byKey(WeekStrip.dayKey(monday))).height,
+        tester.getSize(find.byKey(WeekStrip.dayKey(tuesday))).height,
+      );
+    });
+
+    testWidgets('today is filled and another day selects with an outline', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      BoxDecoration circle(DayKey day) {
+        return tester
+            .widget<DecoratedBox>(
+              find.descendant(
+                of: find.byKey(WeekStrip.circleKey(day)),
+                matching: find.byType(DecoratedBox),
+              ),
+            )
+            .decoration as BoxDecoration;
+      }
+
+      expect(circle(today).color, CalendarTokens.accent);
+      final numeral = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(WeekStrip.circleKey(today)),
+          matching: find.text('27'),
+        ),
+      );
+      expect(numeral.style?.color, Colors.white);
+      expect(numeral.style?.fontWeight, FontWeight.w600);
+      final initial = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(WeekStrip.dayKey(today)),
+          matching: find.text('S'),
+        ),
+      );
+      expect(initial.style?.color, CalendarTokens.inkLight);
+
+      await tester.tap(find.byKey(WeekStrip.dayKey(tuesday)));
+      await tester.pump();
+
+      expect(circle(today).color, CalendarTokens.accent);
+      expect(circle(today).border, isNull);
+      final outline = circle(tuesday).border! as Border;
+      expect(circle(tuesday).color, isNull);
+      expect(outline.top.color, CalendarTokens.accent);
+      expect(outline.top.width, 1.5);
+    });
+
+    testWidgets('an empty day selects and Add event pre-fills it', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byKey(WeekStrip.dayKey(tuesday)));
+      await tester.pump();
+      expect(find.text(DayAgenda.emptyCopy), findsOneWidget);
+      expect(find.byKey(DayAgenda.addKey), findsOneWidget);
+
+      await tester.tap(find.byKey(DayAgenda.addKey));
+      await tester.pumpAndSettle();
+      expect(find.text('Tuesday, September 29, 2026'), findsOneWidget);
+    });
+
+    testWidgets('changing span selects today again', (tester) async {
+      await ds.createEvent(
+        baseId: 'b1',
+        createdBy: kOwner.value,
+        input: inputAt(kToday.add(const Duration(days: 1)), title: 'My lunch'),
+      );
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byKey(WeekStrip.dayKey(monday)));
+      await tester.pump();
+      expect(find.text('My lunch'), findsOneWidget);
+
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Week'));
+      await tester.pumpAndSettle();
+      expect(find.text('My lunch'), findsNothing);
+      expect(find.text(DayAgenda.emptyCopy), findsOneWidget);
     });
   });
 }

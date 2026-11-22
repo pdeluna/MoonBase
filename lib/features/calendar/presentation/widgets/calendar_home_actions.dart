@@ -22,6 +22,7 @@ Future<void> showEventEditor(
   BuildContext context,
   WidgetRef ref, {
   CalendarEvent? existing,
+  DayKey? initialDay,
 }) {
   final vm = ref.read(calendarHomeVmProvider);
   final base = vm.selectedBase;
@@ -37,6 +38,7 @@ Future<void> showEventEditor(
       window: vm.settings.window,
       today: today,
       existing: existing,
+      initialDay: existing == null ? initialDay?.localMidnight : null,
       onSubmit: (EventInput input) {
         final c = ref.read(calendarControllerProvider.notifier);
         return existing == null
@@ -130,6 +132,13 @@ Future<void> showCalendarSettings(BuildContext context, WidgetRef ref) {
   );
 }
 
-/// FAB visibility for the Home shell: ready base + creation policy allows.
-bool canShowAddEventFab(CalendarHomeVM vm) =>
-    vm.basesState == CalendarBasesState.ready && vm.canAddEvent;
+/// Ready base, creation policy, and a day inside the saved window.
+bool canAddEventOn(CalendarHomeVM vm, DayKey day) =>
+    vm.isReady &&
+    vm.canAddEvent &&
+    vm.settings.window
+        .resolve(vm.todayKey.localMidnight)
+        .contains(day.localMidnight);
+
+/// FAB visibility for the Home shell. Today is always inside the window.
+bool canShowAddEventFab(CalendarHomeVM vm) => canAddEventOn(vm, vm.todayKey);
