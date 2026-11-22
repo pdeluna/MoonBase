@@ -33,6 +33,31 @@ class Message {
   final List<MediaRef> media;
   final SyncStatus syncStatus;
 
+  /// True while this message exists only on this device (outbox entry that
+  /// has not been acknowledged by the backend): `localOnly`, `uploading`,
+  /// or `failed`.
+  bool get isPending => syncStatus != SyncStatus.synced;
+
+  Message copyWith({
+    MessageId? id,
+    BaseId? baseId,
+    UserId? userId,
+    String? content,
+    DateTime? createdAt,
+    List<MediaRef>? media,
+    SyncStatus? syncStatus,
+  }) {
+    return Message(
+      id: id ?? this.id,
+      baseId: baseId ?? this.baseId,
+      userId: userId ?? this.userId,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+      media: media ?? this.media,
+      syncStatus: syncStatus ?? this.syncStatus,
+    );
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;

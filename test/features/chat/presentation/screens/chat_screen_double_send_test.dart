@@ -11,6 +11,8 @@ import 'package:moonbase_skeleton/core/sync_status.dart';
 import 'package:moonbase_skeleton/features/auth/domain/entities/user.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
+import 'package:moonbase_skeleton/features/chat/data/datasources/chat_outbox_local_data_source_impl.dart';
+import 'package:moonbase_skeleton/features/chat/data/repositories/chat_outbox_repository_impl.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/chat_feed.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/chat_freshness.dart';
 import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
@@ -23,6 +25,9 @@ import 'package:moonbase_skeleton/features/chat/presentation/screens/chat_screen
 import 'package:moonbase_skeleton/features/chat/presentation/viewmodels/chat_screen_vm.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
+import 'package:moonbase_skeleton/features/reactions/data/datasources/reaction_data_source_impl.dart';
+import 'package:moonbase_skeleton/features/reactions/data/repositories/reaction_repository_impl.dart';
+import 'package:moonbase_skeleton/features/reactions/presentation/providers/reaction_providers.dart';
 
 /// Counts `sendMessage` calls and holds each one open until [gate] completes,
 /// simulating the slow compress + upload + create that Week 5 task 3 pass 2
@@ -37,11 +42,12 @@ class _SlowCountingChatRepo implements ChatRepository {
     required UserId userId,
     required String content,
     List<MediaRef> media = const [],
+    MessageId? messageId,
   }) async {
     sendCalls++;
     await gate.future;
     return Right(Message(
-      id: MessageId('m$sendCalls'),
+      id: messageId ?? MessageId('m$sendCalls'),
       baseId: baseId,
       userId: userId,
       content: content,
@@ -86,8 +92,9 @@ class _UnusedMediaStorage implements MediaStorage {
 
 void main() {
   testWidgets(
-      'double-send guard: while a send is in flight the send button is '
-      'disabled and a second tap creates no second message', (tester) async {
+      'double-send guard: clear-on-send empties the composer so the send '
+      'button disables and a second tap creates no second message',
+      (tester) async {
     final repo = _SlowCountingChatRepo();
     final base = Base(
       id: const BaseId('b1'),
@@ -100,6 +107,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          reactionRepositoryProvider.overrideWithValue(
+            ReactionRepositoryImpl(source: InMemoryReactionDataSource()),
+          ),
           chatScreenVmProvider.overrideWithValue(ChatScreenVM(
             selectedBase: base,
             currentUser: user,
@@ -115,6 +125,9 @@ void main() {
                   cloudStorage: _UnusedMediaStorage(),
                 ),
                 StreamMessages(repo),
+                outbox: ChatOutboxRepositoryImpl(
+                  local: InMemoryChatOutboxDataSource(),
+                ),
               )),
           effectiveSelectedBaseProvider.overrideWith((ref) => null),
         ],
@@ -135,7 +148,12 @@ void main() {
     await tester.pump();
     expect(repo.sendCalls, 1);
 
-    // In-flight: the existing disable affordance kicks in — button greyed.
+    // Clear-on-send: the composer is already empty while the send is in
+    // flight, so the button is disabled by the input-validity rule.
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      isEmpty,
+    );
     expect(fab().onPressed, isNull);
 
     // Second tap while in flight must be a no-op.

@@ -13,19 +13,38 @@ import 'package:moonbase_skeleton/legacy/screens/profile_screen.dart';
 import 'package:moonbase_skeleton/legacy/screens/base_picker_screen.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/screens/invites_screen.dart';
 
-/// Rebuild trigger for [routerProvider]. Not a signed-in boolean — loading
-/// and signed-out are distinct on [currentUserProvider].
-final authStateProvider = Provider<AsyncValue<User?>>((ref) {
-  return ref.watch(currentUserProvider);
-});
+/// Bridges the Riverpod session into GoRouter's `refreshListenable`.
+///
+/// The router is built **once** per [ProviderContainer]; auth transitions
+/// only re-run `redirect` through this notifier. Rebuilding the [GoRouter]
+/// itself on every session change (the previous design) handed
+/// `MaterialApp.router` a new `routerConfig`, remounted the navigator tree
+/// and discarded screen state — a wrong password wiped the login form and
+/// its error (bug B-a).
+class _SessionRefreshNotifier extends ChangeNotifier {
+  void bump() => notifyListeners();
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final session = ref.watch(authStateProvider);
-  debugPrint('RouterProvider: Rebuilding router with auth state: $session');
+  final refresh = _SessionRefreshNotifier();
+  ref.onDispose(refresh.dispose);
 
-  return GoRouter(
+  // listen, not watch: the provider body must never re-run on auth changes.
+  ref.listen<AsyncValue<User?>>(currentUserProvider, (_, next) {
+    debugPrint(
+        'RouterProvider: Auth state changed, refreshing redirect: $next');
+    refresh.bump();
+  });
+
+  debugPrint(
+    'RouterProvider: Building router once with auth state: '
+    '${ref.read(currentUserProvider)}',
+  );
+
+  final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
+    refreshListenable: refresh,
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
@@ -75,4 +94,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
   );
+  ref.onDispose(router.dispose);
+  return router;
 });

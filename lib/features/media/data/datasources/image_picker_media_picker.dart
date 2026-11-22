@@ -267,7 +267,10 @@ class ImagePickerMediaPicker implements MediaPicker {
       return await pick();
     } on PlatformException catch (e) {
       if (_isPermissionDenied(e)) {
-        throw PermissionDeniedFailure(e.message ?? 'Permission denied.');
+        throw PermissionDeniedFailure(
+          "You don't have permission to do that.",
+          e.message,
+        );
       }
       rethrow;
     }
@@ -280,7 +283,10 @@ class ImagePickerMediaPicker implements MediaPicker {
       return await pick();
     } on PlatformException catch (e) {
       if (_isPermissionDenied(e)) {
-        throw PermissionDeniedFailure(e.message ?? 'Permission denied.');
+        throw PermissionDeniedFailure(
+          "You don't have permission to do that.",
+          e.message,
+        );
       }
       rethrow;
     }

@@ -48,9 +48,10 @@ class InMemoryChatLocalDataSource implements ChatLocalDataSource {
     required String userId,
     required String content,
     List<MediaRef> media = const [],
+    String? messageId,
   }) async {
     final msg = MessageModel(
-      id: _genId(),
+      id: messageId ?? _genId(),
       baseId: baseId,
       userId: userId,
       content: content,

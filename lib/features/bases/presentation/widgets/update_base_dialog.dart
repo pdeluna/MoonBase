@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_snackbar.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
 import 'package:moonbase_skeleton/features/bases/domain/usecases/update_base.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/current_user_id_provider.dart';
@@ -7,7 +8,8 @@ import 'package:moonbase_skeleton/core/ids.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
 
 class UpdateBaseDialog extends ConsumerStatefulWidget {
-  const UpdateBaseDialog({super.key, required this.baseId, required this.currentName});
+  const UpdateBaseDialog(
+      {super.key, required this.baseId, required this.currentName});
 
   final String baseId;
   final String currentName;
@@ -99,9 +101,9 @@ class _UpdateBaseDialogState extends ConsumerState<UpdateBaseDialog> {
         name: _nameController.text.trim(),
         requesterUserId: currentUserId.uid,
       );
-      
+
       await ref.read(updateBaseProvider(params).future);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Base updated successfully')),
@@ -109,12 +111,7 @@ class _UpdateBaseDialogState extends ConsumerState<UpdateBaseDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update base: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        showFailureSnackBar(context, e, prefix: 'Failed to update base');
       }
     }
   }

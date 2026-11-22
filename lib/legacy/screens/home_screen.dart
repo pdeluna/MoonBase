@@ -7,10 +7,10 @@ import 'package:moonbase_skeleton/features/auth/presentation/providers/auth_prov
 import 'package:moonbase_skeleton/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart'
     as refactored;
-import 'package:moonbase_skeleton/legacy/widgets/primary_button.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/widgets/refactored_swipable_sidebar.dart';
-import 'package:moonbase_skeleton/features/bases/presentation/widgets/join_base_dialog.dart';
-import 'package:moonbase_skeleton/features/bases/presentation/widgets/create_base_dialog.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_home_vm_provider.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_home_actions.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_home_view.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -22,7 +22,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _tab = 0;
   final pages = const [
-    _FeedPage(),
+    CalendarHomeView(),
     ChatScreen(),
     ProfileScreen(),
   ];
@@ -31,6 +31,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).valueOrNull;
     final selectedBase = ref.watch(refactored.effectiveSelectedBaseProvider);
+    final calendarVm = ref.watch(calendarHomeVmProvider);
     final nickname = user?.nickname ?? 'Guest';
     final baseName = selectedBase?.name ?? 'No Base Selected';
 
@@ -92,10 +93,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               icon: const Icon(Icons.group_add),
               tooltip: 'Manage Invites',
             ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications_none_rounded),
-            ),
+            // Notification bell hidden until notifications ship (D-13).
             IconButton(
               onPressed: () async {
                 ref.read(refactored.selectedBaseProvider.notifier).state = null;
@@ -125,126 +123,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 label: 'Profile'),
           ],
         ),
-        floatingActionButton: _tab == 0
-            ? FloatingActionButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Streaming coming soon…')),
-                  );
-                },
-                child: const Icon(Icons.wifi_tethering),
+        // "Add event" only on the Home tab, only when the creation policy
+        // allows this user (CreateEvent re-checks; rules enforce).
+        floatingActionButton: _tab == 0 && canShowAddEventFab(calendarVm)
+            ? FloatingActionButton.extended(
+                key: const Key('home-add-event-fab'),
+                onPressed: () => showEventEditor(context, ref),
+                icon: const Icon(Icons.add),
+                label: const Text('Add event'),
               )
             : null,
-      ),
-    );
-  }
-}
-
-class _FeedPage extends ConsumerWidget {
-  const _FeedPage();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedBase = ref.watch(refactored.effectiveSelectedBaseProvider);
-
-    if (selectedBase == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.home_work_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'No Base Available',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Create your first base to start sharing with your circle',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 32),
-              PrimaryButton(
-                label: 'Create Base',
-                onPressed: () {
-                  showDialog<void>(
-                    context: context,
-                    builder: (context) => const CreateBaseDialog(),
-                  );
-                },
-                filled: true,
-              ),
-              const SizedBox(height: 12),
-              TextButton.icon(
-                onPressed: () {
-                  showDialog<void>(
-                    context: context,
-                    builder: (context) => const JoinBaseDialog(),
-                  );
-                },
-                icon: const Icon(Icons.group_add, size: 20),
-                label: const Text('Join Base'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _Card(
-          title: 'Welcome to ${selectedBase.name}',
-          subtitle: 'This is your most recently accessed base.',
-        ),
-        const _Card(
-          title: 'Invite-only circles',
-          subtitle: 'Share only with close friends & family.',
-        ),
-        const _Card(
-          title: 'Streaming (soon)',
-          subtitle: 'Go live privately to your circle.',
-        ),
-      ],
-    );
-  }
-}
-
-class _Card extends StatelessWidget {
-  const _Card({required this.title, required this.subtitle});
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: scheme.primaryContainer.withValues(alpha: 0.25),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 6),
-            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
       ),
     );
   }

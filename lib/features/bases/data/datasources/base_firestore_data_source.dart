@@ -60,6 +60,12 @@ class BaseFirestoreDataSource implements BaseLocalDataSource {
   CollectionReference<Map<String, dynamic>> _invitesCol(String baseId) =>
       _baseRef(baseId).collection('invites');
 
+  CollectionReference<Map<String, dynamic>> _eventsCol(String baseId) =>
+      _baseRef(baseId).collection('events');
+
+  CollectionReference<Map<String, dynamic>> _settingsCol(String baseId) =>
+      _baseRef(baseId).collection('settings');
+
   CollectionReference<Map<String, dynamic>> get _inviteCodes =>
       _db.collection('inviteCodes');
 
@@ -166,6 +172,10 @@ class BaseFirestoreDataSource implements BaseLocalDataSource {
   Future<void> deleteBase({required String baseId}) async {
     // Sweep invites + global inviteCodes mappings (missing mapping = success).
     await _pageDeleteInvitesAndMappings(baseId);
+    // Calendar subcollections before the base doc: rules resolve isOwner via
+    // get(base), so the base must still exist while these are deleted.
+    await _pageDeleteCollection(_eventsCol(baseId));
+    await _pageDeleteCollection(_settingsCol(baseId));
     await _pageDeleteCollection(_membersCol(baseId));
     await _baseRef(baseId).delete();
   }

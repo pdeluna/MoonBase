@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_outbox.dart';
 import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/send_message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/usecases/stream_messages.dart';
@@ -10,6 +11,12 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   throw UnimplementedError('Provide ChatRepository in app wiring');
 });
 
+/// Device-local pending-send outbox. Override at app root with
+/// `ChatOutboxRepositoryImpl(local: ChatOutboxSharedPrefsDataSource(prefs))`.
+final chatOutboxProvider = Provider<ChatOutbox>((ref) {
+  throw UnimplementedError('Provide ChatOutbox in app wiring');
+});
+
 /// `SendMessage` orchestrates upload-then-create (Week 5 task 3 pass 2), so
 /// it takes the staging storage (where the picker persisted bytes) and the
 /// cloud storage (compress + upload) alongside the chat repo.
@@ -18,5 +25,7 @@ final sendMessageUseCaseProvider = Provider((ref) => SendMessage(
       stagingStorage: ref.read(mediaStorageProvider),
       cloudStorage: ref.read(cloudMediaStorageProvider),
     ));
-final streamMessagesUseCaseProvider = Provider((ref) => StreamMessages(ref.read(chatRepositoryProvider)));
-final listMessagesUseCaseProvider   = Provider((ref) => ListMessages(ref.read(chatRepositoryProvider)));
+final streamMessagesUseCaseProvider =
+    Provider((ref) => StreamMessages(ref.read(chatRepositoryProvider)));
+final listMessagesUseCaseProvider =
+    Provider((ref) => ListMessages(ref.read(chatRepositoryProvider)));

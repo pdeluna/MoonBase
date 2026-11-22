@@ -12,7 +12,7 @@ This folder contains architecture, process, and reference docs. Phase 2 archives
 | [PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md](PHASE3_POSTS_STORIES_REACTIONS_BLUEPRINT.md) | Phase 3 architectural blueprint (cloud-ready contracts). |
 | [DEVELOPMENT_SETUP.md](DEVELOPMENT_SETUP.md) | Onboarding: FVM, IDE, Firebase foundation, commits. |
 | [DEV_GUIDE.md](DEV_GUIDE.md) | Git workflow, FVM, Flutter basics, testing strategy. |
-| [FIRESTORE_SCHEMA.md](FIRESTORE_SCHEMA.md) | Week 3 Firestore document shape (`schemaVersion: 1`), Decisions & deferred, and rules summary. Rules emulator suite: [`../firestore/tests/`](../firestore/tests/). |
+| [FIRESTORE_SCHEMA.md](FIRESTORE_SCHEMA.md) | Week 3 Firestore document shape (`schemaVersion: 1`), Decisions & deferred, and rules summary. Rules emulator suite: [`../firestore/tests/`](../firestore/tests/). Calendar (`events`, `settings/calendar`, reserved notification/attachment paths) documented in §Calendar; device gates in [`../assignments/CALENDAR_DEVICE_TESTS.md`](../assignments/CALENDAR_DEVICE_TESTS.md). |
 | [RESILIENCE_DECISIONS.md](RESILIENCE_DECISIONS.md) | Hang measurements, red herrings, network posture. Figures from instrumentation removed 2026-08-13. |
 | [WEEK3_PR_SUMMARY.md](WEEK3_PR_SUMMARY.md) | Week 3 PR summary: what shipped, critical locked notes, test plan. |
 | [FIRESTORE_UPDATE_TRIGGERS.md](FIRESTORE_UPDATE_TRIGGERS.md) | Scale-time reference: what’s parked in rules/tests and the precise trigger that forces a change. |

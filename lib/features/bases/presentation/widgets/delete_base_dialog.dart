@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_snackbar.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
 
 class DeleteBaseDialog extends ConsumerWidget {
-  const DeleteBaseDialog({super.key, required this.baseId, required this.baseName});
+  const DeleteBaseDialog(
+      {super.key, required this.baseId, required this.baseName});
 
   final String baseId;
   final String baseName;
@@ -63,12 +65,7 @@ class DeleteBaseDialog extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to delete base: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        showFailureSnackBar(context, e, prefix: 'Failed to delete base');
       }
     }
   }

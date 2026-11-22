@@ -9,21 +9,27 @@ import 'package:moonbase_skeleton/features/bases/domain/usecases/update_base.dar
 import 'package:moonbase_skeleton/features/bases/domain/usecases/delete_base.dart';
 import 'package:moonbase_skeleton/features/bases/domain/usecases/list_bases.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/current_user_id_provider.dart';
+import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
 import 'package:moonbase_skeleton/core/user_color_utils.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 
-/// Provider for listing bases using domain entities
+/// Provider for listing bases using domain entities.
+///
+/// Errors are thrown as the domain [Failure] itself (never wrapped in
+/// `Exception`) so `AsyncValue.error` consumers and `catch` sites can branch
+/// on the type and render `userMessage(error)`.
 final basesListProvider = FutureProvider<List<Base>>((ref) async {
   final currentUserId = ref.watch(currentUserIdProvider);
   if (currentUserId == null) {
-    throw Exception('User not authenticated');
+    throw const UnauthenticatedFailure();
   }
-  
+
   final listBases = ref.read(listBasesUseCaseProvider);
   final result = await listBases(ListBasesParams(currentUserId.uid));
-  
+
   return result.fold(
-    (failure) => throw Exception(failure.message),
+    (failure) => throw failure,
     (bases) => bases,
   );
 });
@@ -56,7 +62,8 @@ final lastAccessedBaseProvider = FutureProvider<Base?>((ref) async {
   final currentUserId = ref.watch(currentUserIdProvider);
   if (currentUserId == null) return null;
   final baseRepository = ref.read(baseRepositoryProvider);
-  final result = await baseRepository.getLastAccessedBase(UserId(currentUserId));
+  final result =
+      await baseRepository.getLastAccessedBase(UserId(currentUserId));
   return result.fold(
     (failure) => null,
     (base) => base,
@@ -88,7 +95,8 @@ final sidebarVmProvider = Provider<SidebarVM>((ref) {
       selectedBase: selectedBase,
       isLoading: false,
       hasError: true,
-      errorMessage: error.toString(),
+      errorMessage: userMessage(error),
+      error: error,
     ),
   );
 });
@@ -97,15 +105,16 @@ final sidebarVmProvider = Provider<SidebarVM>((ref) {
 final baseTileVmProvider = Provider.family<BaseTileVM?, String>((ref, baseId) {
   final sidebarVm = ref.watch(sidebarVmProvider);
   final currentUserId = ref.watch(currentUserIdProvider);
-  
+
   if (sidebarVm.isLoading || sidebarVm.hasError) return null;
-  
+
   try {
     final base = sidebarVm.bases.firstWhere((b) => b.id.value == baseId);
     final isSelected = sidebarVm.selectedBase?.id == base.id;
-    final isOwner = currentUserId != null && base.ownerUserId == currentUserId.uid;
+    final isOwner =
+        currentUserId != null && base.ownerUserId == currentUserId.uid;
     final avatarColor = UserColorUtils.getColorForUserId(base.id.value);
-    
+
     return BaseTileVM.fromBase(
       base,
       isSelected: isSelected,
@@ -118,12 +127,13 @@ final baseTileVmProvider = Provider.family<BaseTileVM?, String>((ref, baseId) {
 });
 
 /// Provider for creating bases. Returns the created [Base] on success so callers can select it.
-final createBaseProvider = FutureProvider.family<Base?, String>((ref, baseName) async {
+final createBaseProvider =
+    FutureProvider.family<Base?, String>((ref, baseName) async {
   final createBase = ref.read(createBaseUseCaseProvider);
   final currentUserId = ref.read(currentUserIdProvider);
 
   if (currentUserId == null) {
-    throw Exception('User not authenticated');
+    throw const UnauthenticatedFailure();
   }
 
   final result = await createBase(CreateBaseParams(
@@ -132,7 +142,7 @@ final createBaseProvider = FutureProvider.family<Base?, String>((ref, baseName) 
   ));
 
   return result.fold<Base?>(
-    (failure) => throw Exception(failure.message),
+    (failure) => throw failure,
     (base) => base,
   );
 });
@@ -144,7 +154,7 @@ final joinBaseWithCodeProvider =
   final currentUserId = ref.read(currentUserIdProvider);
 
   if (currentUserId == null) {
-    throw Exception('User not authenticated');
+    throw const UnauthenticatedFailure();
   }
 
   final result = await joinBase(JoinBaseParams(
@@ -153,48 +163,50 @@ final joinBaseWithCodeProvider =
   ));
 
   return result.fold<Base?>(
-    (failure) => throw Exception(failure.message),
+    (failure) => throw failure,
     (base) => base,
   );
 });
 
 /// Provider for updating bases
-final updateBaseProvider = FutureProvider.family<void, UpdateBaseParams>((ref, params) async {
+final updateBaseProvider =
+    FutureProvider.family<void, UpdateBaseParams>((ref, params) async {
   final updateBase = ref.read(updateBaseUseCaseProvider);
   final currentUserId = ref.read(currentUserIdProvider);
-  
+
   if (currentUserId == null) {
-    throw Exception('User not authenticated');
+    throw const UnauthenticatedFailure();
   }
-  
+
   final result = await updateBase(UpdateBaseParams(
     baseId: params.baseId,
     name: params.name,
     requesterUserId: currentUserId.uid,
   ));
-  
+
   result.fold(
-    (failure) => throw Exception(failure.message),
+    (failure) => throw failure,
     (_) => null,
   );
 });
 
 /// Provider for deleting bases
-final deleteBaseProvider = FutureProvider.family<void, String>((ref, baseId) async {
+final deleteBaseProvider =
+    FutureProvider.family<void, String>((ref, baseId) async {
   final deleteBase = ref.read(deleteBaseUseCaseProvider);
   final currentUserId = ref.read(currentUserIdProvider);
-  
+
   if (currentUserId == null) {
-    throw Exception('User not authenticated');
+    throw const UnauthenticatedFailure();
   }
-  
+
   final result = await deleteBase(DeleteBaseParams(
     baseId: baseId.bid,
     requesterUserId: currentUserId.uid,
   ));
-  
+
   result.fold(
-    (failure) => throw Exception(failure.message),
+    (failure) => throw failure,
     (_) => null,
   );
 });

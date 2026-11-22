@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/core/presentation/failure_snackbar.dart';
 import 'package:moonbase_skeleton/core/validators.dart';
 import 'package:moonbase_skeleton/features/auth/presentation/providers/current_user_id_provider.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
@@ -98,12 +99,7 @@ class _JoinBaseDialogState extends ConsumerState<JoinBaseDialog> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to join base: ${e.toString()}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        showFailureSnackBar(context, e, prefix: 'Failed to join base');
       }
     }
   }

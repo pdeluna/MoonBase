@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:moonbase_skeleton/core/failure.dart';
@@ -201,7 +202,8 @@ void main() {
       expect(uri, startsWith('https://'));
     });
 
-    test('maps local staging key to cloud path before getDownloadURL', () async {
+    test('maps local staging key to cloud path before getDownloadURL',
+        () async {
       String? requestedPath;
       final storage = FirebaseMediaStorage(
         compressJpeg: (bytes, {required quality, required maxEdge}) async =>
@@ -296,6 +298,97 @@ void main() {
       );
       expect(await storage.resolveUri(cloudPath), 'https://example.com/ok');
       expect(getCalls, 2);
+    });
+
+    group('FirebaseException → typed Failure (B-b)', () {
+      FirebaseMediaStorage throwing(Object error) => FirebaseMediaStorage(
+            compressJpeg: (bytes, {required quality, required maxEdge}) async =>
+                _tinyJpeg(),
+            putObject: ({
+              required path,
+              required bytes,
+              required contentType,
+            }) async {},
+            getDownloadUrl: (path) async => throw error,
+          );
+
+      FirebaseException storageError(String code) => FirebaseException(
+            plugin: 'firebase_storage',
+            code: code,
+            message: 'sdk: $code',
+          );
+
+      test('object-not-found → MediaNotFoundFailure', () async {
+        await expectLater(
+          throwing(storageError('object-not-found')).resolveUri(cloudPath),
+          throwsA(isA<MediaNotFoundFailure>()),
+        );
+      });
+
+      test('unauthorized → PermissionDeniedFailure', () async {
+        await expectLater(
+          throwing(storageError('unauthorized')).resolveUri(cloudPath),
+          throwsA(isA<PermissionDeniedFailure>()),
+        );
+      });
+
+      test('unauthenticated → PermissionDeniedFailure', () async {
+        await expectLater(
+          throwing(storageError('unauthenticated')).resolveUri(cloudPath),
+          throwsA(isA<PermissionDeniedFailure>()),
+        );
+      });
+
+      test('retry-limit-exceeded → NetworkFailure', () async {
+        await expectLater(
+          throwing(storageError('retry-limit-exceeded')).resolveUri(cloudPath),
+          throwsA(isA<NetworkFailure>()),
+        );
+      });
+
+      test(
+          'unknown Storage code → UnknownFailure, never a raw FirebaseException',
+          () async {
+        await expectLater(
+          throwing(storageError('quota-exceeded')).resolveUri(cloudPath),
+          throwsA(
+            allOf(isA<UnknownFailure>(), isNot(isA<FirebaseException>())),
+          ),
+        );
+      });
+
+      test('non-Firebase error is still a typed Failure', () async {
+        await expectLater(
+          throwing(StateError('boom')).resolveUri(cloudPath),
+          throwsA(isA<Failure>()),
+        );
+      });
+
+      test('typed failure evicts the memo so a retry re-requests', () async {
+        var calls = 0;
+        final storage = FirebaseMediaStorage(
+          compressJpeg: (bytes, {required quality, required maxEdge}) async =>
+              _tinyJpeg(),
+          putObject: ({
+            required path,
+            required bytes,
+            required contentType,
+          }) async {},
+          getDownloadUrl: (path) async {
+            calls++;
+            if (calls == 1) throw storageError('object-not-found');
+            return 'https://example.com/$path';
+          },
+        );
+
+        await expectLater(
+          storage.resolveUri(cloudPath),
+          throwsA(isA<MediaNotFoundFailure>()),
+        );
+        expect(await storage.resolveUri(cloudPath),
+            'https://example.com/$cloudPath');
+        expect(calls, 2);
+      });
     });
   });
 
