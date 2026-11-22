@@ -8,18 +8,21 @@ import 'package:moonbase_skeleton/features/calendar/presentation/calendar_span.d
 import 'package:moonbase_skeleton/features/calendar/presentation/controllers/calendar_controller.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_home_vm_provider.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/calendar_home_vm.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/providers/stories_seam.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/bases_unreachable_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/cached_events_banner.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_day_sheet.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_grid.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_home_actions.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_loading_skeleton.dart';
-import 'package:moonbase_skeleton/features/calendar/presentation/widgets/lunar_candy.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_tokens.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/date_heading.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/no_base_view.dart';
-import 'package:moonbase_skeleton/features/calendar/presentation/widgets/stories_strip.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/stories_heading.dart';
 
-/// Home tab body. Owns all four no-base states (bug B-e) and the week/month
-/// grid. The span is ephemeral drawing state — it does not write the window.
+/// Home tab body. Owns the no-base states (bug B-e), the date heading and
+/// stories row, and the week/month grid. The span is ephemeral drawing
+/// state — it does not write the window.
 ///
 /// Subscribes the controller to the selected base via `ref.listen` and an
 /// initial post-frame load, mirroring `ChatScreen`; a base switch cancels the
@@ -111,17 +114,20 @@ class _ReadyBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final candy = LunarCandy.of(context);
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     final duration =
         reduceMotion ? Duration.zero : CalendarHomeView.spanDuration;
     final showStories = span == CalendarDrawSpan.week;
 
     return ColoredBox(
-      color: candy.canvas,
+      color: CalendarTokens.of(context).canvas,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          DateHeading(
+            today: vm.todayKey,
+            onShare: () => ref.read(openStoryCaptureProvider)(context),
+          ),
           ExcludeSemantics(
             excluding: !showStories,
             child: ClipRect(
@@ -137,7 +143,7 @@ class _ReadyBody extends ConsumerWidget {
                   curve: Curves.easeOut,
                   child: IgnorePointer(
                     ignoring: !showStories,
-                    child: const StoriesStrip(),
+                    child: const StoriesHeading(),
                   ),
                 ),
               ),
