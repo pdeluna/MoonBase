@@ -65,6 +65,7 @@ void main() {
     Override? storiesOverride,
     Set<DayKey> memoryDays = const {},
     void Function(BuildContext context)? onCapture,
+    bool useDefaultCapture = false,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
@@ -89,7 +90,8 @@ void main() {
           ),
           storiesOverride ?? storiesHeadingProvider.overrideWithValue(stories),
           memoryDaysProvider.overrideWithValue(memoryDays),
-          openStoryCaptureProvider.overrideWithValue(onCapture ?? (_) {}),
+          if (!useDefaultCapture)
+            openStoryCaptureProvider.overrideWithValue(onCapture ?? (_) {}),
           mediaStorageProvider.overrideWithValue(_ThrowingMediaStorage()),
         ],
         child: MaterialApp(
@@ -505,6 +507,7 @@ void main() {
           const AsyncValue.data(StoriesHeadingData.empty),
       Override? storiesOverride,
       void Function(BuildContext context)? onCapture,
+      bool useDefaultCapture = false,
     }) {
       return pumpHome(
         tester,
@@ -514,6 +517,7 @@ void main() {
         stories: stories,
         storiesOverride: storiesOverride,
         onCapture: onCapture,
+        useDefaultCapture: useDefaultCapture,
       );
     }
 
@@ -640,6 +644,15 @@ void main() {
       } finally {
         semantics.dispose();
       }
+    });
+
+    testWidgets('the default seam hides the share button', (tester) async {
+      await pumpReady(tester, useDefaultCapture: true);
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('TODAY'), findsOneWidget);
+      expect(find.byKey(DateHeading.shareKey), findsNothing);
     });
   });
 

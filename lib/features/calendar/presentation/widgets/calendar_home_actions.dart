@@ -132,13 +132,14 @@ Future<void> showCalendarSettings(BuildContext context, WidgetRef ref) {
   );
 }
 
+/// Whether [day] falls inside the saved window around today.
+bool isInWindow(CalendarHomeVM vm, DayKey day) => vm.settings.window
+    .resolve(vm.todayKey.localMidnight)
+    .contains(day.localMidnight);
+
 /// Ready base, creation policy, and a day inside the saved window.
 bool canAddEventOn(CalendarHomeVM vm, DayKey day) =>
-    vm.isReady &&
-    vm.canAddEvent &&
-    vm.settings.window
-        .resolve(vm.todayKey.localMidnight)
-        .contains(day.localMidnight);
+    vm.isReady && vm.canAddEvent && isInWindow(vm, day);
 
 /// FAB visibility for the Home shell. Today is always inside the window.
 bool canShowAddEventFab(CalendarHomeVM vm) => canAddEventOn(vm, vm.todayKey);

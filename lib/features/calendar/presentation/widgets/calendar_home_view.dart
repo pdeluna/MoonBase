@@ -154,7 +154,7 @@ class _ReadyBody extends ConsumerWidget {
           children: [
             DateHeading(
               today: vm.todayKey,
-              onShare: () => ref.read(openStoryCaptureProvider)(context),
+              onShare: _onShare(ref, context),
             ),
             ExcludeSemantics(
               excluding: !showStories,
@@ -246,7 +246,7 @@ class _ReadyBody extends ConsumerWidget {
           CalendarGrid(
             days: days,
             selected: selected,
-            inWindow: (day) => _inWindow(vm, day),
+            inWindow: (day) => isInWindow(vm, day),
             onSelectDay: onSelectDay,
           ),
           agenda,
@@ -270,10 +270,10 @@ class _ReadyBody extends ConsumerWidget {
   }
 }
 
-bool _inWindow(CalendarHomeVM vm, DayKey day) {
-  return vm.settings.window
-      .resolve(vm.todayKey.localMidnight)
-      .contains(day.localMidnight);
+VoidCallback? _onShare(WidgetRef ref, BuildContext context) {
+  final open = ref.watch(openStoryCaptureProvider);
+  if (open == null) return null;
+  return () => open(context);
 }
 
 List<CalendarEvent> _eventsOn(CalendarHomeVM vm, DayKey day) {

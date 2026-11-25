@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/calendar_home_vm.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_tokens.dart';
 
-/// "TODAY", the medium date, and the story-capture button.
+/// "TODAY", the medium date, and an optional story-capture button.
 class DateHeading extends StatelessWidget {
-  const DateHeading({super.key, required this.today, required this.onShare});
+  const DateHeading({super.key, required this.today, this.onShare});
 
   static const shareKey = Key('calendar-share-story');
 
   final DayKey today;
-  final VoidCallback onShare;
+  final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
     final tokens = CalendarTokens.of(context);
+    final onShare = this.onShare;
     final date = MaterialLocalizations.of(context).formatMediumDate(
       today.localMidnight,
     );
@@ -41,27 +42,29 @@ class DateHeading extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          Semantics(
-            button: true,
-            label: 'Share a story',
-            child: ExcludeSemantics(
-              child: Material(
-                color: CalendarTokens.accent,
-                shape: const CircleBorder(),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  key: shareKey,
-                  onTap: onShare,
-                  child: const SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: Icon(Icons.add, color: Colors.white, size: 20),
+          if (onShare != null) ...[
+            const SizedBox(width: 12),
+            Semantics(
+              button: true,
+              label: 'Share a story',
+              child: ExcludeSemantics(
+                child: Material(
+                  color: CalendarTokens.accent,
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    key: shareKey,
+                    onTap: onShare,
+                    child: const SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Icon(Icons.add, color: Colors.white, size: 20),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );

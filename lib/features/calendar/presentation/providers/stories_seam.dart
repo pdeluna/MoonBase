@@ -1,6 +1,3 @@
-import 'dart:developer' as developer;
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
@@ -45,13 +42,7 @@ final storiesHeadingProvider = Provider<AsyncValue<StoriesHeadingData>>(
 /// Local days with a memory dot. Days the strip is not drawing are ignored.
 final memoryDaysProvider = Provider<Set<DayKey>>((ref) => const <DayKey>{});
 
-/// Date-heading "+" handoff. Defaults to a debug log.
-final openStoryCaptureProvider = Provider<void Function(BuildContext)>(
-  (ref) => _logCapture,
+/// Date-heading "+". Null until story capture is wired, which hides the button.
+final openStoryCaptureProvider = Provider<void Function(BuildContext)?>(
+  (ref) => null,
 );
-
-void _logCapture(BuildContext _) {
-  if (kDebugMode) {
-    developer.log('openStoryCapture: not wired', name: 'calendar');
-  }
-}
