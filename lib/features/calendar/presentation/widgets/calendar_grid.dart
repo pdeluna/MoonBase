@@ -75,6 +75,7 @@ class CalendarGrid extends StatelessWidget {
     super.key,
     required this.days,
     required this.selected,
+    required this.memoryDays,
     required this.inWindow,
     required this.onSelectDay,
   });
@@ -86,6 +87,7 @@ class CalendarGrid extends StatelessWidget {
 
   final List<CalendarGridDay> days;
   final DayKey selected;
+  final Set<DayKey> memoryDays;
   final bool Function(DayKey day) inWindow;
   final ValueChanged<DayKey> onSelectDay;
 
@@ -98,6 +100,10 @@ class CalendarGrid extends StatelessWidget {
 
   static Key moreKey(DayKey day) =>
       ValueKey<String>('calendar-more-${day.year}-${day.month}-${day.day}');
+
+  static Key memoryDotKey(DayKey day) => ValueKey<String>(
+        'calendar-memory-${day.year}-${day.month}-${day.day}',
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -130,6 +136,7 @@ class CalendarGrid extends StatelessWidget {
         _MonthRows(
           days: days,
           selected: selected,
+          memoryDays: memoryDays,
           inWindow: inWindow,
           onSelectDay: onSelectDay,
         ),
@@ -162,12 +169,14 @@ class _MonthRows extends StatelessWidget {
   const _MonthRows({
     required this.days,
     required this.selected,
+    required this.memoryDays,
     required this.inWindow,
     required this.onSelectDay,
   });
 
   final List<CalendarGridDay> days;
   final DayKey selected;
+  final Set<DayKey> memoryDays;
   final bool Function(DayKey day) inWindow;
   final ValueChanged<DayKey> onSelectDay;
 
@@ -181,6 +190,7 @@ class _MonthRows extends StatelessWidget {
           _DayRow(
             days: days.sublist(r * 7, r * 7 + 7),
             selected: selected,
+            memoryDays: memoryDays,
             inWindow: inWindow,
             onSelectDay: onSelectDay,
           ),
@@ -193,12 +203,14 @@ class _DayRow extends StatelessWidget {
   const _DayRow({
     required this.days,
     required this.selected,
+    required this.memoryDays,
     required this.inWindow,
     required this.onSelectDay,
   });
 
   final List<CalendarGridDay> days;
   final DayKey selected;
+  final Set<DayKey> memoryDays;
   final bool Function(DayKey day) inWindow;
   final ValueChanged<DayKey> onSelectDay;
 
@@ -214,6 +226,7 @@ class _DayRow extends StatelessWidget {
               child: CalendarDayCell(
                 day: day,
                 selected: day.day == selected,
+                hasMemory: memoryDays.contains(day.day),
                 onTap: inWindow(day.day) ? () => onSelectDay(day.day) : null,
               ),
             ),
@@ -228,11 +241,13 @@ class CalendarDayCell extends StatelessWidget {
     super.key,
     required this.day,
     required this.selected,
+    required this.hasMemory,
     required this.onTap,
   });
 
   final CalendarGridDay day;
   final bool selected;
+  final bool hasMemory;
   final VoidCallback? onTap;
 
   @override
@@ -279,9 +294,13 @@ class CalendarDayCell extends StatelessWidget {
                           height: 1.1,
                         ),
                       ),
-                      if (!day.isEmpty) ...[
+                      if (!day.isEmpty || hasMemory) ...[
                         const SizedBox(height: 4),
-                        _MonthDots(day: day, onToday: day.isToday),
+                        _MonthDots(
+                          day: day,
+                          onToday: day.isToday,
+                          hasMemory: hasMemory,
+                        ),
                       ],
                     ],
                   ),
@@ -303,10 +322,15 @@ String _label(CalendarGridDay day) {
 }
 
 class _MonthDots extends StatelessWidget {
-  const _MonthDots({required this.day, required this.onToday});
+  const _MonthDots({
+    required this.day,
+    required this.onToday,
+    required this.hasMemory,
+  });
 
   final CalendarGridDay day;
   final bool onToday;
+  final bool hasMemory;
 
   @override
   Widget build(BuildContext context) {
@@ -340,6 +364,20 @@ class _MonthDots extends StatelessWidget {
               fontSize: 11,
               color: more,
               height: 1.0,
+            ),
+          ),
+        ],
+        if (hasMemory) ...[
+          if (dotCount > 0 || overflow) const SizedBox(width: 3),
+          SizedBox(
+            key: CalendarGrid.memoryDotKey(day.day),
+            width: 6,
+            height: 6,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                color: CalendarTokens.memory,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
         ],

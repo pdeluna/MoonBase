@@ -14,6 +14,7 @@ import 'package:moonbase_skeleton/features/calendar/data/repositories/calendar_r
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_settings.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/event_creation_policy.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_providers.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/providers/chat_memories.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/stories_seam.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/bases_unreachable_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/cached_events_banner.dart';
@@ -64,6 +65,8 @@ void main() {
         const AsyncValue.data(StoriesHeadingData.empty),
     Override? storiesOverride,
     Set<DayKey> memoryDays = const {},
+    Map<DayKey, List<MediaRef>> chatMemories = const {},
+    bool deriveMemoryDays = false,
     void Function(BuildContext context)? onCapture,
     bool useDefaultCapture = false,
   }) async {
@@ -89,7 +92,11 @@ void main() {
             ),
           ),
           storiesOverride ?? storiesHeadingProvider.overrideWithValue(stories),
-          memoryDaysProvider.overrideWithValue(memoryDays),
+          if (!deriveMemoryDays)
+            memoryDaysProvider.overrideWithValue(memoryDays),
+          chatMemoriesProvider.overrideWith(
+            (ref) => Stream<Map<DayKey, List<MediaRef>>>.value(chatMemories),
+          ),
           if (!useDefaultCapture)
             openStoryCaptureProvider.overrideWithValue(onCapture ?? (_) {}),
           mediaStorageProvider.overrideWithValue(_ThrowingMediaStorage()),
@@ -692,6 +699,39 @@ void main() {
         tester.getSize(find.byKey(WeekStrip.dayKey(monday))).height,
         tester.getSize(find.byKey(WeekStrip.dayKey(tuesday))).height,
       );
+    });
+
+    testWidgets('a chat photo marks that day on the week and the month', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        deriveMemoryDays: true,
+        chatMemories: {
+          monday: const [
+            MediaRef(
+              id: MediaId('p1'),
+              type: MediaType.image,
+              storageKey: 'a.jpg',
+            ),
+          ],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      // The photo stream starts once the feed is ready.
+      await tester.pump();
+
+      expect(find.byKey(WeekStrip.memoryDotKey(monday)), findsOneWidget);
+      expect(find.byKey(WeekStrip.eventDotKey(monday)), findsNothing);
+
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(CalendarGrid.memoryDotKey(monday)), findsOneWidget);
+      expect(find.byKey(CalendarGrid.dotKey(monday, 0)), findsNothing);
     });
 
     testWidgets('today is filled and another day selects with an outline', (

@@ -230,6 +230,7 @@ class _ReadyBody extends ConsumerWidget {
       );
     }
     final stories = ref.watch(storiesHeadingProvider).asData?.value;
+    final memoryDays = ref.watch(memoryDaysProvider);
     final tiles = stories?.tiles ?? const [];
     final agenda = DayAgenda(
       day: selected,
@@ -246,6 +247,7 @@ class _ReadyBody extends ConsumerWidget {
           CalendarGrid(
             days: days,
             selected: selected,
+            memoryDays: memoryDays,
             inWindow: (day) => isInWindow(vm, day),
             onSelectDay: onSelectDay,
           ),
@@ -259,7 +261,7 @@ class _ReadyBody extends ConsumerWidget {
         WeekStrip(
           days: days,
           selected: selected,
-          memoryDays: ref.watch(memoryDaysProvider),
+          memoryDays: memoryDays,
           onSelect: onSelectDay,
         ),
         if (tiles.isNotEmpty)
