@@ -66,7 +66,7 @@ void main() {
         const AsyncValue.data(StoriesHeadingData.empty),
     Override? storiesOverride,
     Set<DayKey> memoryDays = const {},
-    Map<DayKey, List<MediaRef>> chatMemories = const {},
+    Map<DayKey, List<DayShare>> chatMemories = const {},
     bool deriveMemoryDays = false,
     void Function(BuildContext context)? onCapture,
     bool useDefaultCapture = false,
@@ -96,7 +96,7 @@ void main() {
           if (!deriveMemoryDays)
             memoryDaysProvider.overrideWithValue(memoryDays),
           chatMemoriesProvider.overrideWith(
-            (ref) => Stream<Map<DayKey, List<MediaRef>>>.value(chatMemories),
+            (ref) => Stream<Map<DayKey, List<DayShare>>>.value(chatMemories),
           ),
           if (!useDefaultCapture)
             openStoryCaptureProvider.overrideWithValue(onCapture ?? (_) {}),
@@ -714,11 +714,16 @@ void main() {
         user: member,
         deriveMemoryDays: true,
         chatMemories: {
-          monday: const [
-            MediaRef(
-              id: MediaId('p1'),
-              type: MediaType.image,
-              storageKey: 'a.jpg',
+          monday: [
+            DayShare(
+              author: kOwner,
+              media: const [
+                MediaRef(
+                  id: MediaId('p1'),
+                  type: MediaType.image,
+                  storageKey: 'a.jpg',
+                ),
+              ],
             ),
           ],
         },
@@ -935,7 +940,9 @@ void main() {
         selected: kBase,
         user: member,
         chatMemories: {
-          past: const [photo],
+          past: [
+            DayShare(author: kOwner, media: const [photo]),
+          ],
         },
       );
       await tester.pump();
@@ -946,9 +953,67 @@ void main() {
       await tester.tap(find.byKey(CalendarGrid.cellKey(past)));
       await tester.pump();
 
-      expect(find.text('SHARED · SUN, SEP 20'), findsOneWidget);
+      expect(find.text('SHARED BY OWNER'), findsOneWidget);
       expect(find.byType(MediaTile), findsOneWidget);
       expect(find.text('SHARED TODAY'), findsNothing);
+    });
+
+    testWidgets('two authors on one day render two SHARED BY labels in order', (
+      tester,
+    ) async {
+      const mom = MediaRef(
+        id: MediaId('mom'),
+        type: MediaType.image,
+        storageKey: 'mom.jpg',
+      );
+      const dadA = MediaRef(
+        id: MediaId('dad-a'),
+        type: MediaType.image,
+        storageKey: 'dad-a.jpg',
+      );
+      const dadB = MediaRef(
+        id: MediaId('dad-b'),
+        type: MediaType.image,
+        storageKey: 'dad-b.jpg',
+      );
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        chatMemories: {
+          past: [
+            DayShare(author: kOwner, media: const [mom]),
+            DayShare(author: kMember, media: const [dadA, dadB]),
+          ],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(CalendarGrid.cellKey(past)));
+      await tester.pump();
+
+      final ownerLabel = find.text('SHARED BY OWNER');
+      final memberLabel = find.text('SHARED BY MEMBER');
+      expect(ownerLabel, findsOneWidget);
+      expect(memberLabel, findsOneWidget);
+      expect(
+        tester.getTopLeft(ownerLabel).dy,
+        lessThan(tester.getTopLeft(memberLabel).dy),
+      );
+      final grids = find.byType(GridView);
+      expect(grids, findsNWidgets(2));
+      expect(
+        find.descendant(of: grids.at(0), matching: find.byType(MediaTile)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: grids.at(1), matching: find.byType(MediaTile)),
+        findsNWidgets(2),
+      );
     });
 
     testWidgets('tapping a photo opens the preview', (tester) async {
@@ -959,7 +1024,9 @@ void main() {
         selected: kBase,
         user: member,
         chatMemories: {
-          today: const [photo],
+          today: [
+            DayShare(author: kOwner, media: const [photo]),
+          ],
         },
       );
       await tester.pump();
@@ -982,7 +1049,9 @@ void main() {
         selected: kBase,
         user: member,
         chatMemories: {
-          outside: const [photo],
+          outside: [
+            DayShare(author: kOwner, media: const [photo]),
+          ],
         },
       );
       await tester.pump();
@@ -993,7 +1062,7 @@ void main() {
       await tester.tap(find.byKey(CalendarGrid.cellKey(outside)));
       await tester.pump();
 
-      expect(find.text('SHARED · TUE, SEP 1'), findsOneWidget);
+      expect(find.text('SHARED BY OWNER'), findsOneWidget);
       expect(find.byType(MediaTile), findsOneWidget);
       expect(find.text(DayAgenda.outsideCopy), findsOneWidget);
       expect(find.byKey(DayAgenda.addKey), findsNothing);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/member_presentation_provider.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_feed.dart';
@@ -260,27 +261,8 @@ class _ReadyBody extends ConsumerWidget {
         child: CalendarLoadingSkeleton(key: ValueKey('calendar-feed-loading')),
       );
     }
-    final stories = ref.watch(storiesHeadingProvider).asData?.value;
     final memoryDays = ref.watch(memoryDaysProvider);
-    final isToday = selected == vm.todayKey;
-    final chatPhotos =
-        ref.watch(chatMemoriesProvider).asData?.value[selected] ??
-            const <MediaRef>[];
-    final tiles = <MediaRef>[
-      if (isToday) ...?stories?.tiles,
-      ...chatPhotos,
-    ];
-    final l10n = MaterialLocalizations.of(context);
-    final photos = tiles.isEmpty
-        ? null
-        : SharedTodaySection(
-            title: isToday
-                ? 'SHARED TODAY'
-                : 'SHARED · ${l10n.formatMediumDate(selected.localMidnight).toUpperCase()}',
-            tiles: tiles,
-            keptUntil: isToday ? stories?.keptUntil : null,
-            onTileTap: (media) => MediaPreview.open(context, media),
-          );
+    final photos = _photos(context, ref);
     final inWindow = isInWindow(vm, selected);
     final agenda = DayAgenda(
       day: selected,
@@ -318,6 +300,56 @@ class _ReadyBody extends ConsumerWidget {
         if (photos != null) photos,
         agenda,
       ],
+    );
+  }
+
+  /// Today's stories, then each person's chat photos, oldest share first.
+  Widget? _photos(BuildContext context, WidgetRef ref) {
+    final isToday = selected == vm.todayKey;
+    final stories = ref.watch(storiesHeadingProvider).asData?.value;
+    final shares = ref.watch(chatMemoriesProvider).asData?.value[selected] ??
+        const <DayShare>[];
+    final storyTiles =
+        isToday ? stories?.tiles ?? const <MediaRef>[] : const <MediaRef>[];
+    if (storyTiles.isEmpty && shares.isEmpty) return null;
+
+    void open(MediaRef media) => MediaPreview.open(context, media);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (storyTiles.isNotEmpty)
+          SharedTodaySection(
+            key: SharedTodaySection.sectionKey,
+            title: 'SHARED TODAY',
+            tiles: storyTiles,
+            keptUntil: stories?.keptUntil,
+            onTileTap: open,
+          ),
+        for (var i = 0; i < shares.length; i++)
+          _shareSection(
+            ref,
+            shares[i],
+            storyTiles.isNotEmpty || i > 0 ? 20.0 : 24.0,
+            open,
+          ),
+      ],
+    );
+  }
+
+  Widget _shareSection(
+    WidgetRef ref,
+    DayShare share,
+    double topPadding,
+    ValueChanged<MediaRef> onTileTap,
+  ) {
+    final nickname =
+        ref.watch(memberPresentationProvider(share.author.value)).nickname;
+    return SharedTodaySection(
+      title: 'SHARED BY ${nickname.toUpperCase()}',
+      tiles: share.media,
+      keptUntil: null,
+      topPadding: topPadding,
+      onTileTap: onTileTap,
     );
   }
 }

@@ -19,22 +19,42 @@ import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart
 import '../../../../test_utils/fakes_calendar.dart';
 
 void main() {
-  test('photos bucket to the local day, newest first', () async {
+  test('photos bucket to the local day as oldest-first shares', () async {
+    // kOwner is Mom and kMember is Dad. The feed is not in send order.
     final container = _container(
       ChatFeed(
         freshness: ChatFreshness.live,
         messages: [
-          _message('early', DateTime(2026, 9, 20, 10)),
           _message('late', DateTime(2026, 9, 20, 18)),
+          _message('mom-c', DateTime(2026, 9, 22, 12)),
+          _message('dad', DateTime(2026, 9, 22, 10), author: kMember),
+          _message('early', DateTime(2026, 9, 20, 10)),
+          _message('mom-b', DateTime(2026, 9, 22, 9, 30)),
+          _message(
+            'mom-a',
+            DateTime(2026, 9, 22, 9),
+            media: const [
+              MediaRef(
+                id: MediaId('mom-a1'),
+                type: MediaType.image,
+                storageKey: 'a1.jpg',
+              ),
+              MediaRef(
+                id: MediaId('mom-a2'),
+                type: MediaType.image,
+                storageKey: 'a2.jpg',
+              ),
+            ],
+          ),
           _message('next', DateTime(2026, 9, 21, 9)),
           _message(
             'pending',
-            DateTime(2026, 9, 20, 12),
+            DateTime(2026, 9, 22, 9, 10),
             status: SyncStatus.localOnly,
           ),
           _message(
             'clip',
-            DateTime(2026, 9, 20, 19),
+            DateTime(2026, 9, 22, 9, 20),
             type: MediaType.video,
           ),
         ],
@@ -46,11 +66,26 @@ void main() {
     expect(photos.keys, {
       const DayKey(2026, 9, 20),
       const DayKey(2026, 9, 21),
+      const DayKey(2026, 9, 22),
     });
+
+    final sep20 = photos[const DayKey(2026, 9, 20)]!;
+    expect(sep20, hasLength(1));
+    expect(sep20.single.author, kOwner);
     expect(
-      photos[const DayKey(2026, 9, 20)]!.map((item) => item.id.value),
-      ['late', 'early'],
+      sep20.single.media.map((item) => item.id.value),
+      ['early', 'late'],
     );
+
+    final sep22 = photos[const DayKey(2026, 9, 22)]!;
+    expect(sep22.map((share) => share.author), [kOwner, kMember, kOwner]);
+    expect(
+      sep22[0].media.map((item) => item.id.value),
+      ['mom-a1', 'mom-a2', 'mom-b'],
+    );
+    expect(sep22[1].media.map((item) => item.id.value), ['dad']);
+    expect(sep22[2].media.map((item) => item.id.value), ['mom-c']);
+
     expect(container.read(memoryDaysProvider), photos.keys.toSet());
   });
 
@@ -70,19 +105,22 @@ void main() {
 Message _message(
   String id,
   DateTime at, {
+  UserId? author,
   SyncStatus status = SyncStatus.synced,
   MediaType type = MediaType.image,
+  List<MediaRef>? media,
 }) {
   return Message(
     id: id.mid,
     baseId: kBase.id,
-    userId: kOwner,
+    userId: author ?? kOwner,
     content: '',
     createdAt: at,
     syncStatus: status,
-    media: [
-      MediaRef(id: MediaId(id), type: type, storageKey: '$id.jpg'),
-    ],
+    media: media ??
+        [
+          MediaRef(id: MediaId(id), type: type, storageKey: '$id.jpg'),
+        ],
   );
 }
 

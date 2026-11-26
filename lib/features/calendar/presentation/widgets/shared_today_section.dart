@@ -3,7 +3,7 @@ import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calenda
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 import 'package:moonbase_skeleton/features/media/presentation/widgets/media_tile.dart';
 
-/// Today's shared media. The caller hides it when [tiles] is empty.
+/// A titled 3-column photo grid. The caller hides it when [tiles] is empty.
 class SharedTodaySection extends StatelessWidget {
   const SharedTodaySection({
     super.key,
@@ -11,6 +11,7 @@ class SharedTodaySection extends StatelessWidget {
     required this.tiles,
     required this.keptUntil,
     this.onTileTap,
+    this.topPadding = 24.0,
   });
 
   static const sectionKey = Key('calendar-shared-today');
@@ -19,6 +20,9 @@ class SharedTodaySection extends StatelessWidget {
   final List<MediaRef> tiles;
   final DateTime? keptUntil;
   final ValueChanged<MediaRef>? onTileTap;
+
+  /// Space above the title. The first block uses 24; each later share uses 20.
+  final double topPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +33,7 @@ class SharedTodaySection extends StatelessWidget {
         ? null
         : 'Kept until ${l10n.formatTimeOfDay(TimeOfDay.fromDateTime(until.toLocal()))} tomorrow, then moved to this day on the calendar.';
     return Padding(
-      key: sectionKey,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+      padding: EdgeInsets.fromLTRB(20, topPadding, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
