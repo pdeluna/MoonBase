@@ -1,89 +1,75 @@
 import 'package:flutter/material.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_event.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_format.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_tokens.dart';
 
-/// Dumb card: title, time / "All day", author chip, one-line notes preview.
+/// One event on the selected day's agenda.
 class EventCard extends StatelessWidget {
   const EventCard({
     super.key,
     required this.event,
     required this.authorNickname,
-    required this.authorColor,
     required this.onTap,
   });
 
   final CalendarEvent event;
   final String authorNickname;
-  final Color authorColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final notes = event.notes;
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      color: scheme.primaryContainer.withValues(alpha: 0.25),
+    final tokens = CalendarTokens.of(context);
+    return Material(
+      color: tokens.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: tokens.border),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-          child: Column(
+          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 14),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
+              SizedBox(
+                width: 52,
+                child: Text(
+                  formatEventStart(context, event),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: tokens.secondary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       event.title,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.15,
+                        color: tokens.ink,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    formatEventTime(context, event),
-                    style: theme.textTheme.labelLarge
-                        ?.copyWith(color: scheme.onSurfaceVariant),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: authorColor,
-                      shape: BoxShape.circle,
+                    const SizedBox(height: 2),
+                    Text(
+                      authorNickname,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 13, color: tokens.secondary),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    authorNickname,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                        color: authorColor, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-              if (notes != null && notes.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  notes,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: scheme.onSurfaceVariant),
+                  ],
                 ),
-              ],
+              ),
             ],
           ),
         ),

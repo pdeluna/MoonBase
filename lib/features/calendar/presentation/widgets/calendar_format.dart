@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_event.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_window.dart';
-import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/calendar_home_vm.dart';
 
 /// Date/time copy via `MaterialLocalizations` — no `intl` dependency (D-7).
 /// All instants are converted to device-local before formatting (U-2).
 
-String formatDayHeader(BuildContext context, DayKey day,
-    {required bool isToday}) {
+String formatEventStart(BuildContext context, CalendarEvent e) {
+  if (e.allDay) return 'All day';
   final l = MaterialLocalizations.of(context);
-  final full = l.formatFullDate(day.localMidnight);
-  return isToday ? 'Today · $full' : full;
+  return l.formatTimeOfDay(TimeOfDay.fromDateTime(e.startAt.toLocal()));
 }
 
 String formatEventTime(BuildContext context, CalendarEvent e) {

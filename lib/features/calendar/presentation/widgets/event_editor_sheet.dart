@@ -18,6 +18,7 @@ class EventEditorSheet extends StatefulWidget {
     required this.today,
     required this.onSubmit,
     this.existing,
+    this.initialDay,
   });
 
   static const saveKey = Key('event-editor-save');
@@ -34,6 +35,9 @@ class EventEditorSheet extends StatefulWidget {
   final CalendarWindow window;
   final DateTime today;
   final CalendarEvent? existing;
+
+  /// Local calendar day to seed a new event. Ignored while editing.
+  final DateTime? initialDay;
   final Future<Failure?> Function(EventInput input) onSubmit;
 
   @override
@@ -60,7 +64,10 @@ class _EventEditorSheetState extends State<EventEditorSheet> {
     _title = TextEditingController(text: e?.title ?? '');
     _notes = TextEditingController(text: e?.notes ?? '');
     final startLocal = e?.startAt.toLocal() ?? widget.today.toLocal();
-    _date = DateTime(startLocal.year, startLocal.month, startLocal.day);
+    final seeded = e == null ? widget.initialDay : null;
+    _date = seeded == null
+        ? DateTime(startLocal.year, startLocal.month, startLocal.day)
+        : DateTime(seeded.year, seeded.month, seeded.day);
     _allDay = e?.allDay ?? false;
     _start = e == null
         ? _roundToNextHour(TimeOfDay.fromDateTime(startLocal))

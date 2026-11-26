@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_window.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/calendar_format.dart';
 
-/// One-line window label with the owner-only settings gear.
+/// One-line window label with the owner-only Settings control.
+///
+/// The control stays named Settings. The week/month expander on the grid
+/// header is a different control and does not open this dialog.
 class WindowLabel extends StatelessWidget {
   const WindowLabel({
     super.key,
@@ -24,26 +27,37 @@ class WindowLabel extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
       child: Row(
         children: [
-          Icon(Icons.date_range_outlined,
-              size: 18, color: scheme.onSurfaceVariant),
+          Icon(
+            Icons.date_range_outlined,
+            size: 18,
+            color: scheme.onSurfaceVariant,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               formatWindowLabel(window),
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               overflow: TextOverflow.ellipsis,
             ),
           ),
           if (isOwner)
-            IconButton(
+            TextButton.icon(
               key: gearKey,
-              tooltip: 'Calendar settings',
-              visualDensity: VisualDensity.compact,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                foregroundColor: scheme.onSurfaceVariant,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                textStyle: const TextStyle(
+                  fontFamily: 'Roboto',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
               onPressed: onOpenSettings,
-              icon: const Icon(Icons.settings_outlined, size: 20),
+              icon: const Icon(Icons.settings_outlined, size: 18),
+              label: const Text('Settings'),
             ),
         ],
       ),
