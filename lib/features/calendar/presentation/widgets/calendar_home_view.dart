@@ -58,12 +58,16 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
   /// Null follows today. Not persisted.
   DayKey? _selected;
 
+  /// Null follows today's month. Paging leaves the selected day alone.
+  DayKey? _month;
+
   void _syncController(Base? base) {
     final controller = ref.read(calendarControllerProvider.notifier);
     if (base == null) {
       if (_loadedBaseId != null) {
         _loadedBaseId = null;
         _selected = null;
+        _month = null;
         controller.clear();
       }
       return;
@@ -71,6 +75,7 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
     if (_loadedBaseId != base.id.value) {
       _loadedBaseId = base.id.value;
       _selected = null;
+      _month = null;
       controller.load(base.id.value);
     }
   }
@@ -81,6 +86,16 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
           ? CalendarDrawSpan.month
           : CalendarDrawSpan.week;
       _selected = null;
+      _month = null;
+    });
+  }
+
+  void _shiftMonth(int delta) {
+    final current = _month ?? ref.read(calendarHomeVmProvider).todayKey;
+    setState(() {
+      _month = DayKey.fromLocal(
+        DateTime(current.year, current.month + delta, 1),
+      );
     });
   }
 
@@ -113,7 +128,10 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
           vm: vm,
           span: _span,
           selected: _selected ?? vm.todayKey,
+          month: _month ?? vm.todayKey,
           onToggleSpan: _toggleSpan,
+          onPreviousMonth: () => _shiftMonth(-1),
+          onNextMonth: () => _shiftMonth(1),
           onSelectDay: (day) => setState(() => _selected = day),
         );
     }
@@ -125,14 +143,20 @@ class _ReadyBody extends ConsumerWidget {
     required this.vm,
     required this.span,
     required this.selected,
+    required this.month,
     required this.onToggleSpan,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
     required this.onSelectDay,
   });
 
   final CalendarHomeVM vm;
   final CalendarDrawSpan span;
   final DayKey selected;
+  final DayKey month;
   final VoidCallback onToggleSpan;
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
   final ValueChanged<DayKey> onSelectDay;
 
   @override
@@ -146,6 +170,7 @@ class _ReadyBody extends ConsumerWidget {
       span: span,
       sections: vm.sections,
       today: vm.todayKey,
+      month: month,
       firstDayOfWeekIndex: l10n.firstDayOfWeekIndex,
     );
 
@@ -183,7 +208,10 @@ class _ReadyBody extends ConsumerWidget {
             CalendarGridHeader(
               span: span,
               today: vm.todayKey,
+              month: month,
               onToggleSpan: onToggleSpan,
+              onPreviousMonth: onPreviousMonth,
+              onNextMonth: onNextMonth,
             ),
             CachedEventsBanner(
               freshness: vm.freshness,
@@ -253,10 +281,12 @@ class _ReadyBody extends ConsumerWidget {
             keptUntil: isToday ? stories?.keptUntil : null,
             onTileTap: (media) => MediaPreview.open(context, media),
           );
+    final inWindow = isInWindow(vm, selected);
     final agenda = DayAgenda(
       day: selected,
       isToday: selected == vm.todayKey,
-      events: _eventsOn(vm, selected),
+      events: inWindow ? _eventsOn(vm, selected) : const [],
+      inWindow: inWindow,
       canAdd: canAddEventOn(vm, selected),
       onEventTap: (event) => showEventDetail(context, ref, event),
       onAdd: () => showEventEditor(context, ref, initialDay: selected),
@@ -269,7 +299,6 @@ class _ReadyBody extends ConsumerWidget {
             days: days,
             selected: selected,
             memoryDays: memoryDays,
-            inWindow: (day) => isInWindow(vm, day),
             onSelectDay: onSelectDay,
           ),
           if (photos != null) photos,

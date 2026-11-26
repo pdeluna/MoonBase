@@ -378,7 +378,9 @@ void main() {
         await tester.tap(find.byKey(CalendarGrid.cellKey(outside)));
         await tester.pumpAndSettle();
         expect(find.byType(EventDetailSheet), findsNothing);
-        expect(find.text('Owner dinner'), findsOneWidget);
+        expect(find.text('Owner dinner'), findsNothing);
+        expect(find.text(DayAgenda.outsideCopy), findsOneWidget);
+        expect(find.byKey(DayAgenda.addKey), findsNothing);
 
         await tester.tap(find.byKey(CalendarGrid.cellKey(loadedEmpty)));
         await tester.pumpAndSettle();
@@ -968,6 +970,69 @@ void main() {
       await tester.tap(find.byType(MediaTile));
       await tester.pumpAndSettle();
       expect(find.byType(MediaPreview), findsOneWidget);
+    });
+
+    testWidgets('an outside-window day shows photos and no events', (
+      tester,
+    ) async {
+      const outside = DayKey(2026, 9, 1);
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        chatMemories: {
+          outside: const [photo],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(CalendarGrid.cellKey(outside)));
+      await tester.pump();
+
+      expect(find.text('SHARED · TUE, SEP 1'), findsOneWidget);
+      expect(find.byType(MediaTile), findsOneWidget);
+      expect(find.text(DayAgenda.outsideCopy), findsOneWidget);
+      expect(find.byKey(DayAgenda.addKey), findsNothing);
+      expect(find.text(DayAgenda.emptyCopy), findsNothing);
+    });
+
+    testWidgets('month chevrons move the grid and a span change returns', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(CalendarGrid.cellKey(past)));
+      await tester.pump();
+      expect(find.text('ON THE CALENDAR · SUN, SEP 20'), findsOneWidget);
+
+      await tester.tap(find.byKey(CalendarGridHeader.previousMonthKey));
+      await tester.pump();
+      expect(find.text('August 2026'), findsOneWidget);
+      expect(
+        find.byKey(CalendarGrid.cellKey(const DayKey(2026, 8, 1))),
+        findsOneWidget,
+      );
+      expect(find.text('ON THE CALENDAR · SUN, SEP 20'), findsOneWidget);
+
+      await tester.tap(find.text('Week'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      expect(find.text('September 2026'), findsOneWidget);
+      expect(find.text('ON THE CALENDAR'), findsOneWidget);
+      expect(find.text('ON THE CALENDAR · SUN, SEP 20'), findsNothing);
     });
   });
 }

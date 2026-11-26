@@ -10,10 +10,10 @@ void main() {
   final today = DayKey.fromLocal(kToday);
 
   DaySection section(DayKey day, {String? title}) => DaySection(
-    day: day,
-    events: [if (title != null) eventBy(kOwner, title: title)],
-    isToday: day == today,
-  );
+        day: day,
+        events: [if (title != null) eventBy(kOwner, title: title)],
+        isToday: day == today,
+      );
 
   test('Sunday 27 Sep 2026 is the fixture', () {
     expect(today, const DayKey(2026, 9, 27));
@@ -27,6 +27,7 @@ void main() {
       span: CalendarDrawSpan.week,
       sections: [section(today, title: 'Dinner')],
       today: today,
+      month: today,
       firstDayOfWeekIndex: sunday,
     );
     expect(sundayFirst.map((d) => d.day).toList(), [
@@ -56,6 +57,7 @@ void main() {
       span: CalendarDrawSpan.month,
       sections: [section(today, title: 'Dinner')],
       today: today,
+      month: today,
       firstDayOfWeekIndex: sunday,
     );
     expect(days, hasLength(35));
@@ -75,6 +77,7 @@ void main() {
       headerMonths(
         span: CalendarDrawSpan.week,
         today: today,
+        month: today,
         firstDayOfWeekIndex: sunday,
       ),
       [DateTime(2026, 9), DateTime(2026, 10)],
@@ -83,6 +86,16 @@ void main() {
       headerMonths(
         span: CalendarDrawSpan.month,
         today: today,
+        month: const DayKey(2026, 8, 1),
+        firstDayOfWeekIndex: sunday,
+      ),
+      [DateTime(2026, 8)],
+    );
+    expect(
+      headerMonths(
+        span: CalendarDrawSpan.month,
+        today: today,
+        month: today,
         firstDayOfWeekIndex: sunday,
       ),
       [DateTime(2026, 9)],

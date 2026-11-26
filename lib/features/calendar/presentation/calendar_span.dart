@@ -30,24 +30,24 @@ int sundayBasedWeekday(DayKey day) => day.localMidnight.weekday % 7;
 int daysAfterWeekStart(DayKey day, int firstDayOfWeekIndex) =>
     (sundayBasedWeekday(day) - firstDayOfWeekIndex + 7) % 7;
 
-/// Cells for [span] around [today], in reading order.
+/// Cells for [span], in reading order.
 ///
 /// Week is the seven local days of the week that contains [today]. Month is
-/// every date in that month plus the leading and trailing days that complete
+/// every date in [month] plus the leading and trailing days that complete
 /// the first and last rows. [firstDayOfWeekIndex] is 0 = Sunday.
 List<CalendarGridDay> gridDays({
   required CalendarDrawSpan span,
   required List<DaySection> sections,
   required DayKey today,
+  required DayKey month,
   required int firstDayOfWeekIndex,
 }) {
   final byDay = <DayKey, DaySection>{
     for (final section in sections) section.day: section,
   };
-  final keys =
-      span == CalendarDrawSpan.week
-          ? weekKeys(today, firstDayOfWeekIndex)
-          : monthKeys(today, firstDayOfWeekIndex);
+  final keys = span == CalendarDrawSpan.week
+      ? weekKeys(today, firstDayOfWeekIndex)
+      : monthKeys(month, firstDayOfWeekIndex);
   return [
     for (final day in keys)
       CalendarGridDay(
@@ -66,25 +66,26 @@ List<DayKey> weekKeys(DayKey today, int firstDayOfWeekIndex) {
   return List<DayKey>.generate(7, start.addDays);
 }
 
-/// Rectangular month grid containing [today], including leading/trailing days.
-List<DayKey> monthKeys(DayKey today, int firstDayOfWeekIndex) {
-  final first = DayKey(today.year, today.month, 1);
+/// Rectangular month grid for [month], including leading and trailing days.
+List<DayKey> monthKeys(DayKey month, int firstDayOfWeekIndex) {
+  final first = DayKey(month.year, month.month, 1);
   final leading = daysAfterWeekStart(first, firstDayOfWeekIndex);
   final start = first.addDays(-leading);
-  final daysInMonth = DateTime(today.year, today.month + 1, 0).day;
+  final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
   final rows = ((leading + daysInMonth) / 7).ceil();
   return List<DayKey>.generate(rows * 7, start.addDays);
 }
 
 /// Months named in the grid header, in order. Week may span two. Month mode
-/// names today's calendar month only (leading/trailing days stay unlabeled).
+/// names [month] only (leading and trailing days stay unlabeled).
 List<DateTime> headerMonths({
   required CalendarDrawSpan span,
   required DayKey today,
+  required DayKey month,
   required int firstDayOfWeekIndex,
 }) {
   if (span == CalendarDrawSpan.month) {
-    return [DateTime(today.year, today.month)];
+    return [DateTime(month.year, month.month)];
   }
   final seen = <String>{};
   final months = <DateTime>[];

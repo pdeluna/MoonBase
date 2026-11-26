@@ -9,14 +9,22 @@ class CalendarGridHeader extends StatelessWidget {
     super.key,
     required this.span,
     required this.today,
+    required this.month,
     required this.onToggleSpan,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
   });
 
   static const spanKey = Key('calendar-span-toggle');
+  static const previousMonthKey = Key('calendar-previous-month');
+  static const nextMonthKey = Key('calendar-next-month');
 
   final CalendarDrawSpan span;
   final DayKey today;
+  final DayKey month;
   final VoidCallback onToggleSpan;
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
 
   @override
   Widget build(BuildContext context) {
@@ -28,26 +36,38 @@ class CalendarGridHeader extends StatelessWidget {
             l10n,
             span: span,
             today: today,
+            month: month,
             firstDayOfWeekIndex: l10n.firstDayOfWeekIndex,
           );
+    final ink = CalendarTokens.of(context).ink;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 12, 8),
       child: Row(
         children: [
-          if (title != null)
+          if (title != null) ...[
+            _MonthStep(
+              key: previousMonthKey,
+              icon: Icons.chevron_left,
+              onPressed: onPreviousMonth,
+            ),
             Expanded(
               child: Text(
                 title,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
-                  color: CalendarTokens.of(context).ink,
+                  color: ink,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-            )
-          else
+            ),
+            _MonthStep(
+              key: nextMonthKey,
+              icon: Icons.chevron_right,
+              onPressed: onNextMonth,
+            ),
+          ] else
             const Spacer(),
           TextButton(
             key: spanKey,
@@ -69,6 +89,23 @@ class CalendarGridHeader extends StatelessWidget {
   }
 }
 
+class _MonthStep extends StatelessWidget {
+  const _MonthStep({super.key, required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+    );
+  }
+}
+
 /// Month grid. Draws [days] only — it does not watch providers.
 class CalendarGrid extends StatelessWidget {
   const CalendarGrid({
@@ -76,7 +113,6 @@ class CalendarGrid extends StatelessWidget {
     required this.days,
     required this.selected,
     required this.memoryDays,
-    required this.inWindow,
     required this.onSelectDay,
   });
 
@@ -88,7 +124,6 @@ class CalendarGrid extends StatelessWidget {
   final List<CalendarGridDay> days;
   final DayKey selected;
   final Set<DayKey> memoryDays;
-  final bool Function(DayKey day) inWindow;
   final ValueChanged<DayKey> onSelectDay;
 
   static Key cellKey(DayKey day) =>
@@ -137,7 +172,6 @@ class CalendarGrid extends StatelessWidget {
           days: days,
           selected: selected,
           memoryDays: memoryDays,
-          inWindow: inWindow,
           onSelectDay: onSelectDay,
         ),
       ],
@@ -155,11 +189,13 @@ String formatGridHeader(
   MaterialLocalizations l10n, {
   required CalendarDrawSpan span,
   required DayKey today,
+  required DayKey month,
   required int firstDayOfWeekIndex,
 }) {
   final months = headerMonths(
     span: span,
     today: today,
+    month: month,
     firstDayOfWeekIndex: firstDayOfWeekIndex,
   );
   return months.map(l10n.formatMonthYear).join(' – ');
@@ -170,14 +206,12 @@ class _MonthRows extends StatelessWidget {
     required this.days,
     required this.selected,
     required this.memoryDays,
-    required this.inWindow,
     required this.onSelectDay,
   });
 
   final List<CalendarGridDay> days;
   final DayKey selected;
   final Set<DayKey> memoryDays;
-  final bool Function(DayKey day) inWindow;
   final ValueChanged<DayKey> onSelectDay;
 
   @override
@@ -191,7 +225,6 @@ class _MonthRows extends StatelessWidget {
             days: days.sublist(r * 7, r * 7 + 7),
             selected: selected,
             memoryDays: memoryDays,
-            inWindow: inWindow,
             onSelectDay: onSelectDay,
           ),
       ],
@@ -204,14 +237,12 @@ class _DayRow extends StatelessWidget {
     required this.days,
     required this.selected,
     required this.memoryDays,
-    required this.inWindow,
     required this.onSelectDay,
   });
 
   final List<CalendarGridDay> days;
   final DayKey selected;
   final Set<DayKey> memoryDays;
-  final bool Function(DayKey day) inWindow;
   final ValueChanged<DayKey> onSelectDay;
 
   @override
@@ -227,7 +258,7 @@ class _DayRow extends StatelessWidget {
                 day: day,
                 selected: day.day == selected,
                 hasMemory: memoryDays.contains(day.day),
-                onTap: inWindow(day.day) ? () => onSelectDay(day.day) : null,
+                onTap: () => onSelectDay(day.day),
               ),
             ),
         ],
