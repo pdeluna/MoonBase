@@ -35,6 +35,7 @@ import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart'
 import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
+import 'package:moonbase_skeleton/features/media/presentation/widgets/media_preview.dart';
 import 'package:moonbase_skeleton/features/media/presentation/widgets/media_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -914,6 +915,59 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+  });
+
+  group('chat photos', () {
+    const past = DayKey(2026, 9, 20);
+    const photo = MediaRef(
+      id: MediaId('past'),
+      type: MediaType.image,
+      storageKey: 'past.jpg',
+    );
+
+    testWidgets('selecting a past day shows its photos', (tester) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        chatMemories: {
+          past: const [photo],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(CalendarGrid.cellKey(past)));
+      await tester.pump();
+
+      expect(find.text('SHARED · SUN, SEP 20'), findsOneWidget);
+      expect(find.byType(MediaTile), findsOneWidget);
+      expect(find.text('SHARED TODAY'), findsNothing);
+    });
+
+    testWidgets('tapping a photo opens the preview', (tester) async {
+      const today = DayKey(2026, 9, 27);
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        chatMemories: {
+          today: const [photo],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      await tester.ensureVisible(find.byType(MediaTile));
+      await tester.tap(find.byType(MediaTile));
+      await tester.pumpAndSettle();
+      expect(find.byType(MediaPreview), findsOneWidget);
     });
   });
 }

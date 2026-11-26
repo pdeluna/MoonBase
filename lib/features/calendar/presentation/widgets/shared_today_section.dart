@@ -7,14 +7,18 @@ import 'package:moonbase_skeleton/features/media/presentation/widgets/media_tile
 class SharedTodaySection extends StatelessWidget {
   const SharedTodaySection({
     super.key,
+    required this.title,
     required this.tiles,
     required this.keptUntil,
+    this.onTileTap,
   });
 
   static const sectionKey = Key('calendar-shared-today');
 
+  final String title;
   final List<MediaRef> tiles;
   final DateTime? keptUntil;
+  final ValueChanged<MediaRef>? onTileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +34,7 @@ class SharedTodaySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('SHARED TODAY', style: CalendarTokens.overline(context)),
+          Text(title, style: CalendarTokens.overline(context)),
           const SizedBox(height: 10),
           GridView.count(
             crossAxisCount: 3,
@@ -52,6 +56,7 @@ class SharedTodaySection extends StatelessWidget {
                       media: tile,
                       fit: BoxFit.cover,
                       borderRadius: const BorderRadius.all(Radius.circular(12)),
+                      onTap: onTileTap == null ? null : () => onTileTap!(tile),
                     ),
                   ),
                 ),

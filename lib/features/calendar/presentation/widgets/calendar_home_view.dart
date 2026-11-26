@@ -8,6 +8,7 @@ import 'package:moonbase_skeleton/features/calendar/presentation/calendar_span.d
 import 'package:moonbase_skeleton/features/calendar/presentation/controllers/calendar_controller.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_home_vm_provider.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/calendar_home_vm.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/providers/chat_memories.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/stories_seam.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/bases_unreachable_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/cached_events_banner.dart';
@@ -23,6 +24,8 @@ import 'package:moonbase_skeleton/features/calendar/presentation/widgets/shared_
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/stories_heading.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/week_strip.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/window_label.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
+import 'package:moonbase_skeleton/features/media/presentation/widgets/media_preview.dart';
 
 /// Home tab body. Owns the no-base states (bug B-e), the date heading and
 /// stories row, and the week/month grid. The span is ephemeral drawing
@@ -231,7 +234,25 @@ class _ReadyBody extends ConsumerWidget {
     }
     final stories = ref.watch(storiesHeadingProvider).asData?.value;
     final memoryDays = ref.watch(memoryDaysProvider);
-    final tiles = stories?.tiles ?? const [];
+    final isToday = selected == vm.todayKey;
+    final chatPhotos =
+        ref.watch(chatMemoriesProvider).asData?.value[selected] ??
+            const <MediaRef>[];
+    final tiles = <MediaRef>[
+      if (isToday) ...?stories?.tiles,
+      ...chatPhotos,
+    ];
+    final l10n = MaterialLocalizations.of(context);
+    final photos = tiles.isEmpty
+        ? null
+        : SharedTodaySection(
+            title: isToday
+                ? 'SHARED TODAY'
+                : 'SHARED · ${l10n.formatMediumDate(selected.localMidnight).toUpperCase()}',
+            tiles: tiles,
+            keptUntil: isToday ? stories?.keptUntil : null,
+            onTileTap: (media) => MediaPreview.open(context, media),
+          );
     final agenda = DayAgenda(
       day: selected,
       isToday: selected == vm.todayKey,
@@ -251,6 +272,7 @@ class _ReadyBody extends ConsumerWidget {
             inWindow: (day) => isInWindow(vm, day),
             onSelectDay: onSelectDay,
           ),
+          if (photos != null) photos,
           agenda,
         ],
       );
@@ -264,8 +286,7 @@ class _ReadyBody extends ConsumerWidget {
           memoryDays: memoryDays,
           onSelect: onSelectDay,
         ),
-        if (tiles.isNotEmpty)
-          SharedTodaySection(tiles: tiles, keptUntil: stories?.keptUntil),
+        if (photos != null) photos,
         agenda,
       ],
     );
