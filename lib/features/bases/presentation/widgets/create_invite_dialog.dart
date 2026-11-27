@@ -84,8 +84,8 @@ class _CreateInviteDialogState extends ConsumerState<CreateInviteDialog> {
     }
 
     try {
-      final maxUses = _maxUsesController.text.isNotEmpty 
-          ? int.parse(_maxUsesController.text) 
+      final maxUses = _maxUsesController.text.isNotEmpty
+          ? int.parse(_maxUsesController.text)
           : null;
 
       final params = CreateInviteParams(
@@ -145,17 +145,18 @@ class _CreateInviteDialogState extends ConsumerState<CreateInviteDialog> {
                   Text(
                     code,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: code));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Invite code copied to clipboard')),
+                        const SnackBar(
+                            content: Text('Invite code copied to clipboard')),
                       );
                     },
                     icon: const Icon(Icons.copy),
@@ -168,8 +169,8 @@ class _CreateInviteDialogState extends ConsumerState<CreateInviteDialog> {
             Text(
               'Share this code with others to invite them to your base.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -184,7 +185,8 @@ class _CreateInviteDialogState extends ConsumerState<CreateInviteDialog> {
               Clipboard.setData(ClipboardData(text: code));
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Invite code copied to clipboard')),
+                const SnackBar(
+                    content: Text('Invite code copied to clipboard')),
               );
             },
             icon: const Icon(Icons.copy),

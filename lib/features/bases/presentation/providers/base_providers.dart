@@ -18,16 +18,27 @@ final baseRepositoryProvider = Provider<BaseRepository>((ref) {
   throw UnimplementedError('Provide BaseRepository in app wiring');
 });
 
-final createBaseUseCaseProvider = Provider((ref) => CreateBase(ref.read(baseRepositoryProvider)));
-final joinBaseUseCaseProvider   = Provider((ref) => JoinBase(ref.read(baseRepositoryProvider)));
-final listBasesUseCaseProvider  = Provider((ref) => ListBases(ref.read(baseRepositoryProvider)));
-final leaveBaseUseCaseProvider  = Provider((ref) => LeaveBase(ref.read(baseRepositoryProvider)));
-final renameBaseUseCaseProvider = Provider((ref) => RenameBase(ref.read(baseRepositoryProvider)));
-final updateBaseUseCaseProvider = Provider((ref) => UpdateBase(ref.read(baseRepositoryProvider)));
-final deleteBaseUseCaseProvider = Provider((ref) => DeleteBase(ref.read(baseRepositoryProvider)));
-final generateInviteCodeUseCaseProvider = Provider((ref) => GenerateInviteCode(ref.read(baseRepositoryProvider)));
+final createBaseUseCaseProvider =
+    Provider((ref) => CreateBase(ref.read(baseRepositoryProvider)));
+final joinBaseUseCaseProvider =
+    Provider((ref) => JoinBase(ref.read(baseRepositoryProvider)));
+final listBasesUseCaseProvider =
+    Provider((ref) => ListBases(ref.read(baseRepositoryProvider)));
+final leaveBaseUseCaseProvider =
+    Provider((ref) => LeaveBase(ref.read(baseRepositoryProvider)));
+final renameBaseUseCaseProvider =
+    Provider((ref) => RenameBase(ref.read(baseRepositoryProvider)));
+final updateBaseUseCaseProvider =
+    Provider((ref) => UpdateBase(ref.read(baseRepositoryProvider)));
+final deleteBaseUseCaseProvider =
+    Provider((ref) => DeleteBase(ref.read(baseRepositoryProvider)));
+final generateInviteCodeUseCaseProvider =
+    Provider((ref) => GenerateInviteCode(ref.read(baseRepositoryProvider)));
 
 // Invite use cases
-final createInviteUseCaseProvider = Provider((ref) => CreateInvite(ref.read(baseRepositoryProvider)));
-final listInvitesUseCaseProvider = Provider((ref) => ListInvites(ref.read(baseRepositoryProvider)));
-final getInviteByCodeUseCaseProvider = Provider((ref) => GetInviteByCode(ref.read(baseRepositoryProvider)));
+final createInviteUseCaseProvider =
+    Provider((ref) => CreateInvite(ref.read(baseRepositoryProvider)));
+final listInvitesUseCaseProvider =
+    Provider((ref) => ListInvites(ref.read(baseRepositoryProvider)));
+final getInviteByCodeUseCaseProvider =
+    Provider((ref) => GetInviteByCode(ref.read(baseRepositoryProvider)));

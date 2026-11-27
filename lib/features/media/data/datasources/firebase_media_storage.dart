@@ -205,7 +205,7 @@ class FirebaseMediaStorage extends RemoteMediaStorage {
     throw MediaTooLargeFailure(
       'That file is too big.',
       'Compressed image exceeds the ${maxBytes ~/ (1024 * 1024)} MB upload cap '
-      '(${last?.length ?? 0} bytes).',
+          '(${last?.length ?? 0} bytes).',
     );
   }
 }

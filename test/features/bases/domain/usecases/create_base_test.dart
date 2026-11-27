@@ -14,10 +14,16 @@ void main() {
     final repo = MockBaseRepository();
     final usecase = CreateBase(repo);
 
-    when(() => repo.createBase(name: any(named: 'name'), ownerUserId: any(named: 'ownerUserId')))
-      .thenAnswer((_) async => Right(Base(id: 'b1'.bid, name: 'Home', ownerUserId: 'u1'.uid, createdAt: DateTime(2025, 1, 1))));
+    when(() => repo.createBase(
+            name: any(named: 'name'), ownerUserId: any(named: 'ownerUserId')))
+        .thenAnswer((_) async => Right(Base(
+            id: 'b1'.bid,
+            name: 'Home',
+            ownerUserId: 'u1'.uid,
+            createdAt: DateTime(2025, 1, 1))));
 
-    final res = await usecase(CreateBaseParams(name: 'Home', ownerUserId: 'u1'.uid));
+    final res =
+        await usecase(CreateBaseParams(name: 'Home', ownerUserId: 'u1'.uid));
 
     expect(res, isA<Right<Failure, Base>>());
     res.match((_) => fail('expected Right'), (b) {
@@ -26,7 +32,8 @@ void main() {
       expect(b.ownerUserId, 'u1'.uid);
     });
 
-    verify(() => repo.createBase(name: 'Home', ownerUserId: 'u1'.uid)).called(1);
+    verify(() => repo.createBase(name: 'Home', ownerUserId: 'u1'.uid))
+        .called(1);
     verifyNoMoreInteractions(repo);
   });
 }

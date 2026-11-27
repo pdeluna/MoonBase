@@ -7,7 +7,7 @@ class PrimaryButton extends StatelessWidget {
     required this.onPressed,
     this.filled = true,
   });
-  
+
   final String label;
   final VoidCallback onPressed;
   final bool filled;
@@ -22,7 +22,8 @@ class PrimaryButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 14),
           backgroundColor: filled ? scheme.primary : Colors.transparent,
           side: BorderSide(color: scheme.primary, width: 1.4),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           foregroundColor: filled ? scheme.onPrimary : scheme.primary,
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),

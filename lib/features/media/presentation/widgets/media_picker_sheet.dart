@@ -226,7 +226,6 @@ class MediaPickerSheet extends ConsumerWidget {
       );
     });
   }
-
 }
 
 class _PickerOption extends StatelessWidget {

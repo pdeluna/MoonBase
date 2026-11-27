@@ -4,11 +4,11 @@ import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 
 class ChatThread extends StatelessWidget {
   const ChatThread({
-    super.key, 
+    super.key,
     required this.messages,
     required this.currentUserId,
   });
-  
+
   final List<Message> messages;
   final String? currentUserId;
 

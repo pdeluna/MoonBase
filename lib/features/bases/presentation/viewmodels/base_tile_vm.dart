@@ -11,8 +11,11 @@ class BaseTileVM {
     required this.isOwner,
     required this.avatarColor,
   });
-  
-  factory BaseTileVM.fromBase(Base base, {required bool isSelected, required bool isOwner, required Color avatarColor}) {
+
+  factory BaseTileVM.fromBase(Base base,
+      {required bool isSelected,
+      required bool isOwner,
+      required Color avatarColor}) {
     return BaseTileVM(
       id: base.id.value,
       name: base.name,

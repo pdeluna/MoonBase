@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moonbase_skeleton/legacy/models/base.dart';
@@ -118,8 +118,8 @@ class _BasePickerScreenState extends ConsumerState<BasePickerScreen> {
   Future<void> _createBase() async {
     try {
       await ref.read(basesProvider.notifier).createBase(
-        name: _baseNameController.text.trim(),
-      );
+            name: _baseNameController.text.trim(),
+          );
       _baseNameController.clear();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -164,44 +164,44 @@ class _BasePickerScreenState extends ConsumerState<BasePickerScreen> {
     final basesAsync = ref.watch(basesProvider);
     final selectedBase = ref.watch(effectiveSelectedBaseProvider);
 
-         return Scaffold(
-       appBar: AppBar(
-         title: const Text('Base Picker'),
-         leading: IconButton(
-           icon: const Icon(Icons.arrow_back),
-           onPressed: () => context.go('/home'),
-         ),
-       ),
-       bottomNavigationBar: Container(
-         padding: const EdgeInsets.all(16),
-         decoration: BoxDecoration(
-           color: Theme.of(context).scaffoldBackgroundColor,
-           border: Border(
-             top: BorderSide(
-               color: Theme.of(context).dividerColor,
-               width: 0.5,
-             ),
-           ),
-         ),
-         child: SafeArea(
-           child: Column(
-             mainAxisSize: MainAxisSize.min,
-             children: [
-               PrimaryButton(
-                 label: 'Create Base',
-                 onPressed: _showCreateBaseDialog,
-                 filled: true,
-               ),
-               const SizedBox(height: 12),
-               PrimaryButton(
-                 label: 'Join via Code',
-                 onPressed: _showJoinBaseDialog,
-                 filled: false,
-               ),
-             ],
-           ),
-         ),
-       ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Base Picker'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).dividerColor,
+              width: 0.5,
+            ),
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PrimaryButton(
+                label: 'Create Base',
+                onPressed: _showCreateBaseDialog,
+                filled: true,
+              ),
+              const SizedBox(height: 12),
+              PrimaryButton(
+                label: 'Join via Code',
+                onPressed: _showJoinBaseDialog,
+                filled: false,
+              ),
+            ],
+          ),
+        ),
+      ),
       body: basesAsync.when(
         loading: () => const Center(child: MoonSpinner()),
         error: (error, stack) => Center(
@@ -219,169 +219,195 @@ class _BasePickerScreenState extends ConsumerState<BasePickerScreen> {
             ],
           ),
         ),
-                 data: (bases) => Column(
-           children: [
-             // Current Base Section
-             if (selectedBase != null) ...[
-               Container(
-                 width: double.infinity,
-                 padding: const EdgeInsets.all(16),
-                 margin: const EdgeInsets.all(16),
-                 decoration: BoxDecoration(
-                   color: Theme.of(context).colorScheme.primaryContainer,
-                   borderRadius: BorderRadius.circular(12),
-                 ),
-                 child: Column(
-                   crossAxisAlignment: CrossAxisAlignment.start,
-                   children: [
-                     Text(
-                       'Current Base',
-                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                         color: Theme.of(context).colorScheme.onPrimaryContainer,
-                       ),
-                     ),
-                     const SizedBox(height: 8),
-                     Row(
-                       children: [
-                         CircleAvatar(
-                           backgroundColor: Theme.of(context).colorScheme.primary,
-                           child: Text(
-                             selectedBase.name[0].toUpperCase(),
-                             style: const TextStyle(
-                               color: Colors.white,
-                               fontWeight: FontWeight.bold,
-                             ),
-                           ),
-                         ),
-                         const SizedBox(width: 12),
-                         Expanded(
-                           child: Column(
-                             crossAxisAlignment: CrossAxisAlignment.start,
-                             children: [
-                               Text(
-                                 selectedBase.name,
-                                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                   fontWeight: FontWeight.bold,
-                                   color: Theme.of(context).colorScheme.onPrimaryContainer,
-                                 ),
-                               ),
-                               if (selectedBase.description != null)
-                                 Text(
-                                   selectedBase.description!,
-                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                   ),
-                                 ),
-                             ],
-                           ),
-                         ),
-                       ],
-                     ),
-                   ],
-                 ),
-               ),
-             ],
+        data: (bases) => Column(
+          children: [
+            // Current Base Section
+            if (selectedBase != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current Base',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          child: Text(
+                            selectedBase.name[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                selectedBase.name,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                    ),
+                              ),
+                              if (selectedBase.description != null)
+                                Text(
+                                  selectedBase.description!,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
-             // My Bases Section
-             Padding(
-               padding: const EdgeInsets.symmetric(horizontal: 16),
-               child: Row(
-                 children: [
-                   Text(
-                     'My Bases',
-                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                       fontWeight: FontWeight.bold,
-                     ),
-                   ),
-                   const Spacer(),
-                   Text(
-                     '${bases.length} base${bases.length == 1 ? '' : 's'}',
-                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                     ),
-                   ),
-                 ],
-               ),
-             ),
+            // My Bases Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Text(
+                    'My Bases',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${bases.length} base${bases.length == 1 ? '' : 's'}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
 
-             const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-             // Bases List
-             Expanded(
-               child: bases.isEmpty
-                   ? Center(
-                       child: Column(
-                         mainAxisAlignment: MainAxisAlignment.center,
-                         children: [
-                           Icon(
-                             Icons.home_outlined,
-                             size: 64,
-                             color: Theme.of(context).colorScheme.outline,
-                           ),
-                           const SizedBox(height: 16),
-                           Text(
-                             'No bases yet',
-                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                               color: Theme.of(context).colorScheme.onSurfaceVariant,
-                             ),
-                           ),
-                           const SizedBox(height: 8),
-                           Text(
-                             'Create your first base to get started',
-                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                               color: Theme.of(context).colorScheme.outline,
-                             ),
-                           ),
-                         ],
-                       ),
-                     )
-                   : ListView.builder(
-                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                       itemCount: bases.length,
-                       itemBuilder: (context, index) {
-                         final base = bases[index];
-                         final isSelected = selectedBase?.id == base.id;
-                         
-                         return Card(
-                           margin: const EdgeInsets.only(bottom: 12),
-                           child: ListTile(
-                             leading: CircleAvatar(
-                               backgroundColor: isSelected 
-                                   ? Theme.of(context).colorScheme.primary
-                                   : Theme.of(context).colorScheme.surfaceContainerHighest,
-                               child: Text(
-                                 base.name[0].toUpperCase(),
-                                 style: TextStyle(
-                                   color: isSelected 
-                                       ? Colors.white
-                                       : Theme.of(context).colorScheme.onSurface,
-                                   fontWeight: FontWeight.bold,
-                                 ),
-                               ),
-                             ),
-                             title: Text(
-                               base.name,
-                               style: TextStyle(
-                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                               ),
-                             ),
-                             subtitle: base.description != null
-                                 ? Text(base.description!)
-                                 : null,
-                             trailing: isSelected
-                                 ? Icon(
-                                     Icons.check_circle,
-                                     color: Theme.of(context).colorScheme.primary,
-                                   )
-                                 : const Icon(Icons.chevron_right),
-                             onTap: () => _switchBase(base),
-                           ),
-                         );
-                       },
-                     ),
-             ),
-           ],
-         ),
+            // Bases List
+            Expanded(
+              child: bases.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.home_outlined,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No bases yet',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create your first base to get started',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: bases.length,
+                      itemBuilder: (context, index) {
+                        final base = bases[index];
+                        final isSelected = selectedBase?.id == base.id;
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: isSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .surfaceContainerHighest,
+                              child: Text(
+                                base.name[0].toUpperCase(),
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Theme.of(context).colorScheme.onSurface,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              base.name,
+                              style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            subtitle: base.description != null
+                                ? Text(base.description!)
+                                : null,
+                            trailing: isSelected
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  )
+                                : const Icon(Icons.chevron_right),
+                            onTap: () => _switchBase(base),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

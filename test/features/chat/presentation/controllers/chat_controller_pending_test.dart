@@ -271,8 +271,7 @@ void main() {
     });
   });
 
-  test(
-      'a cached feed of other messages does not swallow a failed send',
+  test('a cached feed of other messages does not swallow a failed send',
       () async {
     repo.script.add(const NetworkFailure('offline'));
     await c.load('b1');

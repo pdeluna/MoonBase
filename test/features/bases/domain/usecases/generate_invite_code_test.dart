@@ -19,16 +19,18 @@ void main() {
     });
 
     group('Success cases', () {
-      test('should generate invite code successfully and return Right with code', () async {
+      test(
+          'should generate invite code successfully and return Right with code',
+          () async {
         // Arrange
         const expectedCode = 'ABC123';
         final baseId = 'base_123'.bid;
         final requesterUserId = 'user_456'.uid;
-        
+
         when(() => mockRepository.generateInviteCode(
-          baseId: any(named: 'baseId'),
-          requesterUserId: any(named: 'requesterUserId'),
-        )).thenAnswer((_) async => const Right(expectedCode));
+              baseId: any(named: 'baseId'),
+              requesterUserId: any(named: 'requesterUserId'),
+            )).thenAnswer((_) async => const Right(expectedCode));
 
         // Act
         final result = await usecase(GenerateInviteCodeParams(
@@ -47,21 +49,21 @@ void main() {
         );
 
         verify(() => mockRepository.generateInviteCode(
-          baseId: baseId,
-          requesterUserId: requesterUserId,
-        )).called(1);
+              baseId: baseId,
+              requesterUserId: requesterUserId,
+            )).called(1);
         verifyNoMoreInteractions(mockRepository);
       });
 
       test('should handle different invite code formats', () async {
         // Arrange
         const testCodes = ['XYZ789', 'DEF456', 'GHI123'];
-        
+
         for (final code in testCodes) {
           when(() => mockRepository.generateInviteCode(
-            baseId: any(named: 'baseId'),
-            requesterUserId: any(named: 'requesterUserId'),
-          )).thenAnswer((_) async => Right(code));
+                baseId: any(named: 'baseId'),
+                requesterUserId: any(named: 'requesterUserId'),
+              )).thenAnswer((_) async => Right(code));
 
           // Act
           final result = await usecase(GenerateInviteCodeParams(
@@ -80,16 +82,18 @@ void main() {
     });
 
     group('Failure cases', () {
-      test('should return Left with CacheFailure when repository throws cache error', () async {
+      test(
+          'should return Left with CacheFailure when repository throws cache error',
+          () async {
         // Arrange
         final baseId = 'base_123'.bid;
         final requesterUserId = 'user_456'.uid;
         const errorMessage = 'Failed to generate invite code - cache error';
-        
+
         when(() => mockRepository.generateInviteCode(
-          baseId: any(named: 'baseId'),
-          requesterUserId: any(named: 'requesterUserId'),
-        )).thenAnswer((_) async => const Left(CacheFailure(errorMessage)));
+              baseId: any(named: 'baseId'),
+              requesterUserId: any(named: 'requesterUserId'),
+            )).thenAnswer((_) async => const Left(CacheFailure(errorMessage)));
 
         // Act
         final result = await usecase(GenerateInviteCodeParams(
@@ -108,21 +112,24 @@ void main() {
         );
 
         verify(() => mockRepository.generateInviteCode(
-          baseId: baseId,
-          requesterUserId: requesterUserId,
-        )).called(1);
+              baseId: baseId,
+              requesterUserId: requesterUserId,
+            )).called(1);
       });
 
-      test('should return Left with NetworkFailure when repository has network issues', () async {
+      test(
+          'should return Left with NetworkFailure when repository has network issues',
+          () async {
         // Arrange
         final baseId = 'base_123'.bid;
         final requesterUserId = 'user_456'.uid;
         const errorMessage = 'Network connection failed';
-        
+
         when(() => mockRepository.generateInviteCode(
-          baseId: any(named: 'baseId'),
-          requesterUserId: any(named: 'requesterUserId'),
-        )).thenAnswer((_) async => const Left(NetworkFailure(errorMessage)));
+                  baseId: any(named: 'baseId'),
+                  requesterUserId: any(named: 'requesterUserId'),
+                ))
+            .thenAnswer((_) async => const Left(NetworkFailure(errorMessage)));
 
         // Act
         final result = await usecase(GenerateInviteCodeParams(
@@ -141,16 +148,18 @@ void main() {
         );
       });
 
-      test('should return Left with UnknownFailure for unexpected errors', () async {
+      test('should return Left with UnknownFailure for unexpected errors',
+          () async {
         // Arrange
         final baseId = 'base_123'.bid;
         final requesterUserId = 'user_456'.uid;
         const errorMessage = 'Unexpected error occurred';
-        
+
         when(() => mockRepository.generateInviteCode(
-          baseId: any(named: 'baseId'),
-          requesterUserId: any(named: 'requesterUserId'),
-        )).thenAnswer((_) async => const Left(UnknownFailure(errorMessage)));
+                  baseId: any(named: 'baseId'),
+                  requesterUserId: any(named: 'requesterUserId'),
+                ))
+            .thenAnswer((_) async => const Left(UnknownFailure(errorMessage)));
 
         // Act
         final result = await usecase(GenerateInviteCodeParams(
@@ -175,11 +184,11 @@ void main() {
         // Arrange
         final baseId = 'test_base_id'.bid;
         final requesterUserId = 'test_user_id'.uid;
-        
+
         when(() => mockRepository.generateInviteCode(
-          baseId: any(named: 'baseId'),
-          requesterUserId: any(named: 'requesterUserId'),
-        )).thenAnswer((_) async => const Right('TEST123'));
+              baseId: any(named: 'baseId'),
+              requesterUserId: any(named: 'requesterUserId'),
+            )).thenAnswer((_) async => const Right('TEST123'));
 
         // Act
         await usecase(GenerateInviteCodeParams(
@@ -189,9 +198,9 @@ void main() {
 
         // Assert
         verify(() => mockRepository.generateInviteCode(
-          baseId: baseId,
-          requesterUserId: requesterUserId,
-        )).called(1);
+              baseId: baseId,
+              requesterUserId: requesterUserId,
+            )).called(1);
       });
 
       test('should pass minimal id parameters through to repository', () async {
@@ -203,9 +212,11 @@ void main() {
         final requesterUserId = '_'.uid;
 
         when(() => mockRepository.generateInviteCode(
-          baseId: any(named: 'baseId'),
-          requesterUserId: any(named: 'requesterUserId'),
-        )).thenAnswer((_) async => const Left(CacheFailure('Invalid parameters')));
+                  baseId: any(named: 'baseId'),
+                  requesterUserId: any(named: 'requesterUserId'),
+                ))
+            .thenAnswer(
+                (_) async => const Left(CacheFailure('Invalid parameters')));
 
         // Act
         final result = await usecase(GenerateInviteCodeParams(
@@ -216,19 +227,20 @@ void main() {
         // Assert
         expect(result, isA<Left<Failure, String>>());
         verify(() => mockRepository.generateInviteCode(
-          baseId: baseId,
-          requesterUserId: requesterUserId,
-        )).called(1);
+              baseId: baseId,
+              requesterUserId: requesterUserId,
+            )).called(1);
       });
     });
 
     group('Edge cases', () {
-      test('should handle repository returning null or empty invite code', () async {
+      test('should handle repository returning null or empty invite code',
+          () async {
         // Arrange
         when(() => mockRepository.generateInviteCode(
-          baseId: any(named: 'baseId'),
-          requesterUserId: any(named: 'requesterUserId'),
-        )).thenAnswer((_) async => const Right(''));
+              baseId: any(named: 'baseId'),
+              requesterUserId: any(named: 'requesterUserId'),
+            )).thenAnswer((_) async => const Right(''));
 
         // Act
         final result = await usecase(GenerateInviteCodeParams(
@@ -248,11 +260,11 @@ void main() {
         // Arrange
         final longBaseId = ('a' * 1000).bid;
         final longUserId = ('b' * 1000).uid;
-        
+
         when(() => mockRepository.generateInviteCode(
-          baseId: any(named: 'baseId'),
-          requesterUserId: any(named: 'requesterUserId'),
-        )).thenAnswer((_) async => const Right('LONG123'));
+              baseId: any(named: 'baseId'),
+              requesterUserId: any(named: 'requesterUserId'),
+            )).thenAnswer((_) async => const Right('LONG123'));
 
         // Act
         final result = await usecase(GenerateInviteCodeParams(
@@ -263,9 +275,9 @@ void main() {
         // Assert
         expect(result, isA<Right<Failure, String>>());
         verify(() => mockRepository.generateInviteCode(
-          baseId: longBaseId,
-          requesterUserId: longUserId,
-        )).called(1);
+              baseId: longBaseId,
+              requesterUserId: longUserId,
+            )).called(1);
       });
     });
   });

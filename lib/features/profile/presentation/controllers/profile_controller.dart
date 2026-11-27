@@ -27,20 +27,22 @@ class ProfileController extends StateNotifier<ProfileState> {
     final res = await _getProfile(GetProfileParams(userId.uid));
     state = res.match(
       (f) => state.copyWith(current: AsyncValue.error(f, StackTrace.current)),
-      (p)  => state.copyWith(current: AsyncValue.data(p)),
+      (p) => state.copyWith(current: AsyncValue.data(p)),
     );
   }
 
   Future<void> updateNickname(String userId, String nickname) async {
-    final res = await _updateProfile(UpdateProfileParams(userId: userId.uid, nickname: nickname));
+    final res = await _updateProfile(
+        UpdateProfileParams(userId: userId.uid, nickname: nickname));
     state = res.match(
       (f) => state.copyWith(current: AsyncValue.error(f, StackTrace.current)),
-      (p)  => state.copyWith(current: AsyncValue.data(p)),
+      (p) => state.copyWith(current: AsyncValue.data(p)),
     );
   }
 }
 
-final profileControllerProvider = StateNotifierProvider<ProfileController, ProfileState>((ref) {
+final profileControllerProvider =
+    StateNotifierProvider<ProfileController, ProfileState>((ref) {
   return ProfileController(
     ref.read(getProfileUseCaseProvider),
     ref.read(updateProfileUseCaseProvider),

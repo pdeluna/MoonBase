@@ -21,9 +21,11 @@ void main() {
   group('AuthLocalDataSourceImpl - Consistency with ProfileRepository', () {
     test('should read current user from profile storage', () async {
       // Arrange: Create a user through ProfileRepository
-      final signInResult = await profileRepository.signInByHandleOrCreate('alice');
+      final signInResult =
+          await profileRepository.signInByHandleOrCreate('alice');
       expect(signInResult.isRight, isTrue);
-      final profile = signInResult.getOrElse(() => throw Exception('Expected success'));
+      final profile =
+          signInResult.getOrElse(() => throw Exception('Expected success'));
 
       // Act: Read current user through AuthLocalDataSource
       final currentUser = await authDataSource.readCurrentUser();
@@ -60,11 +62,14 @@ void main() {
       expect(currentUser.nickname, equals(userModel.nickname));
     });
 
-    test('should not overwrite existing profile when writing current user', () async {
+    test('should not overwrite existing profile when writing current user',
+        () async {
       // Arrange: Create a profile with avatar through ProfileRepository
-      final signInResult = await profileRepository.signInByHandleOrCreate('alice');
+      final signInResult =
+          await profileRepository.signInByHandleOrCreate('alice');
       expect(signInResult.isRight, isTrue);
-      final originalProfile = signInResult.getOrElse(() => throw Exception('Expected success'));
+      final originalProfile =
+          signInResult.getOrElse(() => throw Exception('Expected success'));
 
       // Update profile with avatar
       final updateResult = await profileRepository.updateProfile(
@@ -81,7 +86,8 @@ void main() {
       await authDataSource.writeCurrentUser(userModel);
 
       // Assert: Profile should retain its avatar and pick up nickname sync
-      final getResult = await profileRepository.getProfile(originalProfile.userId);
+      final getResult =
+          await profileRepository.getProfile(originalProfile.userId);
       expect(getResult.isRight, isTrue);
       getResult.match(
         (failure) => fail('Should not return failure'),
@@ -95,9 +101,11 @@ void main() {
 
     test('should clear current user without deleting profiles', () async {
       // Arrange: Create a user
-      final signInResult = await profileRepository.signInByHandleOrCreate('alice');
+      final signInResult =
+          await profileRepository.signInByHandleOrCreate('alice');
       expect(signInResult.isRight, isTrue);
-      final profile = signInResult.getOrElse(() => throw Exception('Expected success'));
+      final profile =
+          signInResult.getOrElse(() => throw Exception('Expected success'));
 
       // Verify user exists
       final currentUser = await authDataSource.readCurrentUser();
@@ -130,9 +138,11 @@ void main() {
       await authDataSource.writeCurrentUser(userModel);
 
       // Assert: Should be able to sign in by handle through ProfileRepository
-      final signInResult = await profileRepository.signInByHandleOrCreate('bob');
+      final signInResult =
+          await profileRepository.signInByHandleOrCreate('bob');
       expect(signInResult.isRight, isTrue);
-      final profile = signInResult.getOrElse(() => throw Exception('Expected success'));
+      final profile =
+          signInResult.getOrElse(() => throw Exception('Expected success'));
       expect(profile.userId.value, equals(userModel.id));
     });
 
@@ -144,9 +154,11 @@ void main() {
       await authDataSource.writeCurrentUser(userModel);
 
       // Assert: Should be able to sign in with different case
-      final signInResult = await profileRepository.signInByHandleOrCreate('charlie');
+      final signInResult =
+          await profileRepository.signInByHandleOrCreate('charlie');
       expect(signInResult.isRight, isTrue);
-      final profile = signInResult.getOrElse(() => throw Exception('Expected success'));
+      final profile =
+          signInResult.getOrElse(() => throw Exception('Expected success'));
       expect(profile.userId.value, equals(userModel.id));
     });
 
@@ -158,7 +170,8 @@ void main() {
 
     test('should return null when current user profile is deleted', () async {
       // Arrange: Create and set current user
-      const userModel = UserModel(id: 'test-user-deleted', nickname: 'deleteduser');
+      const userModel =
+          UserModel(id: 'test-user-deleted', nickname: 'deleteduser');
       await authDataSource.writeCurrentUser(userModel);
 
       // Verify user exists
@@ -166,7 +179,8 @@ void main() {
       expect(currentUser, isNotNull);
 
       // Delete profile through ProfileRepository
-      final deleteResult = await profileRepository.deleteProfile(userModel.id.uid);
+      final deleteResult =
+          await profileRepository.deleteProfile(userModel.id.uid);
       expect(deleteResult.isRight, isTrue);
 
       // Act & Assert: Should return null since profile no longer exists
@@ -177,21 +191,25 @@ void main() {
     test('should handle malformed profile data gracefully', () async {
       // Arrange: Manually create malformed profile data
       await prefs.setString('currentUserId', 'malformed-user');
-      await prefs.setString('profiles', '{"malformed-user": {"userId": 123, "nickname": null}}');
+      await prefs.setString(
+          'profiles', '{"malformed-user": {"userId": 123, "nickname": null}}');
 
       // Act: Should not crash and return a user with safe defaults
       final currentUser = await authDataSource.readCurrentUser();
 
       // Assert: Should return user with safe defaults
       expect(currentUser, isNotNull);
-      expect(currentUser!.id, equals('malformed-user')); // Fallback to current user ID
-      expect(currentUser.nickname, equals('')); // Empty string for null/missing nickname
+      expect(currentUser!.id,
+          equals('malformed-user')); // Fallback to current user ID
+      expect(currentUser.nickname,
+          equals('')); // Empty string for null/missing nickname
     });
 
     test('should handle missing nickname field gracefully', () async {
       // Arrange: Create profile with missing nickname
       await prefs.setString('currentUserId', 'no-nickname-user');
-      await prefs.setString('profiles', '{"no-nickname-user": {"userId": "no-nickname-user"}}');
+      await prefs.setString(
+          'profiles', '{"no-nickname-user": {"userId": "no-nickname-user"}}');
 
       // Act: Should not crash
       final currentUser = await authDataSource.readCurrentUser();
@@ -205,14 +223,16 @@ void main() {
     test('should handle wrong data types gracefully', () async {
       // Arrange: Create profile with wrong data types
       await prefs.setString('currentUserId', 'wrong-types-user');
-      await prefs.setString('profiles', '{"wrong-types-user": {"userId": 456, "nickname": 789}}');
+      await prefs.setString(
+          'profiles', '{"wrong-types-user": {"userId": 456, "nickname": 789}}');
 
       // Act: Should not crash
       final currentUser = await authDataSource.readCurrentUser();
 
       // Assert: Should return user with safe defaults
       expect(currentUser, isNotNull);
-      expect(currentUser!.id, equals('wrong-types-user')); // Fallback to current user ID
+      expect(currentUser!.id,
+          equals('wrong-types-user')); // Fallback to current user ID
       expect(currentUser.nickname, equals('')); // Empty string for wrong type
     });
   });

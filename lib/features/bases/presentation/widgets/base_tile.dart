@@ -6,7 +6,8 @@ import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_
 import 'package:moonbase_skeleton/features/bases/presentation/providers/base_providers.dart';
 
 class BaseTile extends ConsumerWidget {
-  const BaseTile({super.key, required this.baseId, this.onTap, this.onLongPress});
+  const BaseTile(
+      {super.key, required this.baseId, this.onTap, this.onLongPress});
 
   final String baseId;
   final VoidCallback? onTap;
@@ -15,7 +16,7 @@ class BaseTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vm = ref.watch(baseTileVmProvider(baseId));
-    
+
     if (vm == null) {
       return const SizedBox.shrink();
     }
@@ -72,9 +73,9 @@ class BaseTile extends ConsumerWidget {
                 child: Text(
                   'Owner',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w500,
-                  ),
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
               )
             : null,
@@ -88,7 +89,8 @@ class BaseTile extends ConsumerWidget {
           // Find the base and select it
           final sidebarVm = ref.read(sidebarVmProvider);
           try {
-            final base = sidebarVm.bases.firstWhere((b) => b.id.value == baseId);
+            final base =
+                sidebarVm.bases.firstWhere((b) => b.id.value == baseId);
             ref.read(selectedBaseProvider.notifier).state = base;
 
             final currentUserId = ref.read(currentUserIdProvider);

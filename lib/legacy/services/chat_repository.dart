@@ -1,4 +1,4 @@
-﻿import 'package:moonbase_skeleton/legacy/models/chat_message.dart';
+import 'package:moonbase_skeleton/legacy/models/chat_message.dart';
 import 'package:moonbase_skeleton/legacy/models/enums.dart';
 import 'package:moonbase_skeleton/legacy/models/media_ref.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -52,7 +52,8 @@ class SpChatRepository implements ChatRepository {
   static const _kMessageIds = 'mb.messageIds';
 
   // Stream controllers for real-time updates
-  final Map<String, StreamController<List<ChatMessage>>> _streamControllers = {};
+  final Map<String, StreamController<List<ChatMessage>>> _streamControllers =
+      {};
 
   // ---- helpers ----
 
@@ -67,7 +68,8 @@ class SpChatRepository implements ChatRepository {
     }
   }
 
-  Future<void> _writeMessages(SharedPreferences sp, Map<String, dynamic> messages) async {
+  Future<void> _writeMessages(
+      SharedPreferences sp, Map<String, dynamic> messages) async {
     await sp.setString(_kMessages, jsonEncode(messages));
   }
 
@@ -82,7 +84,8 @@ class SpChatRepository implements ChatRepository {
     }
   }
 
-  Future<void> _writeMessageIds(SharedPreferences sp, Map<String, dynamic> messageIds) async {
+  Future<void> _writeMessageIds(
+      SharedPreferences sp, Map<String, dynamic> messageIds) async {
     await sp.setString(_kMessageIds, jsonEncode(messageIds));
   }
 
@@ -106,18 +109,20 @@ class SpChatRepository implements ChatRepository {
     String? replyToMessageId,
   }) async {
     final sp = await SharedPreferences.getInstance();
-    
+
     final messageId = const Uuid().v4();
     final now = DateTime.now();
-    
+
     // Convert mediaUrls to MediaRef objects
     List<MediaRef>? media;
     if (mediaUrls != null && mediaUrls.isNotEmpty) {
-      media = mediaUrls.map((url) => MediaRef(
-        id: const Uuid().v4(),
-        uri: url,
-        type: MediaType.image, // Default to image for now
-      )).toList();
+      media = mediaUrls
+          .map((url) => MediaRef(
+                id: const Uuid().v4(),
+                uri: url,
+                type: MediaType.image, // Default to image for now
+              ))
+          .toList();
     }
 
     final message = ChatMessage(
@@ -133,7 +138,8 @@ class SpChatRepository implements ChatRepository {
 
     // Save message
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from((messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+    final baseMessages = List<Map<String, dynamic>>.from(
+        (messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     baseMessages.add(message.toMap());
     messages[baseId] = baseMessages;
     await _writeMessages(sp, messages);
@@ -157,10 +163,10 @@ class SpChatRepository implements ChatRepository {
     String? beforeMessageId,
   }) async {
     final messages = await _getMessagesForBase(baseId);
-    
+
     // Sort by creation date (newest first)
     messages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    
+
     // Apply pagination
     if (beforeMessageId != null) {
       final beforeIndex = messages.indexWhere((m) => m.id == beforeMessageId);
@@ -174,12 +180,12 @@ class SpChatRepository implements ChatRepository {
         }
       }
     }
-    
+
     // Limit results
     if (messages.length > limit) {
       messages.removeRange(limit, messages.length);
     }
-    
+
     return messages;
   }
 
@@ -190,8 +196,9 @@ class SpChatRepository implements ChatRepository {
   }) {
     // Create stream controller if it doesn't exist
     if (!_streamControllers.containsKey(baseId)) {
-      _streamControllers[baseId] = StreamController<List<ChatMessage>>.broadcast();
-      
+      _streamControllers[baseId] =
+          StreamController<List<ChatMessage>>.broadcast();
+
       // Load initial messages
       _getMessagesForBase(baseId).then((messages) {
         final controller = _streamControllers[baseId];
@@ -200,7 +207,7 @@ class SpChatRepository implements ChatRepository {
         }
       });
     }
-    
+
     return _streamControllers[baseId]!.stream;
   }
 
@@ -210,7 +217,7 @@ class SpChatRepository implements ChatRepository {
     required String newText,
   }) async {
     final sp = await SharedPreferences.getInstance();
-    
+
     // Get message
     final message = await getMessage(messageId);
     if (message == null) {
@@ -226,9 +233,11 @@ class SpChatRepository implements ChatRepository {
 
     // Update in storage
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from((messages[message.baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+    final baseMessages = List<Map<String, dynamic>>.from(
+        (messages[message.baseId] ?? <Map<String, dynamic>>[])
+            as Iterable<dynamic>);
     final messageIndex = baseMessages.indexWhere((m) => m['id'] == messageId);
-    
+
     if (messageIndex != -1) {
       baseMessages[messageIndex] = updatedMessage.toMap();
       messages[message.baseId] = baseMessages;
@@ -245,7 +254,7 @@ class SpChatRepository implements ChatRepository {
   @override
   Future<void> deleteMessage(String messageId) async {
     final sp = await SharedPreferences.getInstance();
-    
+
     // Get message
     final message = await getMessage(messageId);
     if (message == null) {
@@ -260,9 +269,11 @@ class SpChatRepository implements ChatRepository {
 
     // Update in storage
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from((messages[message.baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+    final baseMessages = List<Map<String, dynamic>>.from(
+        (messages[message.baseId] ?? <Map<String, dynamic>>[])
+            as Iterable<dynamic>);
     final messageIndex = baseMessages.indexWhere((m) => m['id'] == messageId);
-    
+
     if (messageIndex != -1) {
       baseMessages[messageIndex] = deletedMessage.toMap();
       messages[message.baseId] = baseMessages;
@@ -279,12 +290,13 @@ class SpChatRepository implements ChatRepository {
     final sp = await SharedPreferences.getInstance();
     final messageIds = await _readMessageIds(sp);
     final baseId = messageIds[messageId];
-    
+
     if (baseId == null) return null;
 
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from((messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
-    
+    final baseMessages = List<Map<String, dynamic>>.from(
+        (messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+
     for (final messageJson in baseMessages) {
       if (messageJson['id'] == messageId) {
         try {
@@ -294,7 +306,7 @@ class SpChatRepository implements ChatRepository {
         }
       }
     }
-    
+
     return null;
   }
 
@@ -302,8 +314,9 @@ class SpChatRepository implements ChatRepository {
   Future<List<ChatMessage>> _getMessagesForBase(String baseId) async {
     final sp = await SharedPreferences.getInstance();
     final messages = await _readMessages(sp);
-    final baseMessages = List<Map<String, dynamic>>.from((messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
-    
+    final baseMessages = List<Map<String, dynamic>>.from(
+        (messages[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+
     final result = <ChatMessage>[];
     for (final messageJson in baseMessages) {
       try {
@@ -313,7 +326,7 @@ class SpChatRepository implements ChatRepository {
         // Skip corrupted message data
       }
     }
-    
+
     return result;
   }
 

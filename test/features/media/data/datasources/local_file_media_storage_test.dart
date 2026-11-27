@@ -88,8 +88,8 @@ void main() {
         mimeType: 'image/png',
       );
 
-      expect(Directory('${tempDir.path}/media/fresh-base').existsSync(),
-          isTrue);
+      expect(
+          Directory('${tempDir.path}/media/fresh-base').existsSync(), isTrue);
     });
 
     test('rejects absolute keys (would escape the media root)', () async {

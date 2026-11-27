@@ -18,12 +18,13 @@ class CreateBase implements UseCase<Base, CreateBaseParams> {
 
   final BaseRepository repo;
 
-@override
-Future<Either<Failure, Base>> call(CreateBaseParams p) {
-  final name = p.name.trim();
-  if (!isValidBaseName(name)) {
-    return Future.value(const Left(ValidationFailure('Base name must be 1–32 characters.')));
+  @override
+  Future<Either<Failure, Base>> call(CreateBaseParams p) {
+    final name = p.name.trim();
+    if (!isValidBaseName(name)) {
+      return Future.value(
+          const Left(ValidationFailure('Base name must be 1–32 characters.')));
+    }
+    return repo.createBase(name: name, ownerUserId: p.ownerUserId);
   }
-  return repo.createBase(name: name, ownerUserId: p.ownerUserId);
-}
 }

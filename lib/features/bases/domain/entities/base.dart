@@ -1,21 +1,23 @@
 import 'package:moonbase_skeleton/core/ids.dart';
 
 class Base {
-
-  const Base({required this.id, required this.name, required this.ownerUserId, required this.createdAt});
+  const Base(
+      {required this.id,
+      required this.name,
+      required this.ownerUserId,
+      required this.createdAt});
 
   final BaseId id;
   final String name;
   final UserId ownerUserId;
   final DateTime createdAt;
 
-
   Base copyWith({String? name}) => Base(
-    id: id,
-    name: name ?? this.name,
-    ownerUserId: ownerUserId,
-    createdAt: createdAt,
-  );
+        id: id,
+        name: name ?? this.name,
+        ownerUserId: ownerUserId,
+        createdAt: createdAt,
+      );
 
   @override
   bool operator ==(Object other) {

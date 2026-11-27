@@ -16,8 +16,13 @@ void main() {
     final repo = MockBaseRepository();
     final usecase = JoinBase(repo);
 
-    when(() => repo.joinBase(inviteCode: any(named: 'inviteCode'), userId: any(named: 'userId')))
-      .thenAnswer((_) async => Right(Base(id: 'b2'.bid, name: 'Friends', ownerUserId: 'u9'.uid, createdAt: DateTime(2025, 1, 2))));
+    when(() => repo.joinBase(
+            inviteCode: any(named: 'inviteCode'), userId: any(named: 'userId')))
+        .thenAnswer((_) async => Right(Base(
+            id: 'b2'.bid,
+            name: 'Friends',
+            ownerUserId: 'u9'.uid,
+            createdAt: DateTime(2025, 1, 2))));
 
     final res = await usecase(
       JoinBaseParams(inviteCode: 'ABCD23', userId: 'u1'.uid),

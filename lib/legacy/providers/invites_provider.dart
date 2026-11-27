@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/legacy/models/invite.dart';
 import 'package:moonbase_skeleton/legacy/models/base_member.dart';
 import 'package:moonbase_skeleton/legacy/services/invites_repository.dart';
@@ -11,23 +11,27 @@ final invitesRepositoryProvider = Provider<InvitesRepository>((ref) {
 });
 
 // Invites provider - manages invite operations
-final invitesProvider = StateNotifierProvider<InvitesNotifier, AsyncValue<void>>((ref) {
+final invitesProvider =
+    StateNotifierProvider<InvitesNotifier, AsyncValue<void>>((ref) {
   final repository = ref.watch(invitesRepositoryProvider);
   final session = ref.watch(sessionProvider);
   final basesNotifier = ref.read(basesProvider.notifier);
   final selectedBaseNotifier = ref.read(selectedBaseProvider.notifier);
-  
-  return InvitesNotifier(repository, session, basesNotifier, selectedBaseNotifier);
+
+  return InvitesNotifier(
+      repository, session, basesNotifier, selectedBaseNotifier);
 });
 
 // Base invites provider - gets invites for a specific base
-final baseInvitesProvider = StateNotifierProvider.family<BaseInvitesNotifier, AsyncValue<List<BaseInvite>>, String>((ref, baseId) {
+final baseInvitesProvider = StateNotifierProvider.family<BaseInvitesNotifier,
+    AsyncValue<List<BaseInvite>>, String>((ref, baseId) {
   final repository = ref.watch(invitesRepositoryProvider);
   return BaseInvitesNotifier(repository, baseId);
 });
 
 // Invite validation provider - validates invite codes
-final inviteValidationProvider = StateNotifierProvider.family<InviteValidationNotifier, AsyncValue<BaseInvite?>, String>((ref, code) {
+final inviteValidationProvider = StateNotifierProvider.family<
+    InviteValidationNotifier, AsyncValue<BaseInvite?>, String>((ref, code) {
   final repository = ref.watch(invitesRepositoryProvider);
   return InviteValidationNotifier(repository, code);
 });
@@ -81,17 +85,17 @@ class InvitesNotifier extends StateNotifier<AsyncValue<void>> {
         code: code,
         userId: _session.value!.userId as String,
       );
-      
+
       // Refresh bases list to include the newly joined base
       await _basesNotifier.joinBase(member.baseId);
-      
+
       // Optionally select the newly joined base
       final bases = _basesNotifier.state.value;
       if (bases != null) {
         final joinedBase = bases.firstWhere((base) => base.id == member.baseId);
         _selectedBaseNotifier.selectBase(joinedBase);
       }
-      
+
       state = const AsyncValue.data(null);
       return member;
     } catch (e, st) {
@@ -111,7 +115,8 @@ class InvitesNotifier extends StateNotifier<AsyncValue<void>> {
 }
 
 class BaseInvitesNotifier extends StateNotifier<AsyncValue<List<BaseInvite>>> {
-  BaseInvitesNotifier(this._repository, this._baseId) : super(const AsyncValue.loading()) {
+  BaseInvitesNotifier(this._repository, this._baseId)
+      : super(const AsyncValue.loading()) {
     _loadInvites();
   }
 
@@ -134,7 +139,8 @@ class BaseInvitesNotifier extends StateNotifier<AsyncValue<List<BaseInvite>>> {
 }
 
 class InviteValidationNotifier extends StateNotifier<AsyncValue<BaseInvite?>> {
-  InviteValidationNotifier(this._repository, this._code) : super(const AsyncValue.loading()) {
+  InviteValidationNotifier(this._repository, this._code)
+      : super(const AsyncValue.loading()) {
     _validateInvite();
   }
 
@@ -145,7 +151,7 @@ class InviteValidationNotifier extends StateNotifier<AsyncValue<BaseInvite?>> {
     try {
       state = const AsyncValue.loading();
       final invite = await _repository.getByCode(_code);
-      
+
       if (invite == null) {
         state = const AsyncValue.data(null);
         return;

@@ -27,8 +27,7 @@ void main() {
   });
 
   test('storage I/O error surfaces as a Left(Failure)', () async {
-    when(() => storage.delete(any()))
-        .thenThrow(StateError('disk unavailable'));
+    when(() => storage.delete(any())).thenThrow(StateError('disk unavailable'));
 
     final result = await useCase('b1/m1.png');
 

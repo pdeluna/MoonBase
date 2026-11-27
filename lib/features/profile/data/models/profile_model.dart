@@ -13,15 +13,15 @@ class ProfileModel {
   }) : createdAt = createdAt ?? updatedAt;
 
   factory ProfileModel.fromMap(Map<String, dynamic> map) => ProfileModel(
-    userId: map['userId'] as String,
-    nickname: map['nickname'] as String,
-    avatarUrl: map['avatarUrl'] as String?,
-    updatedAt: DateTime.parse(map['updatedAt'] as String),
-    themeMode: map['themeMode'] as String? ?? 'light',
-    createdAt: map['createdAt'] != null
-        ? DateTime.parse(map['createdAt'] as String)
-        : DateTime.parse(map['updatedAt'] as String),
-  );
+        userId: map['userId'] as String,
+        nickname: map['nickname'] as String,
+        avatarUrl: map['avatarUrl'] as String?,
+        updatedAt: DateTime.parse(map['updatedAt'] as String),
+        themeMode: map['themeMode'] as String? ?? 'light',
+        createdAt: map['createdAt'] != null
+            ? DateTime.parse(map['createdAt'] as String)
+            : DateTime.parse(map['updatedAt'] as String),
+      );
 
   /// Firestore `users/{uid}` → model. Doc id is [userId]; cloud fields only.
   factory ProfileModel.fromFirestore(String userId, Map<String, dynamic> data) {
@@ -53,28 +53,28 @@ class ProfileModel {
   final DateTime createdAt;
 
   Profile toEntity() => Profile(
-    userId: userId.uid,
-    nickname: nickname,
-    avatarUrl: avatarUrl,
-    updatedAt: updatedAt,
-  );
+        userId: userId.uid,
+        nickname: nickname,
+        avatarUrl: avatarUrl,
+        updatedAt: updatedAt,
+      );
 
   Map<String, dynamic> toMap() => {
-    'userId': userId,
-    'nickname': nickname,
-    'avatarUrl': avatarUrl,
-    'updatedAt': updatedAt.toIso8601String(),
-    'themeMode': themeMode,
-    'createdAt': createdAt.toIso8601String(),
-  };
+        'userId': userId,
+        'nickname': nickname,
+        'avatarUrl': avatarUrl,
+        'updatedAt': updatedAt.toIso8601String(),
+        'themeMode': themeMode,
+        'createdAt': createdAt.toIso8601String(),
+      };
 
   /// Exactly the keys allowed by `firestore.rules` create/update `hasOnly`.
   Map<String, dynamic> toFirestore() => {
-    'nickname': nickname,
-    'themeMode': themeMode,
-    'createdAt': Timestamp.fromDate(createdAt.toUtc()),
-    'schemaVersion': 1,
-  };
+        'nickname': nickname,
+        'themeMode': themeMode,
+        'createdAt': Timestamp.fromDate(createdAt.toUtc()),
+        'schemaVersion': 1,
+      };
 
   ProfileModel copyWith({
     String? nickname,

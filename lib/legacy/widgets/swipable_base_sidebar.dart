@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/legacy/widgets/base_sidebar.dart';
 import 'package:moonbase_skeleton/legacy/providers/bases_provider.dart';
@@ -12,7 +12,7 @@ class SwipableBaseSidebar extends ConsumerStatefulWidget {
     this.swipeThreshold = 50,
     this.animationDuration = const Duration(milliseconds: 300),
   });
-  
+
   final Widget child;
   final double sidebarWidth;
   final double swipeThreshold;
@@ -23,7 +23,8 @@ class SwipableBaseSidebar extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<SwipableBaseSidebar> createState() => SwipableBaseSidebarState();
+  ConsumerState<SwipableBaseSidebar> createState() =>
+      SwipableBaseSidebarState();
 }
 
 class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
@@ -101,7 +102,7 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
     // Calculate drag progress
     final dragDistance = _currentDragX - _dragStartX;
     final maxDragDistance = widget.sidebarWidth;
-    
+
     if (_isSidebarOpen) {
       // Dragging to close
       if (dragDistance < 0) {
@@ -145,7 +146,7 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
   void _showCreateBaseDialog() {
     _closeSidebar();
     _baseNameController.clear();
-    
+
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -193,7 +194,7 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
   void _showJoinBaseDialog() {
     _closeSidebar();
     _inviteCodeController.clear();
-    
+
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -241,8 +242,8 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
   Future<void> _createBase() async {
     try {
       await ref.read(basesProvider.notifier).createBase(
-        name: _baseNameController.text.trim(),
-      );
+            name: _baseNameController.text.trim(),
+          );
       _baseNameController.clear();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -261,10 +262,10 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
   Future<void> _joinBase() async {
     try {
       await ref.read(invitesProvider.notifier).redeemInvite(
-        _inviteCodeController.text.trim(),
-      );
+            _inviteCodeController.text.trim(),
+          );
       _inviteCodeController.clear();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Successfully joined base!')),
@@ -312,7 +313,8 @@ class SwipableBaseSidebarState extends ConsumerState<SwipableBaseSidebar>
               animation: _animation,
               builder: (context, child) {
                 return Transform.translate(
-                  offset: Offset(-widget.sidebarWidth * (1 - _animation.value), 0),
+                  offset:
+                      Offset(-widget.sidebarWidth * (1 - _animation.value), 0),
                   child: Container(
                     width: widget.sidebarWidth,
                     decoration: BoxDecoration(

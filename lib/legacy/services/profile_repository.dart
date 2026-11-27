@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:moonbase_skeleton/legacy/models/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -44,7 +44,8 @@ class SpProfileRepository implements ProfileRepository {
     }
   }
 
-  Future<void> _writeUsers(SharedPreferences sp, Map<String, dynamic> users) async {
+  Future<void> _writeUsers(
+      SharedPreferences sp, Map<String, dynamic> users) async {
     await sp.setString(_kUsers, jsonEncode(users));
   }
 

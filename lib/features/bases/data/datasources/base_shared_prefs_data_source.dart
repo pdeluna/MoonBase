@@ -11,7 +11,7 @@ import 'package:moonbase_skeleton/features/bases/data/models/member_model.dart';
 /// Uses the same storage format as the legacy base system
 class BaseSharedPrefsDataSource implements BaseLocalDataSource {
   BaseSharedPrefsDataSource(this._prefs);
-  
+
   static const _kBases = 'mb.bases';
   static const _kMembersByBase = 'mb.membersByBase';
   static const _kBasesByUser = 'mb.basesByUser';
@@ -143,12 +143,12 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
   void _ensureBaseIndex(String baseId) {
     final membersByBase = _readMembersByBase();
     final invitesByBase = _readInvitesByBase();
-    
+
     if (!membersByBase.containsKey(baseId)) {
       membersByBase[baseId] = <String>[];
       _writeMembersByBase(membersByBase);
     }
-    
+
     if (!invitesByBase.containsKey(baseId)) {
       invitesByBase[baseId] = <String>[];
       _writeInvitesByBase(invitesByBase);
@@ -161,10 +161,11 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
   Future<List<BaseModel>> listBasesForUser(String userId) async {
     final basesByUser = _readBasesByUser();
     final bases = _readBases();
-    
-    final userBaseIds = List<String>.from((basesByUser[userId] as List<dynamic>?) ?? []);
+
+    final userBaseIds =
+        List<String>.from((basesByUser[userId] as List<dynamic>?) ?? []);
     final userBases = <BaseModel>[];
-    
+
     for (final baseId in userBaseIds) {
       final baseData = bases[baseId];
       if (baseData != null) {
@@ -176,8 +177,9 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
         }
       }
     }
-    
-    userBases.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // newest first
+
+    userBases
+        .sort((a, b) => b.createdAt.compareTo(a.createdAt)); // newest first
     return userBases;
   }
 
@@ -186,9 +188,8 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
     final membersByBase = _readMembersByBase();
     final bases = _readBases();
     final raw = bases[baseId];
-    final ownerUserId = raw is Map<String, dynamic>
-        ? raw['ownerUserId'] as String?
-        : null;
+    final ownerUserId =
+        raw is Map<String, dynamic> ? raw['ownerUserId'] as String? : null;
     final uids = List<String>.from(
       (membersByBase[baseId] as List<dynamic>?) ?? const <dynamic>[],
     );
@@ -229,10 +230,13 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
 
     final membersByBase = _readMembersByBase();
     final basesByUser = _readBasesByUser();
-    
+
     membersByBase[id] = [ownerUserId];
-    basesByUser[ownerUserId] = [...(basesByUser[ownerUserId] as List<dynamic>? ?? []), id];
-    
+    basesByUser[ownerUserId] = [
+      ...(basesByUser[ownerUserId] as List<dynamic>? ?? []),
+      id
+    ];
+
     await _writeMembersByBase(membersByBase);
     await _writeBasesByUser(basesByUser);
 
@@ -258,17 +262,17 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
 
     _ensureBaseIndex(baseId);
     _ensureUserIndex(userId);
-    
+
     final membersByBase = _readMembersByBase();
     final basesByUser = _readBasesByUser();
-    
+
     final baseMembers = membersByBase[baseId] as List<dynamic>? ?? [];
     if (!baseMembers.contains(userId)) {
       baseMembers.add(userId);
       membersByBase[baseId] = baseMembers;
       await _writeMembersByBase(membersByBase);
     }
-    
+
     final userBases = basesByUser[userId] as List<dynamic>? ?? [];
     if (!userBases.contains(baseId)) {
       userBases.add(baseId);
@@ -286,13 +290,13 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
   }) async {
     final membersByBase = _readMembersByBase();
     final basesByUser = _readBasesByUser();
-    
+
     membersByBase[baseId]?.remove(userId);
     basesByUser[userId]?.remove(baseId);
-    
+
     await _writeMembersByBase(membersByBase);
     await _writeBasesByUser(basesByUser);
-    
+
     // Clean up empty sets
     if (basesByUser[userId]?.isEmpty == true) {
       basesByUser.remove(userId);
@@ -308,7 +312,7 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
     final bases = _readBases();
     final baseData = bases[baseId];
     if (baseData == null) throw StateError('Base not found');
-    
+
     final base = BaseModel.fromMap(baseData as Map<String, dynamic>);
     final updatedBase = BaseModel(
       id: base.id,
@@ -316,7 +320,7 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
       ownerUserId: base.ownerUserId,
       createdAt: base.createdAt,
     );
-    
+
     bases[baseId] = updatedBase.toMap();
     await _writeBases(bases);
   }
@@ -334,7 +338,8 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
     final invites = _readInvites();
 
     // Remove from all indexes
-    final members = List<String>.from((membersByBase.remove(baseId) as List<dynamic>?) ?? []);
+    final members = List<String>.from(
+        (membersByBase.remove(baseId) as List<dynamic>?) ?? []);
     for (final userId in members) {
       final userBases = basesByUser[userId] as List<dynamic>?;
       if (userBases != null) {
@@ -346,7 +351,8 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
     }
 
     // Clean up invites
-    final baseInvites = List<String>.from((invitesByBase.remove(baseId) as List<dynamic>?) ?? []);
+    final baseInvites = List<String>.from(
+        (invitesByBase.remove(baseId) as List<dynamic>?) ?? []);
     for (final inviteId in baseInvites) {
       final inviteData = invites.remove(inviteId);
       if (inviteData != null) {
@@ -391,10 +397,10 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
     _ensureBaseIndex(baseId);
     final invitesByBase = _readInvitesByBase();
     final inviteToBase = _readInviteToBase();
-    
+
     invitesByBase[baseId]!.add(invite.id);
     inviteToBase[code] = baseId;
-    
+
     await _writeInvitesByBase(invitesByBase);
     await _writeInviteToBase(inviteToBase);
 
@@ -432,10 +438,10 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
     _ensureBaseIndex(baseId);
     final invitesByBase = _readInvitesByBase();
     final inviteToBase = _readInviteToBase();
-    
+
     invitesByBase[baseId]!.add(invite.id);
     inviteToBase[code] = baseId;
-    
+
     await _writeInvitesByBase(invitesByBase);
     await _writeInviteToBase(inviteToBase);
 
@@ -446,22 +452,24 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
   Future<List<InviteModel>> listInvitesForBase(String baseId) async {
     final invitesByBase = _readInvitesByBase();
     final invites = _readInvites();
-    
-    final baseInviteIds = List<String>.from((invitesByBase[baseId] as List<dynamic>?) ?? []);
+
+    final baseInviteIds =
+        List<String>.from((invitesByBase[baseId] as List<dynamic>?) ?? []);
     final baseInvites = <InviteModel>[];
-    
+
     for (final inviteId in baseInviteIds) {
       final inviteData = invites[inviteId];
       if (inviteData != null) {
         try {
-          final invite = InviteModel.fromMap(inviteData as Map<String, dynamic>);
+          final invite =
+              InviteModel.fromMap(inviteData as Map<String, dynamic>);
           baseInvites.add(invite);
         } catch (_) {
           // Skip corrupted invite data
         }
       }
     }
-    
+
     return baseInvites;
   }
 
@@ -481,7 +489,8 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
       final inviteData = invites[inviteId];
       if (inviteData != null) {
         try {
-          final invite = InviteModel.fromMap(inviteData as Map<String, dynamic>);
+          final invite =
+              InviteModel.fromMap(inviteData as Map<String, dynamic>);
           if (invite.code == lookup) {
             return invite;
           }
@@ -490,7 +499,7 @@ class BaseSharedPrefsDataSource implements BaseLocalDataSource {
         }
       }
     }
-    
+
     return null;
   }
 

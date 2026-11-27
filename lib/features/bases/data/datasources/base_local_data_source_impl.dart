@@ -111,7 +111,7 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
   }) async {
     _membersByBase[baseId]?.remove(userId);
     _basesByUser[userId]?.remove(baseId);
-    
+
     // Clean up empty sets
     if (_basesByUser[userId]?.isEmpty == true) {
       _basesByUser.remove(userId);
@@ -183,7 +183,7 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
 
     final id = _genId();
     final code = await generateInviteCode(baseId: baseId);
-    
+
     final invite = InviteModel(
       id: id,
       baseId: baseId,
@@ -201,10 +201,8 @@ class InMemoryBaseLocalDataSource implements BaseLocalDataSource {
 
   @override
   Future<List<InviteModel>> listInvitesForBase(String baseId) async {
-    return _invites.values
-        .where((invite) => invite.baseId == baseId)
-        .toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return _invites.values.where((invite) => invite.baseId == baseId).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   @override

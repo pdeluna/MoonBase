@@ -123,7 +123,7 @@ class _IosReadinessFixture {
   final Directory root;
 
   void writeBase() {
-    _write('.fvmrc', '{"flutter":"3.29.2"}');
+    _write('.fvmrc', '{"flutter":"3.38.10"}');
     _write(
       'ios/Podfile',
       "platform :ios, '15.0'\n"

@@ -23,10 +23,16 @@ abstract class BaseRepository {
   });
 
   // Optional for later (UI already hints at these)
-  Future<Either<Failure, void>> leaveBase({required BaseId baseId, required UserId userId});
-  Future<Either<Failure, void>> renameBase({required BaseId baseId, required String newName, required UserId requesterUserId});
-  Future<Either<Failure, void>> deleteBase({required BaseId baseId, required UserId requesterUserId});
-  Future<Either<Failure, String>> generateInviteCode({required BaseId baseId, required UserId requesterUserId});
+  Future<Either<Failure, void>> leaveBase(
+      {required BaseId baseId, required UserId userId});
+  Future<Either<Failure, void>> renameBase(
+      {required BaseId baseId,
+      required String newName,
+      required UserId requesterUserId});
+  Future<Either<Failure, void>> deleteBase(
+      {required BaseId baseId, required UserId requesterUserId});
+  Future<Either<Failure, String>> generateInviteCode(
+      {required BaseId baseId, required UserId requesterUserId});
 
   // Invite management
   Future<Either<Failure, Invite>> createInvite({
@@ -35,10 +41,12 @@ abstract class BaseRepository {
     int? maxUses,
     DateTime? expiresAt,
   });
-  Future<Either<Failure, List<Invite>>> listInvitesForBase({required BaseId baseId});
+  Future<Either<Failure, List<Invite>>> listInvitesForBase(
+      {required BaseId baseId});
   Future<Either<Failure, Invite?>> getInviteByCode({required String code});
-  
+
   // Last accessed base methods (per user)
   Future<Either<Failure, Base?>> getLastAccessedBase(UserId userId);
-  Future<Either<Failure, void>> setLastAccessedBase({required UserId userId, required BaseId baseId});
+  Future<Either<Failure, void>> setLastAccessedBase(
+      {required UserId userId, required BaseId baseId});
 }

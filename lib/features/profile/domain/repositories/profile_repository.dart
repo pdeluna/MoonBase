@@ -10,11 +10,12 @@ abstract class ProfileRepository {
     String? nickname,
     String? avatarUrl,
   });
-  Future<Either<Failure, Unit>> deleteProfile(UserId userId);   // deletes profile by UUID
+  Future<Either<Failure, Unit>> deleteProfile(
+      UserId userId); // deletes profile by UUID
 
   // Session primitives
-  Future<Either<Failure, Profile?>> readCurrent();              // returns current or null
-  Future<Either<Failure, Profile>> signInByHandleOrCreate(String handle); // sets current
-  Future<Either<Failure, Unit>> clear();                        // sets currentUserId = null
-
+  Future<Either<Failure, Profile?>> readCurrent(); // returns current or null
+  Future<Either<Failure, Profile>> signInByHandleOrCreate(
+      String handle); // sets current
+  Future<Either<Failure, Unit>> clear(); // sets currentUserId = null
 }

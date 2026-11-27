@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:moonbase_skeleton/core/presentation/failure_presenter.dart';
@@ -130,10 +130,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     labelText: 'Password',
                     helperText: 'At least 6 characters',
                   ),
-                  validator: (v) =>
-                      (v == null || v.length < 6)
-                          ? 'Use at least 6 characters.'
-                          : null,
+                  validator: (v) => (v == null || v.length < 6)
+                      ? 'Use at least 6 characters.'
+                      : null,
                 ),
                 const SizedBox(height: 20),
                 PrimaryButton(

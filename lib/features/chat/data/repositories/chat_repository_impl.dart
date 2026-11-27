@@ -40,18 +40,20 @@ class ChatRepositoryImpl implements ChatRepository {
     MessageId? messageId,
   }) =>
       guard(() async {
-        final m = await local.sendMessage(
-          baseId: baseId.value,
-          userId: userId.value,
-          content: content,
-          media: media,
-          messageId: messageId?.value,
-        ).timeout(
-          kChatSendAckTimeout,
-          onTimeout: () => throw const NetworkFailure(
-            'Chat send was not acknowledged by the server.',
-          ),
-        );
+        final m = await local
+            .sendMessage(
+              baseId: baseId.value,
+              userId: userId.value,
+              content: content,
+              media: media,
+              messageId: messageId?.value,
+            )
+            .timeout(
+              kChatSendAckTimeout,
+              onTimeout: () => throw const NetworkFailure(
+                'Chat send was not acknowledged by the server.',
+              ),
+            );
         return m.toEntity();
       });
 

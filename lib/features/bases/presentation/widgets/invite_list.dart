@@ -14,7 +14,7 @@ class InviteList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final invitesAsync = ref.watch(baseInvitesProvider(baseId));
-    
+
     return invitesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(
@@ -30,22 +30,22 @@ class InviteList extends ConsumerWidget {
             Text(
               'Error loading invites',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.error,
-              ),
+                    color: Theme.of(context).colorScheme.error,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               error.toString(),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
               textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
-      data: (invites) => invites.isEmpty 
-          ? _buildEmptyState(context) 
+      data: (invites) => invites.isEmpty
+          ? _buildEmptyState(context)
           : _buildInvitesList(context, invites),
     );
   }
@@ -64,15 +64,15 @@ class InviteList extends ConsumerWidget {
           Text(
             'No invites yet',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Create your first invite to share this base',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.outline,
-            ),
+                  color: Theme.of(context).colorScheme.outline,
+                ),
             textAlign: TextAlign.center,
           ),
         ],

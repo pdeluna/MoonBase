@@ -10,21 +10,24 @@ class RefactoredSwipableBaseSidebar extends ConsumerStatefulWidget {
     this.swipeThreshold = 50,
     this.animationDuration = const Duration(milliseconds: 300),
   });
-  
+
   final Widget child;
   final double sidebarWidth;
   final double swipeThreshold;
   final Duration animationDuration;
 
   static RefactoredSwipableBaseSidebarState? of(BuildContext context) {
-    return context.findAncestorStateOfType<RefactoredSwipableBaseSidebarState>();
+    return context
+        .findAncestorStateOfType<RefactoredSwipableBaseSidebarState>();
   }
 
   @override
-  ConsumerState<RefactoredSwipableBaseSidebar> createState() => RefactoredSwipableBaseSidebarState();
+  ConsumerState<RefactoredSwipableBaseSidebar> createState() =>
+      RefactoredSwipableBaseSidebarState();
 }
 
-class RefactoredSwipableBaseSidebarState extends ConsumerState<RefactoredSwipableBaseSidebar>
+class RefactoredSwipableBaseSidebarState
+    extends ConsumerState<RefactoredSwipableBaseSidebar>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _animation;
@@ -89,7 +92,7 @@ class RefactoredSwipableBaseSidebarState extends ConsumerState<RefactoredSwipabl
     // Calculate drag progress
     final dragDistance = _currentDragX - _dragStartX;
     final maxDragDistance = widget.sidebarWidth;
-    
+
     if (_isSidebarOpen) {
       // Dragging to close
       if (dragDistance < 0) {
@@ -163,7 +166,8 @@ class RefactoredSwipableBaseSidebarState extends ConsumerState<RefactoredSwipabl
               animation: _animation,
               builder: (context, child) {
                 return Transform.translate(
-                  offset: Offset(-widget.sidebarWidth * (1 - _animation.value), 0),
+                  offset:
+                      Offset(-widget.sidebarWidth * (1 - _animation.value), 0),
                   child: Container(
                     width: widget.sidebarWidth,
                     decoration: BoxDecoration(

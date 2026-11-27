@@ -26,7 +26,7 @@ class UserColorUtils {
     // Use the hash code of the user ID to ensure consistent colors
     final hash = userId.hashCode;
     final random = Random(hash);
-    
+
     // Pick a random color from our predefined palette
     final colorIndex = random.nextInt(_predefinedColors.length);
     return _predefinedColors[colorIndex];
@@ -54,7 +54,7 @@ class UserColorUtils {
     // Find a color that's significantly different from the base color
     Color bestColor = _predefinedColors.first;
     double maxDifference = 0.0;
-    
+
     for (final color in _predefinedColors) {
       final difference = _calculateColorDifference(baseColor, color);
       if (difference > maxDifference) {
@@ -62,7 +62,7 @@ class UserColorUtils {
         bestColor = color;
       }
     }
-    
+
     return bestColor;
   }
 
@@ -72,7 +72,7 @@ class UserColorUtils {
     final rDiff = (color1.r * 255).round() - (color2.r * 255).round();
     final gDiff = (color1.g * 255).round() - (color2.g * 255).round();
     final bDiff = (color1.b * 255).round() - (color2.b * 255).round();
-    
+
     return sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
   }
 }

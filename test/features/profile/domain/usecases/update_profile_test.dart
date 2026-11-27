@@ -8,7 +8,7 @@ import '../../../../test_utils/mocks_profile.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 
 /// Test suite for the UpdateProfile use case.
-/// 
+///
 /// This test suite focuses on testing the core functionality
 /// of the UpdateProfile use case in isolation.
 void main() {
@@ -31,13 +31,14 @@ void main() {
       updatedAt: DateTime(2025, 1, 2),
     );
 
-    test('should return Right(Profile) when repository updates successfully', () async {
+    test('should return Right(Profile) when repository updates successfully',
+        () async {
       // Arrange
       when(() => mockRepository.updateProfile(
-        userId: testUserId.uid,
-        nickname: testNickname,
-        avatarUrl: testAvatarUrl,
-      )).thenAnswer((_) async => Right(testProfile));
+            userId: testUserId.uid,
+            nickname: testNickname,
+            avatarUrl: testAvatarUrl,
+          )).thenAnswer((_) async => Right(testProfile));
 
       // Act
       final result = await useCase(UpdateProfileParams(
@@ -57,20 +58,20 @@ void main() {
         },
       );
       verify(() => mockRepository.updateProfile(
-        userId: testUserId.uid,
-        nickname: testNickname,
-        avatarUrl: testAvatarUrl,
-      )).called(1);
+            userId: testUserId.uid,
+            nickname: testNickname,
+            avatarUrl: testAvatarUrl,
+          )).called(1);
       verifyNoMoreInteractions(mockRepository);
     });
 
     test('should handle null optional parameters', () async {
       // Arrange
       when(() => mockRepository.updateProfile(
-        userId: testUserId.uid,
-        nickname: null,
-        avatarUrl: null,
-      )).thenAnswer((_) async => Right(testProfile));
+            userId: testUserId.uid,
+            nickname: null,
+            avatarUrl: null,
+          )).thenAnswer((_) async => Right(testProfile));
 
       // Act
       final result = await useCase(UpdateProfileParams(userId: testUserId.uid));
@@ -78,21 +79,22 @@ void main() {
       // Assert
       expect(result, isA<Right<Failure, Profile>>());
       verify(() => mockRepository.updateProfile(
-        userId: testUserId.uid,
-        nickname: null,
-        avatarUrl: null,
-      )).called(1);
+            userId: testUserId.uid,
+            nickname: null,
+            avatarUrl: null,
+          )).called(1);
       verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should return Left(Failure) when repository returns failure', () async {
+    test('should return Left(Failure) when repository returns failure',
+        () async {
       // Arrange
       const failure = UnknownFailure('Update failed');
       when(() => mockRepository.updateProfile(
-        userId: testUserId.uid,
-        nickname: testNickname,
-        avatarUrl: testAvatarUrl,
-      )).thenAnswer((_) async => const Left(failure));
+            userId: testUserId.uid,
+            nickname: testNickname,
+            avatarUrl: testAvatarUrl,
+          )).thenAnswer((_) async => const Left(failure));
 
       // Act
       final result = await useCase(UpdateProfileParams(
@@ -108,20 +110,23 @@ void main() {
         (profile) => fail('Should not return success'),
       );
       verify(() => mockRepository.updateProfile(
-        userId: testUserId.uid,
-        nickname: testNickname,
-        avatarUrl: testAvatarUrl,
-      )).called(1);
+            userId: testUserId.uid,
+            nickname: testNickname,
+            avatarUrl: testAvatarUrl,
+          )).called(1);
       verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should return Left(Failure) when repository returns failure', () async {
+    test('should return Left(Failure) when repository returns failure',
+        () async {
       // Arrange
       when(() => mockRepository.updateProfile(
-        userId: testUserId.uid,
-        nickname: testNickname,
-        avatarUrl: testAvatarUrl,
-      )).thenAnswer((_) async => const Left(CacheFailure('Repository error')));
+                userId: testUserId.uid,
+                nickname: testNickname,
+                avatarUrl: testAvatarUrl,
+              ))
+          .thenAnswer(
+              (_) async => const Left(CacheFailure('Repository error')));
 
       // Act
       final result = await useCase(UpdateProfileParams(
@@ -137,10 +142,10 @@ void main() {
         (profile) => fail('Should not return success'),
       );
       verify(() => mockRepository.updateProfile(
-        userId: testUserId.uid,
-        nickname: testNickname,
-        avatarUrl: testAvatarUrl,
-      )).called(1);
+            userId: testUserId.uid,
+            nickname: testNickname,
+            avatarUrl: testAvatarUrl,
+          )).called(1);
       verifyNoMoreInteractions(mockRepository);
     });
   });

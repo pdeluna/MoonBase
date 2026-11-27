@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/legacy/models/chat_message.dart';
 import 'package:moonbase_skeleton/legacy/models/enums.dart';
 import 'package:moonbase_skeleton/legacy/models/base.dart';
@@ -12,24 +12,27 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
 });
 
 // Simplified chat messages provider - manages messages for a specific base
-final chatMessagesProvider = StateNotifierProvider.family<ChatMessagesNotifier, AsyncValue<List<ChatMessage>>, String>((ref, baseId) {
+final chatMessagesProvider = StateNotifierProvider.family<ChatMessagesNotifier,
+    AsyncValue<List<ChatMessage>>, String>((ref, baseId) {
   final repository = ref.watch(chatRepositoryProvider);
   final session = ref.watch(sessionProvider);
   return ChatMessagesNotifier(repository, session, baseId);
 });
 
 // Simplified chat actions provider - manages sending messages
-final chatActionsProvider = StateNotifierProvider<ChatActionsNotifier, AsyncValue<void>>((ref) {
+final chatActionsProvider =
+    StateNotifierProvider<ChatActionsNotifier, AsyncValue<void>>((ref) {
   final repository = ref.watch(chatRepositoryProvider);
   final session = ref.watch(sessionProvider);
   final selectedBase = ref.watch(effectiveSelectedBaseProvider);
-  
+
   return ChatActionsNotifier(repository, session, selectedBase);
 });
 
-class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<ChatMessage>>> {
-  ChatMessagesNotifier(this._repository, this._session, this._baseId) 
-    : super(const AsyncValue.loading()) {
+class ChatMessagesNotifier
+    extends StateNotifier<AsyncValue<List<ChatMessage>>> {
+  ChatMessagesNotifier(this._repository, this._session, this._baseId)
+      : super(const AsyncValue.loading()) {
     // Use a microtask to ensure the constructor completes before async operations
     Future.microtask(() => _loadMessages());
   }
@@ -45,7 +48,8 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<ChatMessage>>> 
     }
 
     try {
-      final messages = await _repository.getMessages(baseId: _baseId, limit: 50);
+      final messages =
+          await _repository.getMessages(baseId: _baseId, limit: 50);
       state = AsyncValue.data(messages);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -64,12 +68,11 @@ class ChatMessagesNotifier extends StateNotifier<AsyncValue<List<ChatMessage>>> 
       state = AsyncValue.data(updatedMessages);
     }
   }
-
 }
 
 class ChatActionsNotifier extends StateNotifier<AsyncValue<void>> {
-  ChatActionsNotifier(this._repository, this._session, this._selectedBase) 
-    : super(const AsyncValue.data(null));
+  ChatActionsNotifier(this._repository, this._session, this._selectedBase)
+      : super(const AsyncValue.data(null));
 
   final ChatRepository _repository;
   final AsyncValue<dynamic> _session;
@@ -89,7 +92,7 @@ class ChatActionsNotifier extends StateNotifier<AsyncValue<void>> {
 
     try {
       state = const AsyncValue.loading();
-      
+
       // Make API call
       final message = await _repository.sendMessage(
         baseId: _selectedBase.id,
@@ -97,7 +100,7 @@ class ChatActionsNotifier extends StateNotifier<AsyncValue<void>> {
         type: type,
         text: text,
       );
-      
+
       state = const AsyncValue.data(null);
       return message;
     } catch (e, st) {

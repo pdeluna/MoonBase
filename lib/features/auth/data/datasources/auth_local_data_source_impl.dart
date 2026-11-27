@@ -5,7 +5,7 @@ import 'dart:convert';
 
 /// AuthLocalDataSource implementation that delegates to profile/session storage
 /// to maintain consistency with the ProfileRepository's data structure.
-/// 
+///
 /// This ensures that auth operations use the same storage keys and format
 /// as the profile system, preventing data inconsistencies.
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -21,7 +21,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Map<String, dynamic> _profiles() {
     final raw = prefs.getString(_kProfiles);
     if (raw == null) return <String, dynamic>{};
-    
+
     try {
       final decoded = jsonDecode(raw);
       if (decoded is Map<String, dynamic>) {
@@ -37,7 +37,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Map<String, dynamic> _handles() {
     final raw = prefs.getString(_kHandles);
     if (raw == null) return <String, dynamic>{};
-    
+
     try {
       final decoded = jsonDecode(raw);
       if (decoded is Map<String, dynamic>) {
@@ -65,11 +65,11 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<UserModel?> readCurrentUser() async {
     final id = prefs.getString(_kCurrent);
     if (id == null) return null;
-    
+
     final profiles = _profiles();
     final profileJson = profiles[id] as Map<String, dynamic>?;
     if (profileJson == null) return null;
-    
+
     // Defensive parsing to avoid cast crashes from malformed data.
     // `as String?` would throw on non-String/non-null values (e.g. int from
     // hand-edited prefs), so we use type-checked reads with safe fallbacks.

@@ -31,23 +31,23 @@ class InviteDetailsDialog extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  vm.isExpired || vm.isDepleted 
-                      ? Icons.error_outline 
+                  vm.isExpired || vm.isDepleted
+                      ? Icons.error_outline
                       : Icons.check_circle_outline,
-                  color: vm.isExpired || vm.isDepleted 
+                  color: vm.isExpired || vm.isDepleted
                       ? Theme.of(context).colorScheme.error
                       : Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    vm.isExpired 
+                    vm.isExpired
                         ? 'This invite has expired'
                         : vm.isDepleted
                             ? 'This invite has been used up'
                             : 'This invite is active',
                     style: TextStyle(
-                      color: vm.isExpired || vm.isDepleted 
+                      color: vm.isExpired || vm.isDepleted
                           ? Theme.of(context).colorScheme.error
                           : Theme.of(context).colorScheme.primary,
                     ),
@@ -69,7 +69,8 @@ class InviteDetailsDialog extends StatelessWidget {
               Clipboard.setData(ClipboardData(text: vm.code));
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Invite code copied to clipboard')),
+                const SnackBar(
+                    content: Text('Invite code copied to clipboard')),
               );
             },
             icon: const Icon(Icons.copy),

@@ -5,7 +5,8 @@ import 'package:moonbase_skeleton/core/usecase.dart';
 import 'package:moonbase_skeleton/features/bases/domain/repositories/base_repository.dart';
 
 class GenerateInviteCodeParams {
-  const GenerateInviteCodeParams({required this.baseId, required this.requesterUserId});
+  const GenerateInviteCodeParams(
+      {required this.baseId, required this.requesterUserId});
 
   final BaseId baseId;
   final UserId requesterUserId;
@@ -17,6 +18,6 @@ class GenerateInviteCode implements UseCase<String, GenerateInviteCodeParams> {
   final BaseRepository repo;
 
   @override
-  Future<Either<Failure, String>> call(GenerateInviteCodeParams p) =>
-      repo.generateInviteCode(baseId: p.baseId, requesterUserId: p.requesterUserId);
+  Future<Either<Failure, String>> call(GenerateInviteCodeParams p) => repo
+      .generateInviteCode(baseId: p.baseId, requesterUserId: p.requesterUserId);
 }

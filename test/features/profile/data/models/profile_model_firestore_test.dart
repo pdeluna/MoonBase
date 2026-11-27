@@ -16,7 +16,8 @@ void main() {
       );
 
       final map = model.toFirestore();
-      expect(map.keys.toSet(), {'nickname', 'themeMode', 'createdAt', 'schemaVersion'});
+      expect(map.keys.toSet(),
+          {'nickname', 'themeMode', 'createdAt', 'schemaVersion'});
       expect(map['nickname'], 'Alice');
       expect(map['themeMode'], 'dark');
       expect(map['schemaVersion'], 1);
