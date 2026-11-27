@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/core/failure.dart';
+import 'package:moonbase_skeleton/features/auth/presentation/providers/member_presentation_provider.dart';
 import 'package:moonbase_skeleton/features/bases/domain/entities/base.dart';
 import 'package:moonbase_skeleton/features/bases/presentation/providers/sidebar_providers.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_feed.dart';
@@ -8,6 +9,7 @@ import 'package:moonbase_skeleton/features/calendar/presentation/calendar_span.d
 import 'package:moonbase_skeleton/features/calendar/presentation/controllers/calendar_controller.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_home_vm_provider.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/calendar_home_vm.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/providers/chat_memories.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/stories_seam.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/bases_unreachable_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/cached_events_banner.dart';
@@ -23,6 +25,8 @@ import 'package:moonbase_skeleton/features/calendar/presentation/widgets/shared_
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/stories_heading.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/week_strip.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/window_label.dart';
+import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
+import 'package:moonbase_skeleton/features/media/presentation/widgets/media_preview.dart';
 
 /// Home tab body. Owns the no-base states (bug B-e), the date heading and
 /// stories row, and the week/month grid. The span is ephemeral drawing
@@ -55,12 +59,16 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
   /// Null follows today. Not persisted.
   DayKey? _selected;
 
+  /// Null follows today's month. Paging leaves the selected day alone.
+  DayKey? _month;
+
   void _syncController(Base? base) {
     final controller = ref.read(calendarControllerProvider.notifier);
     if (base == null) {
       if (_loadedBaseId != null) {
         _loadedBaseId = null;
         _selected = null;
+        _month = null;
         controller.clear();
       }
       return;
@@ -68,6 +76,7 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
     if (_loadedBaseId != base.id.value) {
       _loadedBaseId = base.id.value;
       _selected = null;
+      _month = null;
       controller.load(base.id.value);
     }
   }
@@ -78,6 +87,16 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
           ? CalendarDrawSpan.month
           : CalendarDrawSpan.week;
       _selected = null;
+      _month = null;
+    });
+  }
+
+  void _shiftMonth(int delta) {
+    final current = _month ?? ref.read(calendarHomeVmProvider).todayKey;
+    setState(() {
+      _month = DayKey.fromLocal(
+        DateTime(current.year, current.month + delta, 1),
+      );
     });
   }
 
@@ -110,7 +129,10 @@ class _CalendarHomeViewState extends ConsumerState<CalendarHomeView> {
           vm: vm,
           span: _span,
           selected: _selected ?? vm.todayKey,
+          month: _month ?? vm.todayKey,
           onToggleSpan: _toggleSpan,
+          onPreviousMonth: () => _shiftMonth(-1),
+          onNextMonth: () => _shiftMonth(1),
           onSelectDay: (day) => setState(() => _selected = day),
         );
     }
@@ -122,14 +144,20 @@ class _ReadyBody extends ConsumerWidget {
     required this.vm,
     required this.span,
     required this.selected,
+    required this.month,
     required this.onToggleSpan,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
     required this.onSelectDay,
   });
 
   final CalendarHomeVM vm;
   final CalendarDrawSpan span;
   final DayKey selected;
+  final DayKey month;
   final VoidCallback onToggleSpan;
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
   final ValueChanged<DayKey> onSelectDay;
 
   @override
@@ -143,6 +171,7 @@ class _ReadyBody extends ConsumerWidget {
       span: span,
       sections: vm.sections,
       today: vm.todayKey,
+      month: month,
       firstDayOfWeekIndex: l10n.firstDayOfWeekIndex,
     );
 
@@ -180,7 +209,10 @@ class _ReadyBody extends ConsumerWidget {
             CalendarGridHeader(
               span: span,
               today: vm.todayKey,
+              month: month,
               onToggleSpan: onToggleSpan,
+              onPreviousMonth: onPreviousMonth,
+              onNextMonth: onNextMonth,
             ),
             CachedEventsBanner(
               freshness: vm.freshness,
@@ -229,12 +261,14 @@ class _ReadyBody extends ConsumerWidget {
         child: CalendarLoadingSkeleton(key: ValueKey('calendar-feed-loading')),
       );
     }
-    final stories = ref.watch(storiesHeadingProvider).asData?.value;
-    final tiles = stories?.tiles ?? const [];
+    final memoryDays = ref.watch(memoryDaysProvider);
+    final photos = _photos(context, ref);
+    final inWindow = isInWindow(vm, selected);
     final agenda = DayAgenda(
       day: selected,
       isToday: selected == vm.todayKey,
-      events: _eventsOn(vm, selected),
+      events: inWindow ? _eventsOn(vm, selected) : const [],
+      inWindow: inWindow,
       canAdd: canAddEventOn(vm, selected),
       onEventTap: (event) => showEventDetail(context, ref, event),
       onAdd: () => showEventEditor(context, ref, initialDay: selected),
@@ -246,9 +280,10 @@ class _ReadyBody extends ConsumerWidget {
           CalendarGrid(
             days: days,
             selected: selected,
-            inWindow: (day) => isInWindow(vm, day),
+            memoryDays: memoryDays,
             onSelectDay: onSelectDay,
           ),
+          if (photos != null) photos,
           agenda,
         ],
       );
@@ -259,13 +294,62 @@ class _ReadyBody extends ConsumerWidget {
         WeekStrip(
           days: days,
           selected: selected,
-          memoryDays: ref.watch(memoryDaysProvider),
+          memoryDays: memoryDays,
           onSelect: onSelectDay,
         ),
-        if (tiles.isNotEmpty)
-          SharedTodaySection(tiles: tiles, keptUntil: stories?.keptUntil),
+        if (photos != null) photos,
         agenda,
       ],
+    );
+  }
+
+  /// Today's stories, then each person's chat photos, oldest share first.
+  Widget? _photos(BuildContext context, WidgetRef ref) {
+    final isToday = selected == vm.todayKey;
+    final stories = ref.watch(storiesHeadingProvider).asData?.value;
+    final shares = ref.watch(chatMemoriesProvider).asData?.value[selected] ??
+        const <DayShare>[];
+    final storyTiles =
+        isToday ? stories?.tiles ?? const <MediaRef>[] : const <MediaRef>[];
+    if (storyTiles.isEmpty && shares.isEmpty) return null;
+
+    void open(MediaRef media) => MediaPreview.open(context, media);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (storyTiles.isNotEmpty)
+          SharedTodaySection(
+            key: SharedTodaySection.sectionKey,
+            title: 'SHARED TODAY',
+            tiles: storyTiles,
+            keptUntil: stories?.keptUntil,
+            onTileTap: open,
+          ),
+        for (var i = 0; i < shares.length; i++)
+          _shareSection(
+            ref,
+            shares[i],
+            storyTiles.isNotEmpty || i > 0 ? 20.0 : 24.0,
+            open,
+          ),
+      ],
+    );
+  }
+
+  Widget _shareSection(
+    WidgetRef ref,
+    DayShare share,
+    double topPadding,
+    ValueChanged<MediaRef> onTileTap,
+  ) {
+    final nickname =
+        ref.watch(memberPresentationProvider(share.author.value)).nickname;
+    return SharedTodaySection(
+      title: 'SHARED BY ${nickname.toUpperCase()}',
+      tiles: share.media,
+      keptUntil: null,
+      topPadding: topPadding,
+      onTileTap: onTileTap,
     );
   }
 }

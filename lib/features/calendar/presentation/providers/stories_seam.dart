@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/providers/chat_memories.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/viewmodels/calendar_home_vm.dart';
 import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart';
 
@@ -39,8 +40,12 @@ final storiesHeadingProvider = Provider<AsyncValue<StoriesHeadingData>>(
   (ref) => const AsyncValue.data(StoriesHeadingData.empty),
 );
 
-/// Local days with a memory dot. Days the strip is not drawing are ignored.
-final memoryDaysProvider = Provider<Set<DayKey>>((ref) => const <DayKey>{});
+/// Local days with a chat photo. The grid ignores days it is not drawing.
+final memoryDaysProvider = Provider<Set<DayKey>>((ref) {
+  final photos = ref.watch(chatMemoriesProvider).asData?.value;
+  if (photos == null) return const <DayKey>{};
+  return photos.keys.toSet();
+});
 
 /// Date-heading "+". Null until story capture is wired, which hides the button.
 final openStoryCaptureProvider = Provider<void Function(BuildContext)?>(

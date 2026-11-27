@@ -14,6 +14,7 @@ import 'package:moonbase_skeleton/features/calendar/data/repositories/calendar_r
 import 'package:moonbase_skeleton/features/calendar/domain/entities/calendar_settings.dart';
 import 'package:moonbase_skeleton/features/calendar/domain/entities/event_creation_policy.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/calendar_providers.dart';
+import 'package:moonbase_skeleton/features/calendar/presentation/providers/chat_memories.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/providers/stories_seam.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/bases_unreachable_view.dart';
 import 'package:moonbase_skeleton/features/calendar/presentation/widgets/cached_events_banner.dart';
@@ -34,6 +35,7 @@ import 'package:moonbase_skeleton/features/media/domain/entities/media_ref.dart'
 import 'package:moonbase_skeleton/features/media/domain/entities/media_type.dart';
 import 'package:moonbase_skeleton/features/media/domain/repositories/media_storage.dart';
 import 'package:moonbase_skeleton/features/media/presentation/providers/media_providers.dart';
+import 'package:moonbase_skeleton/features/media/presentation/widgets/media_preview.dart';
 import 'package:moonbase_skeleton/features/media/presentation/widgets/media_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -64,6 +66,8 @@ void main() {
         const AsyncValue.data(StoriesHeadingData.empty),
     Override? storiesOverride,
     Set<DayKey> memoryDays = const {},
+    Map<DayKey, List<DayShare>> chatMemories = const {},
+    bool deriveMemoryDays = false,
     void Function(BuildContext context)? onCapture,
     bool useDefaultCapture = false,
   }) async {
@@ -89,7 +93,11 @@ void main() {
             ),
           ),
           storiesOverride ?? storiesHeadingProvider.overrideWithValue(stories),
-          memoryDaysProvider.overrideWithValue(memoryDays),
+          if (!deriveMemoryDays)
+            memoryDaysProvider.overrideWithValue(memoryDays),
+          chatMemoriesProvider.overrideWith(
+            (ref) => Stream<Map<DayKey, List<DayShare>>>.value(chatMemories),
+          ),
           if (!useDefaultCapture)
             openStoryCaptureProvider.overrideWithValue(onCapture ?? (_) {}),
           mediaStorageProvider.overrideWithValue(_ThrowingMediaStorage()),
@@ -370,7 +378,9 @@ void main() {
         await tester.tap(find.byKey(CalendarGrid.cellKey(outside)));
         await tester.pumpAndSettle();
         expect(find.byType(EventDetailSheet), findsNothing);
-        expect(find.text('Owner dinner'), findsOneWidget);
+        expect(find.text('Owner dinner'), findsNothing);
+        expect(find.text(DayAgenda.outsideCopy), findsOneWidget);
+        expect(find.byKey(DayAgenda.addKey), findsNothing);
 
         await tester.tap(find.byKey(CalendarGrid.cellKey(loadedEmpty)));
         await tester.pumpAndSettle();
@@ -694,6 +704,44 @@ void main() {
       );
     });
 
+    testWidgets('a chat photo marks that day on the week and the month', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        deriveMemoryDays: true,
+        chatMemories: {
+          monday: [
+            DayShare(
+              author: kOwner,
+              media: const [
+                MediaRef(
+                  id: MediaId('p1'),
+                  type: MediaType.image,
+                  storageKey: 'a.jpg',
+                ),
+              ],
+            ),
+          ],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      // The photo stream starts once the feed is ready.
+      await tester.pump();
+
+      expect(find.byKey(WeekStrip.memoryDotKey(monday)), findsOneWidget);
+      expect(find.byKey(WeekStrip.eventDotKey(monday)), findsNothing);
+
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(CalendarGrid.memoryDotKey(monday)), findsOneWidget);
+      expect(find.byKey(CalendarGrid.dotKey(monday, 0)), findsNothing);
+    });
+
     testWidgets('today is filled and another day selects with an outline', (
       tester,
     ) async {
@@ -874,6 +922,186 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+  });
+
+  group('chat photos', () {
+    const past = DayKey(2026, 9, 20);
+    const photo = MediaRef(
+      id: MediaId('past'),
+      type: MediaType.image,
+      storageKey: 'past.jpg',
+    );
+
+    testWidgets('selecting a past day shows its photos', (tester) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        chatMemories: {
+          past: [
+            DayShare(author: kOwner, media: const [photo]),
+          ],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(CalendarGrid.cellKey(past)));
+      await tester.pump();
+
+      expect(find.text('SHARED BY OWNER'), findsOneWidget);
+      expect(find.byType(MediaTile), findsOneWidget);
+      expect(find.text('SHARED TODAY'), findsNothing);
+    });
+
+    testWidgets('two authors on one day render two SHARED BY labels in order', (
+      tester,
+    ) async {
+      const mom = MediaRef(
+        id: MediaId('mom'),
+        type: MediaType.image,
+        storageKey: 'mom.jpg',
+      );
+      const dadA = MediaRef(
+        id: MediaId('dad-a'),
+        type: MediaType.image,
+        storageKey: 'dad-a.jpg',
+      );
+      const dadB = MediaRef(
+        id: MediaId('dad-b'),
+        type: MediaType.image,
+        storageKey: 'dad-b.jpg',
+      );
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        chatMemories: {
+          past: [
+            DayShare(author: kOwner, media: const [mom]),
+            DayShare(author: kMember, media: const [dadA, dadB]),
+          ],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(CalendarGrid.cellKey(past)));
+      await tester.pump();
+
+      final ownerLabel = find.text('SHARED BY OWNER');
+      final memberLabel = find.text('SHARED BY MEMBER');
+      expect(ownerLabel, findsOneWidget);
+      expect(memberLabel, findsOneWidget);
+      expect(
+        tester.getTopLeft(ownerLabel).dy,
+        lessThan(tester.getTopLeft(memberLabel).dy),
+      );
+      final grids = find.byType(GridView);
+      expect(grids, findsNWidgets(2));
+      expect(
+        find.descendant(of: grids.at(0), matching: find.byType(MediaTile)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: grids.at(1), matching: find.byType(MediaTile)),
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets('tapping a photo opens the preview', (tester) async {
+      const today = DayKey(2026, 9, 27);
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        chatMemories: {
+          today: [
+            DayShare(author: kOwner, media: const [photo]),
+          ],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      await tester.ensureVisible(find.byType(MediaTile));
+      await tester.tap(find.byType(MediaTile));
+      await tester.pumpAndSettle();
+      expect(find.byType(MediaPreview), findsOneWidget);
+    });
+
+    testWidgets('an outside-window day shows photos and no events', (
+      tester,
+    ) async {
+      const outside = DayKey(2026, 9, 1);
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+        chatMemories: {
+          outside: [
+            DayShare(author: kOwner, media: const [photo]),
+          ],
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(CalendarGrid.cellKey(outside)));
+      await tester.pump();
+
+      expect(find.text('SHARED BY OWNER'), findsOneWidget);
+      expect(find.byType(MediaTile), findsOneWidget);
+      expect(find.text(DayAgenda.outsideCopy), findsOneWidget);
+      expect(find.byKey(DayAgenda.addKey), findsNothing);
+      expect(find.text(DayAgenda.emptyCopy), findsNothing);
+    });
+
+    testWidgets('month chevrons move the grid and a span change returns', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        bases: () async => [kBase],
+        selected: kBase,
+        user: member,
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(CalendarGrid.cellKey(past)));
+      await tester.pump();
+      expect(find.text('ON THE CALENDAR · SUN, SEP 20'), findsOneWidget);
+
+      await tester.tap(find.byKey(CalendarGridHeader.previousMonthKey));
+      await tester.pump();
+      expect(find.text('August 2026'), findsOneWidget);
+      expect(
+        find.byKey(CalendarGrid.cellKey(const DayKey(2026, 8, 1))),
+        findsOneWidget,
+      );
+      expect(find.text('ON THE CALENDAR · SUN, SEP 20'), findsOneWidget);
+
+      await tester.tap(find.text('Week'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Month'));
+      await tester.pumpAndSettle();
+      expect(find.text('September 2026'), findsOneWidget);
+      expect(find.text('ON THE CALENDAR'), findsOneWidget);
+      expect(find.text('ON THE CALENDAR · SUN, SEP 20'), findsNothing);
     });
   });
 }

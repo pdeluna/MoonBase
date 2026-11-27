@@ -13,17 +13,20 @@ class DayAgenda extends StatelessWidget {
     required this.day,
     required this.isToday,
     required this.events,
+    required this.inWindow,
     required this.canAdd,
     required this.onEventTap,
     required this.onAdd,
   });
 
   static const emptyCopy = 'Nothing planned yet.';
+  static const outsideCopy = "Events aren't shown this far back.";
   static const addKey = Key('calendar-agenda-add');
 
   final DayKey day;
   final bool isToday;
   final List<CalendarEvent> events;
+  final bool inWindow;
   final bool canAdd;
   final ValueChanged<CalendarEvent> onEventTap;
   final VoidCallback onAdd;
@@ -31,6 +34,7 @@ class DayAgenda extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = MaterialLocalizations.of(context);
+    final tokens = CalendarTokens.of(context);
     final overline = isToday
         ? 'ON THE CALENDAR'
         : 'ON THE CALENDAR · ${l10n.formatMediumDate(day.localMidnight).toUpperCase()}';
@@ -41,7 +45,12 @@ class DayAgenda extends StatelessWidget {
         children: [
           Text(overline, style: CalendarTokens.overline(context)),
           const SizedBox(height: 10),
-          if (events.isEmpty)
+          if (!inWindow)
+            Text(
+              outsideCopy,
+              style: TextStyle(fontSize: 15, color: tokens.secondary),
+            )
+          else if (events.isEmpty)
             _EmptyDay(canAdd: canAdd, onAdd: onAdd)
           else
             for (var i = 0; i < events.length; i++) ...[
