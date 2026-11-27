@@ -95,6 +95,7 @@ jobs:
         run: fvm flutter build ios --debug --no-codesign
 
       - name: Require committed CocoaPods integration
+        id: cocoapods_integration
         shell: bash
         run: |
           if [[ ! -f ios/Podfile.lock ]] ||
@@ -134,3 +135,12 @@ jobs:
             git diff -- ios ':!ios/Podfile.lock'
             exit 1
           fi
+
+      - name: Upload Podfile.lock for commit
+        if: ${{ failure() && steps.cocoapods_integration.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: podfile-lock-${{ github.run_id }}
+          path: ios/Podfile.lock
+          if-no-files-found: error
+          retention-days: 7
