@@ -36,6 +36,9 @@ dependencies:
   flutter_image_compress: ^2.3.0 # Optional: enforce imageMaxBytes via lossy compression
   app_settings: ^6.1.1          # POL-2: deep-link to OS app settings on permission denial
   cached_network_image: ^3.4.1
+  livekit_client: ^2.14.0
+  # exact: matches the FlutterFire release of firebase_core 4.13.0; bump with the FlutterFire set
+  cloud_functions: 6.3.6
 
 dev_dependencies:
   flutter_test:
