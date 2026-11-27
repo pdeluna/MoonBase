@@ -11,24 +11,26 @@ plugins {
 android {
     namespace = "com.deluna.moonbase"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
         applicationId = "com.deluna.moonbase"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // minSdk 23 is required by firebase_auth / firebase_storage (Flutter's default is 21).
-        minSdk = 23
-        targetSdk = flutter.targetSdkVersion
+        // Flutter 3.38 rewrites a literal minSdk below 24 to flutter.minSdkVersion
+        // (24 on 3.38.10). firebase_auth / firebase_storage still require 23.
+        minSdk = flutter.minSdkVersion
+        // targetSdk stays 35 for this upgrade. Moving to 36 is a separate change.
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
