@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-const String _expectedFlutterVersion = '3.29.2';
+const String _expectedFlutterVersion = '3.38.10';
 const String _expectedBundleId = 'com.deluna.moonbase';
 const String _expectedProjectId = 'moonbase-aaff7';
 const String _expectedSenderId = '137107376205';
