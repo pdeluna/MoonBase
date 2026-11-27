@@ -6,6 +6,15 @@
   "storage": {
     "rules": "storage.rules"
   },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "predeploy": [
+        "npm --prefix functions run build"
+      ]
+    }
+  ],
   "emulators": {
     "firestore": {
       "port": 8080,
@@ -13,6 +22,10 @@
     },
     "storage": {
       "port": 9199,
+      "host": "127.0.0.1"
+    },
+    "functions": {
+      "port": 5001,
       "host": "127.0.0.1"
     },
     "ui": {
