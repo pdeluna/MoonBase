@@ -119,8 +119,7 @@ void main() {
     });
 
     test('arbitrary exception surfaces as UnknownFailure', () async {
-      when(() => picker.pickImage(any()))
-          .thenThrow(StateError('boom'));
+      when(() => picker.pickImage(any())).thenThrow(StateError('boom'));
 
       final res = await useCase(const MediaPickRequest(
         baseId: baseId,

@@ -22,15 +22,73 @@ class _MockMediaStorage extends Mock implements MediaStorage {}
 /// 1x1 transparent PNG. Real magic bytes so `mime.lookupMimeType` reports
 /// `image/png` instead of falling back to the default.
 final Uint8List _tinyPng = Uint8List.fromList(<int>[
-  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
-  0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-  0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
-  0x89, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x44, 0x41,
-  0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-  0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
-  0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
-  0x42, 0x60, 0x82,
+  0x89,
+  0x50,
+  0x4E,
+  0x47,
+  0x0D,
+  0x0A,
+  0x1A,
+  0x0A,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x48,
+  0x44,
+  0x52,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x01,
+  0x08,
+  0x06,
+  0x00,
+  0x00,
+  0x00,
+  0x1F,
+  0x15,
+  0xC4,
+  0x89,
+  0x00,
+  0x00,
+  0x00,
+  0x0D,
+  0x49,
+  0x44,
+  0x41,
+  0x54,
+  0x78,
+  0x9C,
+  0x63,
+  0x00,
+  0x01,
+  0x00,
+  0x00,
+  0x05,
+  0x00,
+  0x01,
+  0x0D,
+  0x0A,
+  0x2D,
+  0xB4,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x49,
+  0x45,
+  0x4E,
+  0x44,
+  0xAE,
+  0x42,
+  0x60,
+  0x82,
 ]);
 
 /// Minimal MP4 header that `package:mime` recognizes as `video/mp4`.
@@ -212,8 +270,7 @@ void main() {
       expect(result!.type, MediaType.video);
       verify(() => mockImagePicker.pickVideo(
             source: ImageSource.camera,
-            maxDuration:
-                MediaConstraints.defaults.videoMaxDuration,
+            maxDuration: MediaConstraints.defaults.videoMaxDuration,
           )).called(1);
       verifyNever(
           () => mockImagePicker.pickImage(source: any(named: 'source')));
@@ -267,8 +324,7 @@ void main() {
           .thenAnswer((_) async => XFile(file.path));
 
       await expectLater(
-        buildPicker(constraints: tinyCaps)
-            .captureFromCamera(MediaPickRequest(
+        buildPicker(constraints: tinyCaps).captureFromCamera(MediaPickRequest(
           baseId: baseId,
           kind: MediaType.image,
           source: MediaSource.camera,
@@ -276,7 +332,8 @@ void main() {
         throwsA(isA<MediaTooLargeFailure>()),
       );
     });
-    test('pickMultipleImages throws MediaTooLargeFailure when any file over cap',
+    test(
+        'pickMultipleImages throws MediaTooLargeFailure when any file over cap',
         () async {
       final file = await writeFile('big.png', _tinyPng);
       when(() => mockImagePicker.pickMultiImage(limit: any(named: 'limit')))
@@ -347,8 +404,7 @@ void main() {
   });
 
   group('duration cap enforcement', () {
-    test(
-        'pickVideo throws MediaTooLongFailure when probed duration > 30s',
+    test('pickVideo throws MediaTooLongFailure when probed duration > 30s',
         () async {
       final file = await writeFile('long.mp4', _tinyMp4);
       when(() => mockImagePicker.pickVideo(
@@ -422,7 +478,8 @@ void main() {
       expect(captured[2], 'image/png');
     });
 
-    test('pickVideo persists poster and sets thumbnailKey when generator succeeds',
+    test(
+        'pickVideo persists poster and sets thumbnailKey when generator succeeds',
         () async {
       final file = await writeFile('clip.mp4', _tinyMp4);
       when(() => mockImagePicker.pickVideo(

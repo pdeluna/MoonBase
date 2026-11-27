@@ -28,7 +28,8 @@ void main() {
       c = BaseController(listBases, createBase, joinBase);
     });
 
-    test('load shows empty initially, then creates and lists one base', () async {
+    test('load shows empty initially, then creates and lists one base',
+        () async {
       await c.load('u1');
       c.state.bases.maybeWhen(
         data: (list) => expect(list, isEmpty),
@@ -51,12 +52,18 @@ void main() {
 
     test('join adds base to another user via invite code', () async {
       // owner creates a base
-      final created = await repo.createBase(name: 'Friends', ownerUserId: 'u9'.uid) as Right<dynamic, Base>;
+      final created = await repo.createBase(
+          name: 'Friends', ownerUserId: 'u9'.uid) as Right<dynamic, Base>;
       final base = created.value;
-      final code = (await repo.generateInviteCode(baseId: base.id, requesterUserId: 'u9'.uid) as Right<dynamic, String>).value;
+      final code = (await repo.generateInviteCode(
+              baseId: base.id,
+              requesterUserId: 'u9'.uid) as Right<dynamic, String>)
+          .value;
 
       await c.load('u2');
-      c.state.bases.maybeWhen(data: (l) => expect(l, isEmpty), orElse: () => fail('expected empty'));
+      c.state.bases.maybeWhen(
+          data: (l) => expect(l, isEmpty),
+          orElse: () => fail('expected empty'));
 
       await c.join(code, 'u2');
       await c.load('u2');

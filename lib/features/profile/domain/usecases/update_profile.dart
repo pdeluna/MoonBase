@@ -23,16 +23,18 @@ class UpdateProfile implements UseCase<Profile, UpdateProfileParams> {
 
   final ProfileRepository repo;
 
-@override
-Future<Either<Failure, Profile>> call(UpdateProfileParams p) {
-  if (p.nickname != null) {
-    final nick = p.nickname!.trim();
-    if (!isValidNickname(nick)) {
-      return Future.value(const Left(ValidationFailure('Nickname must be 1–24 chars (letters, numbers, space, _ . -).')));
+  @override
+  Future<Either<Failure, Profile>> call(UpdateProfileParams p) {
+    if (p.nickname != null) {
+      final nick = p.nickname!.trim();
+      if (!isValidNickname(nick)) {
+        return Future.value(const Left(ValidationFailure(
+            'Nickname must be 1–24 chars (letters, numbers, space, _ . -).')));
+      }
+      // pass trimmed nick onward
+      return repo.updateProfile(
+          userId: p.userId, nickname: nick, avatarUrl: p.avatarUrl);
     }
-    // pass trimmed nick onward
-    return repo.updateProfile(userId: p.userId, nickname: nick, avatarUrl: p.avatarUrl);
+    return repo.updateProfile(userId: p.userId, avatarUrl: p.avatarUrl);
   }
-  return repo.updateProfile(userId: p.userId, avatarUrl: p.avatarUrl);
-}
 }

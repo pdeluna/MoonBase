@@ -26,9 +26,10 @@ class UpdateBase implements UseCase<void, UpdateBaseParams> {
   Future<Either<Failure, void>> call(UpdateBaseParams p) async {
     final name = p.name.trim();
     if (!isValidBaseName(name)) {
-      return const Left(ValidationFailure('Base name must be 1–32 characters.'));
+      return const Left(
+          ValidationFailure('Base name must be 1–32 characters.'));
     }
-    
+
     return repo.renameBase(
       baseId: p.baseId,
       newName: name,

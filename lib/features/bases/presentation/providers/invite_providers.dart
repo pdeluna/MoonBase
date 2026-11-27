@@ -10,7 +10,8 @@ import 'package:moonbase_skeleton/features/auth/presentation/providers/current_u
 import 'package:moonbase_skeleton/core/ids.dart';
 
 /// Provider for creating invites
-final createInviteProvider = FutureProvider.family<Invite?, CreateInviteParams>((ref, params) async {
+final createInviteProvider =
+    FutureProvider.family<Invite?, CreateInviteParams>((ref, params) async {
   final createInvite = ref.read(createInviteUseCaseProvider);
   final result = await createInvite(params);
   return result.fold(
@@ -20,7 +21,8 @@ final createInviteProvider = FutureProvider.family<Invite?, CreateInviteParams>(
 });
 
 /// Provider for listing invites for a base
-final baseInvitesProvider = FutureProvider.family<List<Invite>, String>((ref, baseId) async {
+final baseInvitesProvider =
+    FutureProvider.family<List<Invite>, String>((ref, baseId) async {
   final listInvites = ref.read(listInvitesUseCaseProvider);
   final result = await listInvites(ListInvitesParams(baseId: baseId.bid));
   return result.fold(
@@ -30,7 +32,8 @@ final baseInvitesProvider = FutureProvider.family<List<Invite>, String>((ref, ba
 });
 
 /// Provider for getting invite by code
-final inviteByCodeProvider = FutureProvider.family<Invite?, String>((ref, code) async {
+final inviteByCodeProvider =
+    FutureProvider.family<Invite?, String>((ref, code) async {
   final getInviteByCode = ref.read(getInviteByCodeUseCaseProvider);
   final result = await getInviteByCode(GetInviteByCodeParams(code: code));
   return result.fold(
@@ -40,14 +43,16 @@ final inviteByCodeProvider = FutureProvider.family<Invite?, String>((ref, code) 
 });
 
 /// Provider for joining a base with invite code
-final joinBaseWithInviteProvider = FutureProvider.family<Base?, String>((ref, inviteCode) async {
+final joinBaseWithInviteProvider =
+    FutureProvider.family<Base?, String>((ref, inviteCode) async {
   final currentUserId = ref.read(currentUserIdProvider);
   if (currentUserId == null) {
     throw Exception('User not authenticated');
   }
-  
+
   final joinBase = ref.read(joinBaseUseCaseProvider);
-  final result = await joinBase(JoinBaseParams(inviteCode: inviteCode, userId: currentUserId.uid));
+  final result = await joinBase(
+      JoinBaseParams(inviteCode: inviteCode, userId: currentUserId.uid));
   return result.fold(
     (failure) => throw Exception(failure.message),
     (base) => base,

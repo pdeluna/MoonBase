@@ -27,7 +27,8 @@ class SignIn implements UseCase<User, SignInParams> {
     }
     if (!isValidPassword(p.password)) {
       return Future.value(
-        const Left(ValidationFailure('Password must be at least 6 characters.')),
+        const Left(
+            ValidationFailure('Password must be at least 6 characters.')),
       );
     }
     return repo.signIn(email: email, password: p.password);

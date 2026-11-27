@@ -12,10 +12,13 @@ class MoonSpinner extends StatefulWidget {
 
   /// Total square size of the spinner widget.
   final double size;
+
   /// Orbit radius for the moon's circular path.
   final double orbit;
+
   /// Full revolution duration.
   final Duration duration;
+
   /// Optional asset path for your moon logo (falls back to an icon if null).
   final String? assetPath;
 
@@ -37,7 +40,7 @@ class _MoonSpinnerState extends State<MoonSpinner>
   @override
   Widget build(BuildContext context) {
     Widget moon;
-    
+
     if (widget.assetPath != null) {
       moon = Image.asset(
         widget.assetPath!,

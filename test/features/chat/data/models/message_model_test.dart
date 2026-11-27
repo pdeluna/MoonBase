@@ -237,7 +237,9 @@ void main() {
       });
       final after = DateTime.now().toUtc();
 
-      expect(restored.createdAt.isBefore(before.subtract(const Duration(seconds: 1))),
+      expect(
+          restored.createdAt
+              .isBefore(before.subtract(const Duration(seconds: 1))),
           isFalse);
       expect(
         !restored.createdAt.isAfter(after.add(const Duration(seconds: 1))),

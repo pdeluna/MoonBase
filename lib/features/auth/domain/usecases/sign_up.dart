@@ -40,7 +40,8 @@ class SignUp implements UseCase<User, SignUpParams> {
     }
     if (!isValidPassword(p.password)) {
       return Future.value(
-        const Left(ValidationFailure('Password must be at least 6 characters.')),
+        const Left(
+            ValidationFailure('Password must be at least 6 characters.')),
       );
     }
     return repo.signUp(

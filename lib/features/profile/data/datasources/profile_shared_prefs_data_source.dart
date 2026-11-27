@@ -26,7 +26,8 @@ class ProfileSharedPrefsDataSource implements ProfileLocalDataSource {
   }
 
   Future<void> _saveProfiles(Map<String, dynamic> map) async {
-    await prefs.setString(kProfiles, jsonEncode(Map<String, dynamic>.from(map)));
+    await prefs.setString(
+        kProfiles, jsonEncode(Map<String, dynamic>.from(map)));
   }
 
   @override

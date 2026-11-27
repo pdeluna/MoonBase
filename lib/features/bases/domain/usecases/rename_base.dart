@@ -6,7 +6,10 @@ import 'package:moonbase_skeleton/core/validators.dart';
 import 'package:moonbase_skeleton/features/bases/domain/repositories/base_repository.dart';
 
 class RenameBaseParams {
-  const RenameBaseParams({required this.baseId, required this.newName, required this.requesterUserId});
+  const RenameBaseParams(
+      {required this.baseId,
+      required this.newName,
+      required this.requesterUserId});
 
   final BaseId baseId;
   final String newName;
@@ -20,10 +23,12 @@ class RenameBase implements UseCase<void, RenameBaseParams> {
 
   @override
   Future<Either<Failure, void>> call(RenameBaseParams p) {
-  final name = p.newName.trim();
-  if (!isValidBaseName(name)) {
-    return Future.value(const Left(ValidationFailure('Base name must be 1–32 characters.')));
+    final name = p.newName.trim();
+    if (!isValidBaseName(name)) {
+      return Future.value(
+          const Left(ValidationFailure('Base name must be 1–32 characters.')));
+    }
+    return repo.renameBase(
+        baseId: p.baseId, newName: name, requesterUserId: p.requesterUserId);
   }
-  return repo.renameBase(baseId: p.baseId, newName: name, requesterUserId: p.requesterUserId);
-}
 }

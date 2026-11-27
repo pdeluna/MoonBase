@@ -9,11 +9,11 @@ class Profile {
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
-    userId: UserId(json['userId'] as String),
-    nickname: json['nickname'] as String,
-    avatarUrl: json['avatarUrl'] as String?,
-    updatedAt: DateTime.parse(json['updatedAt'] as String),
-  );
+        userId: UserId(json['userId'] as String),
+        nickname: json['nickname'] as String,
+        avatarUrl: json['avatarUrl'] as String?,
+        updatedAt: DateTime.parse(json['updatedAt'] as String),
+      );
 
   final UserId userId;
   final String nickname; // keep aligned with your app
@@ -21,11 +21,11 @@ class Profile {
   final DateTime updatedAt;
 
   Map<String, dynamic> toJson() => {
-    'userId': userId.value,
-    'nickname': nickname,
-    'avatarUrl': avatarUrl,
-    'updatedAt': updatedAt.toIso8601String(),
-  };
+        'userId': userId.value,
+        'nickname': nickname,
+        'avatarUrl': avatarUrl,
+        'updatedAt': updatedAt.toIso8601String(),
+      };
 
   Profile copyWith({String? nickname, String? avatarUrl, DateTime? updatedAt}) {
     return Profile(

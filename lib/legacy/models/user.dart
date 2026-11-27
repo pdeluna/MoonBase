@@ -16,20 +16,24 @@ class User {
   });
 
   factory User.fromMap(Map<String, dynamic> map) => User(
-    id: map['id'] as String,
-    email: map['email'] as String,
-    username: map['username'] as String,
-    displayName: map['displayName'] as String?,
-    avatarUrl: map['avatarUrl'] as String?,
-    isEmailVerified: (map['isEmailVerified'] ?? false) as bool,
-    createdAt: DateTime.parse(map['createdAt'] as String),
-    updatedAt: DateTime.parse(map['updatedAt'] as String),
-    lastSeenAt: map['lastSeenAt'] != null ? DateTime.parse(map['lastSeenAt'] as String) : null,
-    isActive: (map['isActive'] ?? true) as bool,
-    baseIds: List<String>.from((map['baseIds'] ?? const <String>[]) as Iterable<dynamic>),
-  );
+        id: map['id'] as String,
+        email: map['email'] as String,
+        username: map['username'] as String,
+        displayName: map['displayName'] as String?,
+        avatarUrl: map['avatarUrl'] as String?,
+        isEmailVerified: (map['isEmailVerified'] ?? false) as bool,
+        createdAt: DateTime.parse(map['createdAt'] as String),
+        updatedAt: DateTime.parse(map['updatedAt'] as String),
+        lastSeenAt: map['lastSeenAt'] != null
+            ? DateTime.parse(map['lastSeenAt'] as String)
+            : null,
+        isActive: (map['isActive'] ?? true) as bool,
+        baseIds: List<String>.from(
+            (map['baseIds'] ?? const <String>[]) as Iterable<dynamic>),
+      );
 
-  factory User.fromJson(String source) => User.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory User.fromJson(String source) =>
+      User.fromMap(json.decode(source) as Map<String, dynamic>);
 
   final String id; // uuid v4
   final String email;
@@ -72,27 +76,25 @@ class User {
   }
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'email': email,
-    'username': username,
-    'displayName': displayName,
-    'avatarUrl': avatarUrl,
-    'isEmailVerified': isEmailVerified,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
-    'lastSeenAt': lastSeenAt?.toIso8601String(),
-    'isActive': isActive,
-    'baseIds': baseIds,
-  };
+        'id': id,
+        'email': email,
+        'username': username,
+        'displayName': displayName,
+        'avatarUrl': avatarUrl,
+        'isEmailVerified': isEmailVerified,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+        'lastSeenAt': lastSeenAt?.toIso8601String(),
+        'isActive': isActive,
+        'baseIds': baseIds,
+      };
 
   String toJson() => json.encode(toMap());
 
   @override
   bool operator ==(Object other) =>
-    identical(this, other) ||
-    other is User &&
-    runtimeType == other.runtimeType &&
-    id == other.id;
+      identical(this, other) ||
+      other is User && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;

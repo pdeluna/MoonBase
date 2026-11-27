@@ -12,20 +12,21 @@ class MemberPresentation {
     required this.nickname,
     required this.nameColor,
   });
-  
+
   final String nickname;
   final Color nameColor;
 }
 
 /// Provider for member presentation (nickname + color) by user ID
 /// Uses the new 3-layer architecture with proper error handling
-final memberPresentationProvider = Provider.family<MemberPresentation, String>((ref, userId) {
+final memberPresentationProvider =
+    Provider.family<MemberPresentation, String>((ref, userId) {
   // Generate consistent color for this user ID
   final nameColor = UserColorUtils.getColorForUserId(userId);
-  
+
   // Try to get profile from the new profile repository
   final profileAsync = ref.watch(profileProvider(userId.uid));
-  
+
   return profileAsync.when(
     data: (profile) {
       if (profile != null && profile.nickname.isNotEmpty) {
@@ -43,17 +44,18 @@ final memberPresentationProvider = Provider.family<MemberPresentation, String>((
 });
 
 /// Fallback method to check legacy profile systems
-MemberPresentation _getLegacyMemberPresentation(String userId, Color nameColor, Ref ref) {
+MemberPresentation _getLegacyMemberPresentation(
+    String userId, Color nameColor, Ref ref) {
   // Get SharedPreferences to read profile data directly
   final prefs = ref.watch(sharedPrefsProvider);
-  
+
   // Try new auth system first (profiles key)
   final profilesJson = prefs.getString('profiles');
   if (profilesJson != null) {
     try {
       final profiles = jsonDecode(profilesJson) as Map<String, dynamic>;
       final profileData = profiles[userId] as Map<String, dynamic>?;
-      
+
       if (profileData != null) {
         final nickname = profileData['nickname'] as String?;
         if (nickname != null && nickname.isNotEmpty) {
@@ -67,13 +69,13 @@ MemberPresentation _getLegacyMemberPresentation(String userId, Color nameColor, 
       // Error parsing new auth profiles - continue to fallback
     }
   }
-  
+
   // Try old profile system (mb.users key)
   final oldUsersJson = prefs.getString('mb.users');
   if (oldUsersJson != null) {
     try {
       final users = jsonDecode(oldUsersJson) as Map<String, dynamic>;
-      
+
       // Search through all users to find one with matching userId
       for (final entry in users.entries) {
         try {
@@ -96,7 +98,7 @@ MemberPresentation _getLegacyMemberPresentation(String userId, Color nameColor, 
       // Error parsing old profile system - continue to fallback
     }
   }
-  
+
   // Fallback to generated nickname
   final fallbackNickname = 'User ${userId.substring(0, 8)}...';
   return MemberPresentation(

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +26,7 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
 
   void _showCreateInviteDialog() {
     _maxUsesController.clear();
-    
+
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -86,14 +86,14 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
     }
 
     try {
-      final maxUses = _maxUsesController.text.isNotEmpty 
-          ? int.parse(_maxUsesController.text) 
+      final maxUses = _maxUsesController.text.isNotEmpty
+          ? int.parse(_maxUsesController.text)
           : null;
 
       final invite = await ref.read(invitesProvider.notifier).createInvite(
-        baseId: selectedBase.id,
-        maxUses: maxUses,
-      );
+            baseId: selectedBase.id,
+            maxUses: maxUses,
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -104,7 +104,8 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: invite.code));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Invite code copied to clipboard')),
+                  const SnackBar(
+                      content: Text('Invite code copied to clipboard')),
                 );
               },
             ),
@@ -133,7 +134,8 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
             _buildDetailRow('Created', _formatDate(invite.createdAt)),
             if (invite.expiresAt != null)
               _buildDetailRow('Expires', _formatDate(invite.expiresAt!)),
-            _buildDetailRow('Max Uses', invite.maxUses?.toString() ?? 'Unlimited'),
+            _buildDetailRow(
+                'Max Uses', invite.maxUses?.toString() ?? 'Unlimited'),
             _buildDetailRow('Used', '${invite.usedCount} times'),
             const SizedBox(height: 16),
             Container(
@@ -145,23 +147,23 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
               child: Row(
                 children: [
                   Icon(
-                    invite.isExpired || invite.isDepleted 
-                        ? Icons.error_outline 
+                    invite.isExpired || invite.isDepleted
+                        ? Icons.error_outline
                         : Icons.check_circle_outline,
-                    color: invite.isExpired || invite.isDepleted 
+                    color: invite.isExpired || invite.isDepleted
                         ? Theme.of(context).colorScheme.error
                         : Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      invite.isExpired 
+                      invite.isExpired
                           ? 'This invite has expired'
                           : invite.isDepleted
                               ? 'This invite has been used up'
                               : 'This invite is active',
                       style: TextStyle(
-                        color: invite.isExpired || invite.isDepleted 
+                        color: invite.isExpired || invite.isDepleted
                             ? Theme.of(context).colorScheme.error
                             : Theme.of(context).colorScheme.primary,
                       ),
@@ -183,7 +185,8 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
                 Clipboard.setData(ClipboardData(text: invite.code));
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Invite code copied to clipboard')),
+                  const SnackBar(
+                      content: Text('Invite code copied to clipboard')),
                 );
               },
               icon: const Icon(Icons.copy),
@@ -263,16 +266,19 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
                 Text(
                   'Base Invites',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Create and manage invite codes for ${selectedBase.name}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
-                  ),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer
+                            .withValues(alpha: 0.8),
+                      ),
                 ),
               ],
             ),
@@ -282,8 +288,9 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
           Expanded(
             child: Consumer(
               builder: (context, ref, child) {
-                final invitesAsync = ref.watch(baseInvitesProvider(selectedBase.id));
-                
+                final invitesAsync =
+                    ref.watch(baseInvitesProvider(selectedBase.id));
+
                 return invitesAsync.when(
                   loading: () => const Center(child: MoonSpinner()),
                   error: (error, stack) => Center(
@@ -298,23 +305,27 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
                         const SizedBox(height: 16),
                         Text(
                           'Error loading invites',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           error.toString(),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                           textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   ),
-                  data: (invites) => invites.isEmpty 
-                      ? _buildEmptyState() 
+                  data: (invites) => invites.isEmpty
+                      ? _buildEmptyState()
                       : _buildInvitesList(invites),
                 );
               },
@@ -344,15 +355,15 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
           Text(
             'No invites yet',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Create your first invite to share this base',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.outline,
-            ),
+                  color: Theme.of(context).colorScheme.outline,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -414,15 +425,15 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
                   Text(
                     'Expired',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                   )
                 else if (invite.isDepleted)
                   Text(
                     'Used up',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                          color: Theme.of(context).colorScheme.error,
+                        ),
                   ),
               ],
             ),
@@ -432,7 +443,8 @@ class _InvitesScreenState extends ConsumerState<InvitesScreen> {
                   case 'copy':
                     Clipboard.setData(ClipboardData(text: invite.code));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Invite code copied to clipboard')),
+                      const SnackBar(
+                          content: Text('Invite code copied to clipboard')),
                     );
                     break;
                   case 'details':

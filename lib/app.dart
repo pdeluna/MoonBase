@@ -9,7 +9,7 @@ class App extends ConsumerWidget {
 
   // ---- Palettes ----
   static const _seed = Color(0xFF06B6D4); // Indigo 500 accent
-  
+
   ThemeData get _lightTheme => ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
@@ -198,10 +198,10 @@ class App extends ConsumerWidget {
         return Column(
           children: [
             Material(
-              color: moonbaseNetworkDebugMode ==
-                      MoonbaseNetworkDebugMode.conflict
-                  ? const Color(0xFFB71C1C)
-                  : const Color(0xFFE65100),
+              color:
+                  moonbaseNetworkDebugMode == MoonbaseNetworkDebugMode.conflict
+                      ? const Color(0xFFB71C1C)
+                      : const Color(0xFFE65100),
               child: SafeArea(
                 bottom: false,
                 child: SizedBox(

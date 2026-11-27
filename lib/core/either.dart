@@ -67,15 +67,15 @@ class Right<L, R> extends Either<L, R> {
 /// Use this instead of `void` in Either types for better type safety.
 class Unit {
   const Unit._();
-  
+
   static const Unit instance = Unit._();
-  
+
   @override
   bool operator ==(Object other) => other is Unit;
-  
+
   @override
   int get hashCode => 0;
-  
+
   @override
   String toString() => 'Unit()';
 }

@@ -11,11 +11,14 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   throw UnimplementedError('Provide ProfileRepository in app wiring');
 });
 
-final getProfileUseCaseProvider   = Provider((ref) => GetProfile(ref.read(profileRepositoryProvider)));
-final updateProfileUseCaseProvider = Provider((ref) => UpdateProfile(ref.read(profileRepositoryProvider)));
+final getProfileUseCaseProvider =
+    Provider((ref) => GetProfile(ref.read(profileRepositoryProvider)));
+final updateProfileUseCaseProvider =
+    Provider((ref) => UpdateProfile(ref.read(profileRepositoryProvider)));
 
 /// Provider for getting a profile by user ID
-final profileProvider = FutureProvider.family<Profile?, UserId>((ref, userId) async {
+final profileProvider =
+    FutureProvider.family<Profile?, UserId>((ref, userId) async {
   final useCase = ref.read(getProfileUseCaseProvider);
   final result = await useCase(GetProfileParams(userId));
   return result.fold(

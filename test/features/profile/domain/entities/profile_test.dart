@@ -41,7 +41,8 @@ void main() {
       expect(profile.userId.value, equals('test-uuid-456'));
       expect(profile.nickname, equals('anotheruser'));
       expect(profile.avatarUrl, isNull);
-      expect(profile.updatedAt, equals(DateTime.utc(2025, 1, 15, 14, 30, 45, 123)));
+      expect(profile.updatedAt,
+          equals(DateTime.utc(2025, 1, 15, 14, 30, 45, 123)));
     });
 
     test('should handle null avatarUrl in JSON', () {
@@ -74,7 +75,8 @@ void main() {
       final deserializedProfile = Profile.fromJson(json);
 
       // Assert
-      expect(deserializedProfile.userId.value, equals(originalProfile.userId.value));
+      expect(deserializedProfile.userId.value,
+          equals(originalProfile.userId.value));
       expect(deserializedProfile.nickname, equals(originalProfile.nickname));
       expect(deserializedProfile.avatarUrl, equals(originalProfile.avatarUrl));
       expect(deserializedProfile.updatedAt, equals(originalProfile.updatedAt));

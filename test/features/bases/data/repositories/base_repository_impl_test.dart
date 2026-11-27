@@ -16,8 +16,10 @@ void main() {
       repo = BaseRepositoryImpl(local: ds);
     });
 
-    test('createBase then listBases includes the created base for owner', () async {
-      final created = await repo.createBase(name: 'Home', ownerUserId: 'u1'.uid);
+    test('createBase then listBases includes the created base for owner',
+        () async {
+      final created =
+          await repo.createBase(name: 'Home', ownerUserId: 'u1'.uid);
       expect(created, isA<Right<Failure, Base>>());
       final base = (created as Right<Failure, Base>).value;
 
@@ -30,11 +32,14 @@ void main() {
       expect(list.first.name, 'Home');
     });
 
-    test('generateInviteCode -> joinBase -> member sees base in list', () async {
-      final created = await repo.createBase(name: 'Friends', ownerUserId: 'u9'.uid);
+    test('generateInviteCode -> joinBase -> member sees base in list',
+        () async {
+      final created =
+          await repo.createBase(name: 'Friends', ownerUserId: 'u9'.uid);
       final base = (created as Right<Failure, Base>).value;
 
-      final codeRes = await repo.generateInviteCode(baseId: base.id, requesterUserId: 'u9'.uid);
+      final codeRes = await repo.generateInviteCode(
+          baseId: base.id, requesterUserId: 'u9'.uid);
       expect(codeRes, isA<Right<Failure, String>>());
       final code = (codeRes as Right<Failure, String>).value;
 
@@ -48,19 +53,26 @@ void main() {
     });
 
     test('renameBase updates name; deleteBase removes it', () async {
-      final created = await repo.createBase(name: 'Temp', ownerUserId: 'u1'.uid);
+      final created =
+          await repo.createBase(name: 'Temp', ownerUserId: 'u1'.uid);
       final base = (created as Right<Failure, Base>).value;
 
-      final rn = await repo.renameBase(baseId: base.id, newName: 'Renamed', requesterUserId: 'u1'.uid);
+      final rn = await repo.renameBase(
+          baseId: base.id, newName: 'Renamed', requesterUserId: 'u1'.uid);
       expect(rn, isA<Right<Failure, void>>());
 
-      final afterRename = (await repo.listBases(userId: 'u1'.uid) as Right<Failure, List<Base>>).value;
+      final afterRename =
+          (await repo.listBases(userId: 'u1'.uid) as Right<Failure, List<Base>>)
+              .value;
       expect(afterRename.single.name, 'Renamed');
 
-      final del = await repo.deleteBase(baseId: base.id, requesterUserId: 'u1'.uid);
+      final del =
+          await repo.deleteBase(baseId: base.id, requesterUserId: 'u1'.uid);
       expect(del, isA<Right<Failure, void>>());
 
-      final afterDelete = (await repo.listBases(userId: 'u1'.uid) as Right<Failure, List<Base>>).value;
+      final afterDelete =
+          (await repo.listBases(userId: 'u1'.uid) as Right<Failure, List<Base>>)
+              .value;
       expect(afterDelete, isEmpty);
     });
 

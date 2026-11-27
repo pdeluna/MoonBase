@@ -13,18 +13,20 @@ class BaseInvite {
   });
 
   factory BaseInvite.fromMap(Map<String, dynamic> map) => BaseInvite(
-  id: map['id'] as String,
-  baseId: map['baseId'] as String,
-  code: map['code'] as String,
-  createdByUserId: map['createdByUserId'] as String,
-  createdAt: DateTime.parse(map['createdAt'] as String),
-  expiresAt: map['expiresAt'] != null ? DateTime.parse(map['expiresAt'] as String) : null,
-  maxUses: map['maxUses'] as int?,
-  usedCount: (map['usedCount'] ?? 0) as int,
-);
+        id: map['id'] as String,
+        baseId: map['baseId'] as String,
+        code: map['code'] as String,
+        createdByUserId: map['createdByUserId'] as String,
+        createdAt: DateTime.parse(map['createdAt'] as String),
+        expiresAt: map['expiresAt'] != null
+            ? DateTime.parse(map['expiresAt'] as String)
+            : null,
+        maxUses: map['maxUses'] as int?,
+        usedCount: (map['usedCount'] ?? 0) as int,
+      );
 
-
-  factory BaseInvite.fromJson(String source) => BaseInvite.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory BaseInvite.fromJson(String source) =>
+      BaseInvite.fromMap(json.decode(source) as Map<String, dynamic>);
 
   final String id; // uuid v4
   final String baseId;
@@ -39,15 +41,15 @@ class BaseInvite {
   bool get isDepleted => maxUses != null && usedCount >= maxUses!;
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'baseId': baseId,
-    'code': code,
-    'createdByUserId': createdByUserId,
-    'createdAt': createdAt.toIso8601String(),
-    'expiresAt': expiresAt?.toIso8601String(),
-    'maxUses': maxUses,
-    'usedCount': usedCount,
-  };
+        'id': id,
+        'baseId': baseId,
+        'code': code,
+        'createdByUserId': createdByUserId,
+        'createdAt': createdAt.toIso8601String(),
+        'expiresAt': expiresAt?.toIso8601String(),
+        'maxUses': maxUses,
+        'usedCount': usedCount,
+      };
 
   String toJson() => json.encode(toMap());
 }

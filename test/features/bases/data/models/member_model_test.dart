@@ -14,7 +14,8 @@ void main() {
       );
 
       final map = model.toFirestore();
-      expect(map.keys.toSet(), {'role', 'nickname', 'joinedAt', 'schemaVersion'});
+      expect(
+          map.keys.toSet(), {'role', 'nickname', 'joinedAt', 'schemaVersion'});
       expect(map['role'], 'owner');
       expect(map['nickname'], 'Alice');
       expect(map['schemaVersion'], 1);

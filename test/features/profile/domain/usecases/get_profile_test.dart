@@ -8,7 +8,7 @@ import '../../../../test_utils/mocks_profile.dart';
 import 'package:moonbase_skeleton/core/ids.dart';
 
 /// Test suite for the GetProfile use case.
-/// 
+///
 /// This test suite focuses on testing the core functionality
 /// of the GetProfile use case in isolation.
 void main() {
@@ -28,7 +28,8 @@ void main() {
       updatedAt: DateTime(2025, 1, 1),
     );
 
-    test('should return Right(Profile?) when repository returns profile', () async {
+    test('should return Right(Profile?) when repository returns profile',
+        () async {
       // Arrange
       when(() => mockRepository.getProfile(testUserId.uid))
           .thenAnswer((_) async => Right(testProfile));
@@ -67,7 +68,8 @@ void main() {
       verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should return Left(Failure) when repository returns failure', () async {
+    test('should return Left(Failure) when repository returns failure',
+        () async {
       // Arrange
       const failure = UnknownFailure('Profile not found');
       when(() => mockRepository.getProfile(testUserId.uid))
@@ -86,10 +88,11 @@ void main() {
       verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should return Left(Failure) when repository returns failure', () async {
+    test('should return Left(Failure) when repository returns failure',
+        () async {
       // Arrange
-      when(() => mockRepository.getProfile(testUserId.uid))
-          .thenAnswer((_) async => const Left(CacheFailure('Repository error')));
+      when(() => mockRepository.getProfile(testUserId.uid)).thenAnswer(
+          (_) async => const Left(CacheFailure('Repository error')));
 
       // Act
       final result = await useCase(GetProfileParams(testUserId.uid));

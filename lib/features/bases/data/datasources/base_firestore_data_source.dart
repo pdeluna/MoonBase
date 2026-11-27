@@ -142,7 +142,8 @@ class BaseFirestoreDataSource implements BaseLocalDataSource {
     final after = await ref.get();
     final data = after.data();
     if (!after.exists || data == null) {
-      throw StateError('Base create succeeded but document was missing on read');
+      throw StateError(
+          'Base create succeeded but document was missing on read');
     }
     return BaseModel.fromFirestore(ref.id, data);
   }
@@ -243,7 +244,8 @@ class BaseFirestoreDataSource implements BaseLocalDataSource {
 
     final code = normalizeInviteCode(inviteCode);
     if (!isValidInviteCode(code)) {
-      throw ArgumentError.value(inviteCode, 'inviteCode', 'must be 6-char code');
+      throw ArgumentError.value(
+          inviteCode, 'inviteCode', 'must be 6-char code');
     }
 
     final baseId = await _resolveBaseIdForCode(code);
@@ -326,8 +328,10 @@ class BaseFirestoreDataSource implements BaseLocalDataSource {
     if (maxUses != null && maxUses <= 0) {
       throw ArgumentError.value(maxUses, 'maxUses', 'must be > 0 when set');
     }
-    if (expiresAt != null && !expiresAt.toUtc().isAfter(DateTime.now().toUtc())) {
-      throw ArgumentError.value(expiresAt, 'expiresAt', 'must be in the future');
+    if (expiresAt != null &&
+        !expiresAt.toUtc().isAfter(DateTime.now().toUtc())) {
+      throw ArgumentError.value(
+          expiresAt, 'expiresAt', 'must be in the future');
     }
 
     final code = await _allocateInviteCode(baseId);

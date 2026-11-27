@@ -19,25 +19,30 @@ class BaseSettings {
     required this.updatedByUserId,
   });
 
-  factory BaseSettings.fromJson(String source) => BaseSettings.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory BaseSettings.fromJson(String source) =>
+      BaseSettings.fromMap(json.decode(source) as Map<String, dynamic>);
 
   factory BaseSettings.fromMap(Map<String, dynamic> map) => BaseSettings(
-    baseId: map['baseId'] as String,
-    allowMemberInvites: (map['allowMemberInvites'] ?? false) as bool,
-    allowMemberPosts: (map['allowMemberPosts'] ?? true) as bool,
-    allowMemberStories: (map['allowMemberStories'] ?? true) as bool,
-    allowMemberChat: (map['allowMemberChat'] ?? true) as bool,
-    requireApprovalForPosts: (map['requireApprovalForPosts'] ?? false) as bool,
-    requireApprovalForStories: (map['requireApprovalForStories'] ?? false) as bool,
-    maxMediaPerPost: (map['maxMediaPerPost'] ?? 10) as int,
-    maxMediaPerStory: (map['maxMediaPerStory'] ?? 1) as int,
-    storyTtl: Duration(milliseconds: (map['storyTtlMs'] ?? 86400000) as int),
-    enableLiveStreaming: (map['enableLiveStreaming'] ?? true) as bool,
-    enableReactions: (map['enableReactions'] ?? true) as bool,
-    allowedMediaTypes: List<String>.from((map['allowedMediaTypes'] ?? const ['image', 'video', 'link']) as Iterable<dynamic>),
-    updatedAt: DateTime.parse(map['updatedAt'] as String),
-    updatedByUserId: map['updatedByUserId'] as String,
-  );
+        baseId: map['baseId'] as String,
+        allowMemberInvites: (map['allowMemberInvites'] ?? false) as bool,
+        allowMemberPosts: (map['allowMemberPosts'] ?? true) as bool,
+        allowMemberStories: (map['allowMemberStories'] ?? true) as bool,
+        allowMemberChat: (map['allowMemberChat'] ?? true) as bool,
+        requireApprovalForPosts:
+            (map['requireApprovalForPosts'] ?? false) as bool,
+        requireApprovalForStories:
+            (map['requireApprovalForStories'] ?? false) as bool,
+        maxMediaPerPost: (map['maxMediaPerPost'] ?? 10) as int,
+        maxMediaPerStory: (map['maxMediaPerStory'] ?? 1) as int,
+        storyTtl:
+            Duration(milliseconds: (map['storyTtlMs'] ?? 86400000) as int),
+        enableLiveStreaming: (map['enableLiveStreaming'] ?? true) as bool,
+        enableReactions: (map['enableReactions'] ?? true) as bool,
+        allowedMediaTypes: List<String>.from((map['allowedMediaTypes'] ??
+            const ['image', 'video', 'link']) as Iterable<dynamic>),
+        updatedAt: DateTime.parse(map['updatedAt'] as String),
+        updatedByUserId: map['updatedByUserId'] as String,
+      );
 
   final String baseId;
   final bool allowMemberInvites; // can members invite others
@@ -54,7 +59,6 @@ class BaseSettings {
   final List<String> allowedMediaTypes; // allowed media types
   final DateTime updatedAt;
   final String updatedByUserId;
-
 
   BaseSettings copyWith({
     String? baseId,
@@ -79,8 +83,10 @@ class BaseSettings {
       allowMemberPosts: allowMemberPosts ?? this.allowMemberPosts,
       allowMemberStories: allowMemberStories ?? this.allowMemberStories,
       allowMemberChat: allowMemberChat ?? this.allowMemberChat,
-      requireApprovalForPosts: requireApprovalForPosts ?? this.requireApprovalForPosts,
-      requireApprovalForStories: requireApprovalForStories ?? this.requireApprovalForStories,
+      requireApprovalForPosts:
+          requireApprovalForPosts ?? this.requireApprovalForPosts,
+      requireApprovalForStories:
+          requireApprovalForStories ?? this.requireApprovalForStories,
       maxMediaPerPost: maxMediaPerPost ?? this.maxMediaPerPost,
       maxMediaPerStory: maxMediaPerStory ?? this.maxMediaPerStory,
       storyTtl: storyTtl ?? this.storyTtl,
@@ -93,31 +99,31 @@ class BaseSettings {
   }
 
   Map<String, dynamic> toMap() => {
-    'baseId': baseId,
-    'allowMemberInvites': allowMemberInvites,
-    'allowMemberPosts': allowMemberPosts,
-    'allowMemberStories': allowMemberStories,
-    'allowMemberChat': allowMemberChat,
-    'requireApprovalForPosts': requireApprovalForPosts,
-    'requireApprovalForStories': requireApprovalForStories,
-    'maxMediaPerPost': maxMediaPerPost,
-    'maxMediaPerStory': maxMediaPerStory,
-    'storyTtlMs': storyTtl.inMilliseconds,
-    'enableLiveStreaming': enableLiveStreaming,
-    'enableReactions': enableReactions,
-    'allowedMediaTypes': allowedMediaTypes,
-    'updatedAt': updatedAt.toIso8601String(),
-    'updatedByUserId': updatedByUserId,
-  };
+        'baseId': baseId,
+        'allowMemberInvites': allowMemberInvites,
+        'allowMemberPosts': allowMemberPosts,
+        'allowMemberStories': allowMemberStories,
+        'allowMemberChat': allowMemberChat,
+        'requireApprovalForPosts': requireApprovalForPosts,
+        'requireApprovalForStories': requireApprovalForStories,
+        'maxMediaPerPost': maxMediaPerPost,
+        'maxMediaPerStory': maxMediaPerStory,
+        'storyTtlMs': storyTtl.inMilliseconds,
+        'enableLiveStreaming': enableLiveStreaming,
+        'enableReactions': enableReactions,
+        'allowedMediaTypes': allowedMediaTypes,
+        'updatedAt': updatedAt.toIso8601String(),
+        'updatedByUserId': updatedByUserId,
+      };
 
   String toJson() => json.encode(toMap());
 
   @override
   bool operator ==(Object other) =>
-    identical(this, other) ||
-    other is BaseSettings &&
-    runtimeType == other.runtimeType &&
-    baseId == other.baseId;
+      identical(this, other) ||
+      other is BaseSettings &&
+          runtimeType == other.runtimeType &&
+          baseId == other.baseId;
 
   @override
   int get hashCode => baseId.hashCode;

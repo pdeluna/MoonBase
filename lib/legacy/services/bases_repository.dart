@@ -1,4 +1,4 @@
-﻿import 'package:moonbase_skeleton/legacy/models/base.dart';
+import 'package:moonbase_skeleton/legacy/models/base.dart';
 import 'package:moonbase_skeleton/legacy/models/base_member.dart';
 import 'package:moonbase_skeleton/legacy/models/enums.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,19 +6,28 @@ import 'package:uuid/uuid.dart';
 import 'dart:convert';
 
 abstract class BasesRepository {
-  Future<Base> createBase({required String name, String? description, String? avatarUrl, required String userId});
+  Future<Base> createBase(
+      {required String name,
+      String? description,
+      String? avatarUrl,
+      required String userId});
   Future<void> deleteBase(String baseId, {required String userId});
-  Future<Base> updateBase(String baseId, {required String name, String? description, String? avatarUrl, required String userId});
+  Future<Base> updateBase(String baseId,
+      {required String name,
+      String? description,
+      String? avatarUrl,
+      required String userId});
 
   Future<Base?> getBase(String baseId);
   Future<List<Base>> listMyBases(String userId);
 
-  Future<BaseMember> addMember({required String baseId, required String userId, required BaseRole role});
+  Future<BaseMember> addMember(
+      {required String baseId, required String userId, required BaseRole role});
   Future<void> removeMember({required String baseId, required String userId});
 
   Future<List<BaseMember>> listMembers(String baseId);
   Future<void> upsert(Base base);
-  
+
   /// Check if a user is the owner of a base
   Future<bool> isOwner({required String baseId, required String userId});
   Future<void> updateLastAccessed(String baseId);
@@ -47,7 +56,8 @@ class SpBasesRepository implements BasesRepository {
     }
   }
 
-  Future<void> _writeBases(SharedPreferences sp, Map<String, dynamic> bases) async {
+  Future<void> _writeBases(
+      SharedPreferences sp, Map<String, dynamic> bases) async {
     await sp.setString(_kBases, jsonEncode(bases));
   }
 
@@ -62,7 +72,8 @@ class SpBasesRepository implements BasesRepository {
     }
   }
 
-  Future<void> _writeMembers(SharedPreferences sp, Map<String, dynamic> members) async {
+  Future<void> _writeMembers(
+      SharedPreferences sp, Map<String, dynamic> members) async {
     await sp.setString(_kMembers, jsonEncode(members));
   }
 
@@ -77,19 +88,24 @@ class SpBasesRepository implements BasesRepository {
     }
   }
 
-  Future<void> _writeUserBases(SharedPreferences sp, Map<String, dynamic> userBases) async {
+  Future<void> _writeUserBases(
+      SharedPreferences sp, Map<String, dynamic> userBases) async {
     await sp.setString(_kUserBases, jsonEncode(userBases));
   }
 
   // ---- BasesRepository implementation ----
 
   @override
-  Future<Base> createBase({required String name, String? description, String? avatarUrl, required String userId}) async {
+  Future<Base> createBase(
+      {required String name,
+      String? description,
+      String? avatarUrl,
+      required String userId}) async {
     final sp = await SharedPreferences.getInstance();
 
     final baseId = const Uuid().v4();
     final now = DateTime.now();
-    
+
     final base = Base(
       id: baseId,
       name: name,
@@ -109,14 +125,16 @@ class SpBasesRepository implements BasesRepository {
 
     // Add to user's bases
     final userBases = await _readUserBases(sp);
-    final userBaseList = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
+    final userBaseList = List<String>.from(
+        (userBases[userId] ?? <String>[]) as Iterable<dynamic>);
     userBaseList.add(baseId);
     userBases[userId] = userBaseList;
     await _writeUserBases(sp, userBases);
 
     // Add owner as member directly (avoiding circular dependency)
     final members = await _readMembers(sp);
-    final baseMembers = List<Map<String, dynamic>>.from((members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+    final baseMembers = List<Map<String, dynamic>>.from(
+        (members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     final ownerMember = BaseMember(
       id: const Uuid().v4(),
       baseId: baseId,
@@ -135,7 +153,7 @@ class SpBasesRepository implements BasesRepository {
   @override
   Future<void> deleteBase(String baseId, {required String userId}) async {
     final sp = await SharedPreferences.getInstance();
-    
+
     // Check if current user is owner
     final isOwner = await this.isOwner(baseId: baseId, userId: userId);
     if (!isOwner) {
@@ -145,7 +163,8 @@ class SpBasesRepository implements BasesRepository {
     // Remove base from all users' lists
     final userBases = await _readUserBases(sp);
     for (final userId in userBases.keys) {
-      final userBaseList = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
+      final userBaseList = List<String>.from(
+          (userBases[userId] ?? <String>[]) as Iterable<dynamic>);
       userBaseList.remove(baseId);
       userBases[userId] = userBaseList;
     }
@@ -163,9 +182,13 @@ class SpBasesRepository implements BasesRepository {
   }
 
   @override
-  Future<Base> updateBase(String baseId, {required String name, String? description, String? avatarUrl, required String userId}) async {
+  Future<Base> updateBase(String baseId,
+      {required String name,
+      String? description,
+      String? avatarUrl,
+      required String userId}) async {
     final sp = await SharedPreferences.getInstance();
-    
+
     // Check if current user is owner
     final isOwner = await this.isOwner(baseId: baseId, userId: userId);
     if (!isOwner) {
@@ -181,7 +204,7 @@ class SpBasesRepository implements BasesRepository {
 
     final currentBase = Base.fromJson(baseJson as String);
     final now = DateTime.now();
-    
+
     // Update base
     final updatedBase = currentBase.copyWith(
       name: name,
@@ -202,7 +225,7 @@ class SpBasesRepository implements BasesRepository {
     final bases = await _readBases(sp);
     final baseJson = bases[baseId];
     if (baseJson == null) return null;
-    
+
     try {
       return Base.fromJson(baseJson as String);
     } catch (_) {
@@ -214,12 +237,13 @@ class SpBasesRepository implements BasesRepository {
   Future<List<Base>> listMyBases(String userId) async {
     final sp = await SharedPreferences.getInstance();
     final userBases = await _readUserBases(sp);
-    final baseIds = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
-    
+    final baseIds = List<String>.from(
+        (userBases[userId] ?? <String>[]) as Iterable<dynamic>);
+
     final bases = await _readBases(sp);
-    
+
     final result = <Base>[];
-    
+
     for (final baseId in baseIds) {
       final baseJson = bases[baseId];
       if (baseJson != null) {
@@ -231,14 +255,17 @@ class SpBasesRepository implements BasesRepository {
         }
       }
     }
-    
+
     return result;
   }
 
   @override
-  Future<BaseMember> addMember({required String baseId, required String userId, required BaseRole role}) async {
+  Future<BaseMember> addMember(
+      {required String baseId,
+      required String userId,
+      required BaseRole role}) async {
     final sp = await SharedPreferences.getInstance();
-    
+
     // Check if base exists
     final base = await getBase(baseId);
     if (base == null) {
@@ -257,14 +284,16 @@ class SpBasesRepository implements BasesRepository {
 
     // Add to members list
     final members = await _readMembers(sp);
-    final baseMembers = List<Map<String, dynamic>>.from((members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+    final baseMembers = List<Map<String, dynamic>>.from(
+        (members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     baseMembers.add(member.toMap());
     members[baseId] = baseMembers;
     await _writeMembers(sp, members);
 
     // Add to user's bases if not already there
     final userBases = await _readUserBases(sp);
-    final userBaseList = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
+    final userBaseList = List<String>.from(
+        (userBases[userId] ?? <String>[]) as Iterable<dynamic>);
     if (!userBaseList.contains(baseId)) {
       userBaseList.add(baseId);
       userBases[userId] = userBaseList;
@@ -292,23 +321,26 @@ class SpBasesRepository implements BasesRepository {
   }
 
   @override
-  Future<void> removeMember({required String baseId, required String userId}) async {
+  Future<void> removeMember(
+      {required String baseId, required String userId}) async {
     final sp = await SharedPreferences.getInstance();
-    
+
     // TODO: We need to get the current user ID from the session
     // For now, we'll skip the ownership check to fix the immediate issue
     // This should be fixed in a future iteration
 
     // Remove from members list
     final members = await _readMembers(sp);
-    final baseMembers = List<Map<String, dynamic>>.from((members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+    final baseMembers = List<Map<String, dynamic>>.from(
+        (members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
     baseMembers.removeWhere((member) => member['userId'] == userId);
     members[baseId] = baseMembers;
     await _writeMembers(sp, members);
 
     // Remove from user's bases
     final userBases = await _readUserBases(sp);
-    final userBaseList = List<String>.from((userBases[userId] ?? <String>[]) as Iterable<dynamic>);
+    final userBaseList = List<String>.from(
+        (userBases[userId] ?? <String>[]) as Iterable<dynamic>);
     userBaseList.remove(baseId);
     userBases[userId] = userBaseList;
     await _writeUserBases(sp, userBases);
@@ -335,8 +367,9 @@ class SpBasesRepository implements BasesRepository {
   Future<List<BaseMember>> listMembers(String baseId) async {
     final sp = await SharedPreferences.getInstance();
     final members = await _readMembers(sp);
-    final baseMembers = List<Map<String, dynamic>>.from((members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
-    
+    final baseMembers = List<Map<String, dynamic>>.from(
+        (members[baseId] ?? <Map<String, dynamic>>[]) as Iterable<dynamic>);
+
     final result = <BaseMember>[];
     for (final memberJson in baseMembers) {
       try {
@@ -346,7 +379,7 @@ class SpBasesRepository implements BasesRepository {
         // Skip corrupted member data
       }
     }
-    
+
     return result;
   }
 

@@ -1,6 +1,5 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:moonbase_skeleton/legacy/models/enums.dart';
-
 
 class BaseMember {
   const BaseMember({
@@ -13,15 +12,16 @@ class BaseMember {
   });
 
   factory BaseMember.fromMap(Map<String, dynamic> map) => BaseMember(
-    id: map['id'] as String,
-    baseId: map['baseId'] as String,
-    userId: map['userId'] as String,
-    role: BaseRole.values.byName(map['role'] as String),
-    joinedAt: DateTime.parse(map['joinedAt'] as String),
-    updatedAt: DateTime.parse(map['updatedAt'] as String),
-  );
+        id: map['id'] as String,
+        baseId: map['baseId'] as String,
+        userId: map['userId'] as String,
+        role: BaseRole.values.byName(map['role'] as String),
+        joinedAt: DateTime.parse(map['joinedAt'] as String),
+        updatedAt: DateTime.parse(map['updatedAt'] as String),
+      );
 
-  factory BaseMember.fromJson(String source) => BaseMember.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory BaseMember.fromJson(String source) =>
+      BaseMember.fromMap(json.decode(source) as Map<String, dynamic>);
 
   final String id; // uuid v4
   final String baseId;
@@ -49,13 +49,13 @@ class BaseMember {
   }
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'baseId': baseId,
-    'userId': userId,
-    'role': role.name,
-    'joinedAt': joinedAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
-  };
+        'id': id,
+        'baseId': baseId,
+        'userId': userId,
+        'role': role.name,
+        'joinedAt': joinedAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
 
   String toJson() => json.encode(toMap());
 }

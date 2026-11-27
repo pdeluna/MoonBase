@@ -6,7 +6,8 @@ import 'package:moonbase_skeleton/features/chat/domain/entities/message.dart';
 import 'package:moonbase_skeleton/features/chat/domain/repositories/chat_repository.dart';
 
 class ListMessagesParams {
-  const ListMessagesParams({required this.baseId, this.before, this.limit = 50});
+  const ListMessagesParams(
+      {required this.baseId, this.before, this.limit = 50});
 
   final BaseId baseId;
   final DateTime? before;

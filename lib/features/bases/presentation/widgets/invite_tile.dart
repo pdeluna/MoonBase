@@ -52,15 +52,15 @@ class InviteTile extends StatelessWidget {
               Text(
                 'Expired',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                      color: Theme.of(context).colorScheme.error,
+                    ),
               )
             else if (vm.isDepleted)
               Text(
                 'Used up',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                      color: Theme.of(context).colorScheme.error,
+                    ),
               ),
           ],
         ),
@@ -70,7 +70,8 @@ class InviteTile extends StatelessWidget {
               case 'copy':
                 Clipboard.setData(ClipboardData(text: vm.code));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Invite code copied to clipboard')),
+                  const SnackBar(
+                      content: Text('Invite code copied to clipboard')),
                 );
                 break;
               case 'details':

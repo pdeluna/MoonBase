@@ -52,16 +52,19 @@ class InvitesScreen extends ConsumerWidget {
                 Text(
                   'Base Invites',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Create and manage invite codes for ${selectedBase.name}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
-                  ),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer
+                            .withValues(alpha: 0.8),
+                      ),
                 ),
               ],
             ),
@@ -74,7 +77,8 @@ class InvitesScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCreateInviteDialog(context, selectedBase.id.value),
+        onPressed: () =>
+            _showCreateInviteDialog(context, selectedBase.id.value),
         icon: const Icon(Icons.add),
         label: const Text('Create Invite'),
       ),
